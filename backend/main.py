@@ -1,0 +1,721 @@
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from core.router import get_transformer
+from renderer.engine import render_resolved
+from workspace.manager import (
+    save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
+)
+from workspace.compiler import compile_workspace, get_workspace_tree
+import json
+from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Any, Optional
+# Load environment variables manually from .env if present
+def load_env():
+    import os
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.exists():
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip()
+
+load_env()
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None, dict]:
+    # Check if this is a wrapped record (has a "payload" or "data" field)
+    if "payload" in payload and isinstance(payload["payload"], dict):
+        data = payload["payload"].copy()
+        slug = payload.get("slug")
+        page_type = payload.get("page_type")
+        university_slug = payload.get("university_slug")
+        parent_slug = payload.get("parent_slug")
+    elif "data" in payload and isinstance(payload["data"], dict):
+        data = payload["data"].copy()
+        slug = payload.get("slug")
+        page_type = payload.get("page_type")
+        university_slug = payload.get("university_slug")
+        parent_slug = payload.get("parent_slug")
+    else:
+        data = payload.copy()
+        slug = data.pop("slug", None)
+        page_type = data.pop("page_type", None)
+        university_slug = data.pop("university_slug", None)
+        parent_slug = data.pop("parent_slug", None)
+
+    # Pop metadata keys from data if they exist inside the content block
+    for k in ["slug", "page_type", "university_slug", "parent_slug"]:
+        data.pop(k, None)
+
+    # If page_type is not provided, derive it
+    if not page_type:
+        if "spec_name" in data:
+            page_type = "specialization"
+        elif "program_name" in data:
+            page_type = "course"
+        elif  "university_full_name" in data or "established_year" in data:
+            page_type = "university"
+        elif "posts" in data:
+            page_type = "blog"
+        else:
+            page_type = "course" # default fallback
+
+    # If university_slug is not provided, derive it
+    if not university_slug:
+        uni_name = data.get("university_name") or data.get("university_full_name") or "unknown"
+        university_slug = uni_name.lower().replace(" online", "").replace("'", "").replace(" ", "-").strip()
+
+    # If slug is not provided, derive it
+    if not slug:
+        name = data.get("spec_name") or data.get("program_name") or data.get("university_name") or data.get("hero_title")
+        if name:
+            slug = name.lower().replace("'", "").replace(" ", "-").strip()
+            # If university prefix is missing for courses/specializations, prepend it
+            if page_type in ("course", "specialization") and not slug.startswith(university_slug):
+                slug = f"{university_slug}-{slug}"
+        else:
+            slug = "untitled"
+
+    # Clean up parent_slug if specialization
+    if not parent_slug and page_type == "specialization":
+        # Check if parent_slug is inside data
+        parent_slug = data.get("parent_slug") or "nmims-online-mba" # fallback default
+
+    return slug, page_type, university_slug, parent_slug, data
+
+def save_base64_image(base64_str: str, dest_dir: Path, filename_prefix: str) -> str | None:
+    import base64
+    import re
+    if not base64_str:
+        return None
+    if base64_str.startswith("/assets/images/") or base64_str.startswith("http://") or base64_str.startswith("https://"):
+        return base64_str
+    match = re.match(r"^data:image/(\w+);base64,(.+)$", base64_str)
+    if not match:
+        return base64_str
+    ext = match.group(1)
+    if ext == "jpeg":
+        ext = "jpg"
+    data_b64 = match.group(2)
+    try:
+        data = base64.b64decode(data_b64)
+    except Exception:
+        return base64_str
+    filename = f"{filename_prefix}.{ext}"
+    dest_path = dest_dir / filename
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path.write_bytes(data)
+    return f"/assets/images/{filename}"
+
+@app.get("/assets/images/{filename}")
+async def get_asset_image(filename: str):
+    from fastapi.responses import FileResponse
+    for p in WORKSPACES_ROOT.glob(f"*/Assets/images/{filename}"):
+        if p.exists():
+            ext = p.suffix.lower()
+            media_type = "image/jpeg"
+            if ext == ".png":
+                media_type = "image/png"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            return FileResponse(p, media_type=media_type)
+    raise HTTPException(status_code=404, detail="Image not found")
+
+@app.get("/support.js")
+async def get_support_js():
+    from fastapi.responses import FileResponse
+    base_dir = Path(__file__).resolve().parent
+    search_paths = [
+        base_dir / "support.js",
+        base_dir.parent / "support.js",
+        base_dir.parent / "frontend" / "public" / "support.js",
+    ]
+    for p in search_paths:
+        if p.exists():
+            return FileResponse(p, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="support.js not found")
+
+class SaveTempRequest(BaseModel):
+    data: dict[str, Any]
+
+@app.post("/save-temp-json")
+async def save_temp_json(req: SaveTempRequest):
+    try:
+        base_dir = Path(__file__).resolve().parent
+        temp_file = base_dir / "generated" / "temp_debug.json"
+        temp_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(req.data, f, indent=2, ensure_ascii=False)
+        return {"status": "saved", "path": str(temp_file)}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+class IngestRequest(BaseModel):
+    acf_data: dict[str, Any]
+
+@app.post("/ingest-acf")
+async def ingest_acf(req: IngestRequest):
+    try:
+        slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": acf_data
+        }
+        transformer = get_transformer(resolved)
+        ctx = transformer.transform()
+        import json
+        ctx["ctx_json"] = json.dumps(ctx, default=str)
+        return {
+            "status": "ok",
+            "context": ctx,
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "acf_data": acf_data
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+class RenderRequest(BaseModel):
+    acf_data: dict[str, Any]
+    images: dict[str, str] = {}
+
+@app.post("/preview-html", response_class=HTMLResponse)
+async def preview_html(req: RenderRequest):
+    """Render dynamically without database persistence — return HTML as text (for iframe preview)."""
+    try:
+        slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        merged = {**acf_data, **req.images}
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": merged
+        }
+        html = render_resolved(resolved)
+        return HTMLResponse(content=html)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/render-html")
+async def render_html(req: RenderRequest):
+    """Render dynamically, save file to generated/{page_type}/{slug}.html — return HTML as downloadable attachment."""
+    try:
+        slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        merged = {**acf_data, **req.images}
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": merged
+        }
+        html = render_resolved(resolved)
+        
+        # Save compiled HTML to backend/generated/{page_type}/{slug}.dc.html
+        base_dir = Path(__file__).resolve().parent
+        generated_dir = base_dir / "generated" / page_type
+        generated_dir.mkdir(parents=True, exist_ok=True)
+        (generated_dir / f"{slug}.dc.html").write_text(html, encoding="utf-8")
+        
+        return Response(
+            content=html,
+            media_type="text/html",
+            headers={"Content-Disposition": f"attachment; filename={slug}.dc.html"}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+def forward_to_micro_pipeline(file_bytes: bytes, filename: str, page_type: str | None = None) -> dict:
+    import os
+    import urllib.request
+    import urllib.error
+    import uuid
+
+    micro_app_url = os.environ.get("MICRO_APP_URL", "https://micro-app-57l9.onrender.com")
+    url = micro_app_url.strip()
+    if url.endswith("/"):
+        url = url[:-1]
+
+    # Determine the endpoint (match the rules from frontend api.js)
+    if url.endswith("/upload") or url.endswith("/parse-docx"):
+        endpoint = url
+    else:
+        endpoint = f"{url}/upload"
+
+    boundary = uuid.uuid4().hex
+    body = []
+
+    # File field
+    body.append(f"--{boundary}".encode("utf-8"))
+    body.append(f'Content-Disposition: form-data; name="file"; filename="{filename}"'.encode("utf-8"))
+    body.append(b"Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    body.append(b"")
+    body.append(file_bytes)
+
+    # page_type field
+    if page_type:
+        body.append(f"--{boundary}".encode("utf-8"))
+        body.append(f'Content-Disposition: form-data; name="page_type"'.encode("utf-8"))
+        body.append(b"")
+        body.append(page_type.encode("utf-8"))
+
+    body.append(f"--{boundary}--".encode("utf-8"))
+    body.append(b"")
+
+    body_data = b"\r\n".join(body)
+
+    req = urllib.request.Request(endpoint, data=body_data)
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    req.add_header("Content-Length", str(len(body_data)))
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as res:
+            response_data = res.read().decode("utf-8")
+            return json.loads(response_data)
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        try:
+            error_json = json.loads(error_body)
+            detail = error_json.get("detail", error_json.get("error", str(e)))
+        except Exception:
+            detail = error_body or str(e)
+        raise HTTPException(status_code=e.code, detail=detail)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to communicate with micro-pipeline: {str(e)}")
+
+@app.post("/parse-docx")
+async def parse_docx_endpoint(
+    file: UploadFile = File(...),
+    page_type: str | None = Form(default=None)
+):
+    """Parse a .docx document into ACF JSON fields. If it's a blog page type, parse using generic parser; otherwise use micro-pipeline."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided.")
+    if not file.filename.lower().endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Only .docx files are supported.")
+
+    import tempfile
+    import os
+    from ingestion.parser import parse_docx
+    from ingestion.extractor import blocks_to_html
+    from pathlib import Path
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # Write to a temp file to parse/inspect headings and content
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+
+    try:
+        # Parse the docx to get blocks
+        blocks = parse_docx(tmp_path)
+
+        # Determine/Detect page type
+        detected_type = page_type
+        if not detected_type:
+            headings = [b["text"].lower() for b in blocks if b["type"] in ("h1", "h2", "h3")]
+            scores = {"university": 0, "course": 0, "specialization": 0, "blog": 0}
+            for h in headings:
+                if any(w in h for w in ["about the university", "why choose nmims", "why choose university", "accreditation", "facts", "ugc approved"]):
+                    scores["university"] += 2
+                if any(w in h for w in ["about the course", "about the program", "course highlights", "specializations offered", "syllabus", "fee structure", "fee plans"]):
+                    scores["course"] += 2
+                if any(w in h for w in ["about the specialization", "specialization highlights", "job roles", "job profiles", "other specializations"]):
+                    scores["specialization"] += 2
+                if any(w in h for w in ["blog", "post", "article", "author", "published"]):
+                    scores["blog"] += 2
+            
+            detected_type = max(scores, key=scores.get)
+            if scores[detected_type] == 0:
+                detected_type = "course"
+
+        # Check if the page type is a blog/generic type
+        is_blog_or_generic = detected_type in ("blog", "blog_post", "generic")
+
+        if is_blog_or_generic:
+            # Route to the blog/generic parser logic
+            import math
+            import re
+            from datetime import datetime
+
+            # Clean blocks first
+            cleaned_blocks = []
+            for b in blocks:
+                cleaned_block = {"type": b["type"]}
+                if "text" in b:
+                    cleaned_text = b["text"]
+                    cleaned_text = re.sub(r"^Copy of\s+", "", cleaned_text, flags=re.IGNORECASE)
+                    cleaned_block["text"] = cleaned_text
+                if "rows" in b:
+                    cleaned_block["rows"] = b["rows"]
+                cleaned_blocks.append(cleaned_block)
+
+            # Find the title (usually the first heading block)
+            title = None
+            title_index = -1
+            for i, b in enumerate(cleaned_blocks):
+                if b["type"] in ("h1", "h2", "h3") and "text" in b:
+                    title = b["text"]
+                    title_index = i
+                    break
+
+            if not title:
+                title = Path(file.filename).stem
+                title = re.sub(r"^Copy of\s+", "", title, flags=re.IGNORECASE)
+                title = re.sub(r"^[hH][1-4][_\s:]+", "", title)
+                title = title.replace("-", " ").replace("_", " ").title()
+
+            # Find excerpt: usually the first paragraph after the title
+            excerpt = ""
+            start_search = title_index + 1 if title_index != -1 else 0
+            for i in range(start_search, len(cleaned_blocks)):
+                b = cleaned_blocks[i]
+                if b["type"] in ("paragraph", "bold_para") and "text" in b:
+                    excerpt = b["text"]
+                    break
+
+            # Filter blocks for content: skip the title heading block to avoid duplicates
+            content_blocks = []
+            for i, b in enumerate(cleaned_blocks):
+                if i == title_index:
+                    continue
+                # Also skip "Introduction" heading if it appears right after title and is redundant
+                if i == title_index + 1 and b["type"] == "h2" and b.get("text", "").lower() == "introduction":
+                    continue
+                content_blocks.append(b)
+
+            content_html = blocks_to_html(content_blocks)
+
+            # Estimate reading time based on word count
+            word_count = 0
+            for b in content_blocks:
+                if b.get("text"):
+                    word_count += len(b["text"].split())
+            read_time_mins = max(1, math.ceil(word_count / 200))
+            read_time = f"{read_time_mins} min read"
+
+            # Classify category/tag based on keywords in title and filename
+            title_lower = title.lower()
+            filename_lower = file.filename.lower()
+            tag = "Guide"
+            if any(w in title_lower or w in filename_lower for w in ["scholarship", "fee", "cost", "financing"]):
+                tag = "Finance"
+            elif any(w in title_lower or w in filename_lower for w in ["placement", "career", "salary", "jobs", "working", "work"]):
+                tag = "Career"
+            elif any(w in title_lower or w in filename_lower for w in ["subject", "year", "syllabus", "student"]):
+                tag = "Student Life"
+            elif any(w in title_lower or w in filename_lower for w in ["admission", "valid", "eligibility", "ignou", "mca"]):
+                tag = "Admissions"
+
+            payload = {
+                "title": title,
+                "excerpt": excerpt,
+                "content_html": content_html,
+                "tag": tag,
+                "author": "Aditi Rao",
+                "author_role": "Career Editor",
+                "read_time": read_time,
+                "date": datetime.now().strftime("%b %d, %Y"),
+                "blocks": cleaned_blocks
+            }
+
+            return {
+                "filename": file.filename,
+                "page_type": detected_type,
+                "payload": payload
+            }
+        else:
+            # Route to the micro-pipeline (passing the original file bytes)
+            return forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Workspace endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+class CreateWorkspaceRequest(BaseModel):
+    university_slug: str
+    university_name: Optional[str] = None
+    metadata_overrides: Optional[dict[str, Any]] = None
+
+
+@app.post("/workspaces")
+async def create_workspace_endpoint(req: CreateWorkspaceRequest):
+    """
+    Create a new university workspace on disk:
+    1. Writes metadata.json with university info.
+    2. Initialises the 3 system listing pages (Programs, Specializations, Blog).
+
+    Returns { university_slug, workspace_dir, pages_created }
+    """
+    try:
+        slug = req.university_slug.lower().strip()
+        overrides = req.metadata_overrides or {}
+        if req.university_name:
+            overrides["university_name"] = req.university_name
+
+        meta = ensure_metadata(slug, overrides)
+
+        # Initialise the 3 system listing pages
+        listing_results = init_system_pages(slug)
+
+        return {
+            "status": "created",
+            "university_slug": slug,
+            "workspace_dir": str(WORKSPACES_ROOT / slug),
+            "metadata": meta,
+            "pages_created": len(listing_results),
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class SaveToWorkspaceRequest(BaseModel):
+    acf_data: dict[str, Any]
+    images: dict[str, str] = {}
+    metadata_overrides: Optional[dict[str, Any]] = None
+
+
+@app.post("/save-to-workspace")
+async def save_to_workspace(req: SaveToWorkspaceRequest):
+    """
+    Transform the ACF JSON, render the HTML, and persist both into the
+    university workspace folder structure.
+
+    source.json (source of truth) + page.html are written to:
+      university  → workspaces/<uni>/University/
+      course      → workspaces/<uni>/Courses/<slug>/
+      spec        → workspaces/<uni>/Courses/<parent>/Specializations/<slug>/
+      blog        → workspaces/<uni>/Blogs/<slug>/
+    """
+    try:
+        slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        
+        # 1. Validate required images before compile/save
+        required_slots = {
+            "university": ["hero_image_url"],
+            "course": ["hero_image_url", "certificate_image_url"],
+            "specialization": ["hero_image_url"],
+            "blog": ["hero_image_url"]
+        }
+        
+        if page_type in required_slots:
+            for slot in required_slots[page_type]:
+                val_in_images = req.images.get(slot)
+                val_in_acf = acf_data.get(slot)
+                if not val_in_images and not val_in_acf:
+                    labels = {
+                        "hero_image_url": "Hero Image",
+                        "certificate_image_url": "Degree Certificate Image"
+                    }
+                    slot_name = labels.get(slot, slot.replace("_", " ").title())
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Missing required image: {slot_name}"
+                    )
+
+        # 2. Process and save base64 images to local Assets/images/ directory
+        assets_dir = WORKSPACES_ROOT / university_slug / "Assets" / "images"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Process from req.images
+        for slot, img_data in req.images.items():
+            if img_data:
+                if page_type == "university":
+                    prefix = "university-hero"
+                elif page_type == "course":
+                    if slot == "hero_image_url":
+                        prefix = f"{slug}-hero"
+                    elif slot == "certificate_image_url":
+                        prefix = f"{slug}-certificate"
+                    else:
+                        prefix = f"{slug}-{slot}"
+                elif page_type == "specialization":
+                    prefix = f"{slug}-hero"
+                elif page_type == "blog":
+                    prefix = f"blog-{slug}-hero"
+                else:
+                    prefix = f"{slug}-{slot}"
+                
+                local_path = save_base64_image(img_data, assets_dir, prefix)
+                if local_path:
+                    acf_data[slot] = local_path
+                    
+        # Process from acf_data directly if base64 exists there
+        for slot in ["hero_image_url", "certificate_image_url"]:
+            img_data = acf_data.get(slot)
+            if img_data and img_data.startswith("data:image/"):
+                if page_type == "university":
+                    prefix = "university-hero"
+                elif page_type == "course":
+                    if slot == "hero_image_url":
+                        prefix = f"{slug}-hero"
+                    elif slot == "certificate_image_url":
+                        prefix = f"{slug}-certificate"
+                    else:
+                        prefix = f"{slug}-{slot}"
+                elif page_type == "specialization":
+                    prefix = f"{slug}-hero"
+                elif page_type == "blog":
+                    prefix = f"blog-{slug}-hero"
+                else:
+                    prefix = f"{slug}-{slot}"
+                
+                local_path = save_base64_image(img_data, assets_dir, prefix)
+                if local_path:
+                    acf_data[slot] = local_path
+
+        # Prepare for rendering
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": acf_data,
+        }
+
+        # Render the HTML
+        html = render_resolved(resolved)
+
+        # Optionally update workspace metadata (phone, email, theme, etc.)
+        if req.metadata_overrides:
+            ensure_metadata(university_slug, req.metadata_overrides)
+
+        # Save to workspace
+        result = save_page(
+            university_slug=university_slug,
+            page_type=page_type,
+            slug=slug,
+            source_json=acf_data,
+            rendered_html=html,
+            parent_slug=parent_slug,
+        )
+
+        # After saving user content, auto-re-render all 3 listing pages
+        # so they always reflect the latest workspace state.
+        try:
+            from workspace.compiler import _build_index, _auto_render_listing_pages
+            index = _build_index(university_slug)
+            _auto_render_listing_pages(university_slug, index)
+        except Exception as listing_err:
+            # Non-fatal: listing pages will be refreshed on next compile
+            import logging
+            logging.warning(f"Listing page re-render skipped: {listing_err}")
+
+        return {
+            "status": "saved",
+            **result,
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/compile-workspace")
+async def compile_workspace_endpoint(university_slug: str = Form(...)):
+    """
+    Run the two-pass workspace compiler for the given university.
+
+    Pass 1 — scans all source.json files and builds a global index of
+             courses, specs, blogs and the university page.
+    Pass 2 — enriches each page with resolved parent/sibling context,
+             re-renders via the Jinja2 engine, and overwrites each .html file.
+    """
+    try:
+        result = compile_workspace(university_slug)
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/workspace-tree")
+async def workspace_tree_endpoint(university_slug: str):
+    """
+    Return a nested JSON tree describing the workspace structure for a university.
+    Used by the frontend workspace browser.
+    """
+    try:
+        tree = get_workspace_tree(university_slug)
+        return tree
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/workspaces")
+async def list_workspaces_endpoint():
+    """Return a list of all university workspaces that exist on disk."""
+    slugs = list_workspaces()
+    workspaces = []
+    for slug in slugs:
+        meta_path = WORKSPACES_ROOT / slug / "metadata.json"
+        meta = {}
+        if meta_path.exists():
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+            except Exception:
+                pass
+        workspaces.append({
+            "slug": slug,
+            "name": meta.get("university_name", slug.replace("-", " ").title()),
+            "lead_url": meta.get("lead_url", "https://apply.degreebaba.com"),
+            "last_compiled_at": meta.get("last_compiled_at"),
+            "created_at": meta.get("created_at"),
+        })
+    return {"workspaces": workspaces}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import uvicorn
+    host = "127.0.0.1"
+    port = 8000
+    print(f"\n=======================================================")
+    print(f"🚀 Page Engine server running at: http://{host}:{port}")
+    print(f"=======================================================\n")
+    uvicorn.run("main:app", host=host, port=port, reload=True)
+
