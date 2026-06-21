@@ -1,13 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <title>{{ seo_title }}</title>
 <meta name="description" content="{{ meta_description }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,10 +14,11 @@
   a{text-decoration:none}
   h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
   ::selection{background:#FF5C35;color:#1C1B22}
+  .prog-card{background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:26px;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s,border-color .18s}
+  .prog-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px -20px rgba(46,26,107,.4);border-color:#FF5C35}
 </style>
-</helmet>
-
-<div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
+</head>
+<body style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
 
   <!-- ===== TOP BAR ===== -->
   <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
@@ -62,34 +58,42 @@
   <!-- ===== PROGRAMS GRID ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:38px 20px 10px">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
-      <sc-for list="{{ '{{' }} programs {{ '}}' }}" as="p" hint-placeholder-count="4">
-        <a href="{{ '{{' }} p.href {{ '}}' }}" style="background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:26px;display:flex;flex-direction:column" style-hover="transform:translateY(-4px);box-shadow:0 18px 38px -20px rgba(46,26,107,.4);border-color:#FF5C35">
+      {% for p in programs %}
+        {% set fee_raw = p.fee | default('') %}
+        {% set fee_fmt = fee_raw if fee_raw.startswith('₹') else ('₹' + fee_raw if fee_raw else 'Contact for fee') %}
+        {% set p_href = (p.slug ~ '.html') if p.slug else '#' %}
+        <a href="{{ p_href }}" class="prog-card">
           <span style="align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;background:#FFE7E0;color:#E0431F">Online Degree</span>
-          <div style="font-size:24px;font-weight:800;margin-top:16px;color:#1C1B22">{{ '{{' }} p.name {{ '}}' }}</div>
-          <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:#6E6A78;flex:1">{{ '{{' }} p.description {{ '}}' }}</div>
+          <div style="font-size:24px;font-weight:800;margin-top:16px;color:#1C1B22">{{ p.name | default('') }}</div>
+          <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:#6E6A78;flex:1">{{ p.description | default('') }}</div>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">
             <div style="display:flex;justify-content:space-between;font-size:12.5px">
               <span style="color:#9A93A8;font-weight:600">Duration</span>
-              <span style="color:#434346;font-weight:700">{{ '{{' }} p.duration {{ '}}' }}</span>
+              <span style="color:#434346;font-weight:700">{{ p.duration | default('2 Years') }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px">
               <span style="color:#9A93A8;font-weight:600">Mode</span>
-              <span style="color:#434346;font-weight:700">{{ '{{' }} p.mode {{ '}}' }}</span>
+              <span style="color:#434346;font-weight:700">{{ p.mode | default('100% Online') }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px">
               <span style="color:#9A93A8;font-weight:600">Eligibility</span>
-              <span style="color:#434346;font-weight:700;text-align:right;max-width:60%">{{ '{{' }} p.eligibility {{ '}}' }}</span>
+              <span style="color:#434346;font-weight:700;text-align:right;max-width:60%">{{ p.eligibility | default("Bachelor's degree") }}</span>
             </div>
           </div>
           <div style="margin-top:18px;padding-top:16px;border-top:1px solid #ECE7F5;display:flex;align-items:flex-end;justify-content:space-between">
             <div>
-              <div style="font-size:22px;font-weight:800;color:#FF5C35;line-height:1">{{ '{{' }} p.feeFormatted {{ '}}' }}</div>
+              <div style="font-size:22px;font-weight:800;color:#FF5C35;line-height:1">{{ fee_fmt }}</div>
               <div style="font-size:11px;font-weight:600;margin-top:3px;color:#9A93A8">total fee</div>
             </div>
             <span style="font-size:13px;font-weight:800;color:#FF5C35">View →</span>
           </div>
         </a>
-      </sc-for>
+      {% else %}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#9A93A8">
+          <div style="font-size:20px;font-weight:700">No programs added yet.</div>
+          <p style="margin-top:8px">Add a course in the workspace to see it listed here.</p>
+        </div>
+      {% endfor %}
     </div>
   </div>
 
@@ -140,20 +144,5 @@
     </div>
   </footer>
 
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  renderVals() {
-    const rawPrograms = {{ programs_json | safe }};
-    const programs = rawPrograms.map(p => ({
-      ...p,
-      href: p.slug ? p.slug + '.html' : '#',
-      feeFormatted: p.fee ? (p.fee.startsWith('₹') ? p.fee : '₹' + p.fee) : 'Contact for fee',
-    }));
-    return { programs };
-  }
-}
-</script>
 </body>
 </html>

@@ -6,6 +6,7 @@ from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
 )
 from workspace.compiler import compile_workspace, get_workspace_tree
+from workspace.builder import build_website, get_build_status, zip_build
 import json
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -213,7 +214,8 @@ async def preview_html(req: RenderRequest):
             "parent_slug": parent_slug,
             "raw": merged
         }
-        html = render_resolved(resolved)
+        standalone = page_type in ("course", "specialization", "blog")
+        html = render_resolved(resolved, standalone=standalone)
         return HTMLResponse(content=html)
     except Exception as e:
         import traceback
@@ -233,7 +235,8 @@ async def render_html(req: RenderRequest):
             "parent_slug": parent_slug,
             "raw": merged
         }
-        html = render_resolved(resolved)
+        standalone = page_type in ("course", "specialization", "blog")
+        html = render_resolved(resolved, standalone=standalone)
         
         # Save compiled HTML to backend/generated/{page_type}/{slug}.dc.html
         base_dir = Path(__file__).resolve().parent
@@ -257,7 +260,19 @@ def forward_to_micro_pipeline(file_bytes: bytes, filename: str, page_type: str |
     import urllib.error
     import uuid
 
-    micro_app_url = os.environ.get("MICRO_APP_URL", "https://micro-app-57l9.onrender.com")
+    micro_app_url = os.environ.get("MICRO_APP_URL")
+    if micro_app_url is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Environment variable 'MICRO_APP_URL' is not set."
+        )
+
+    if not micro_app_url.strip():
+        raise HTTPException(
+            status_code=500,
+            detail="Environment variable 'MICRO_APP_URL' is empty."
+        )
+    
     url = micro_app_url.strip()
     if url.endswith("/"):
         url = url[:-1]
@@ -613,7 +628,8 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
         }
 
         # Render the HTML
-        html = render_resolved(resolved)
+        standalone = page_type in ("course", "specialization", "blog")
+        html = render_resolved(resolved, standalone=standalone)
 
         # Optionally update workspace metadata (phone, email, theme, etc.)
         if req.metadata_overrides:
@@ -706,6 +722,127 @@ async def list_workspaces_endpoint():
             "created_at": meta.get("created_at"),
         })
     return {"workspaces": workspaces}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Website Builder endpoints (Pass 4 — deployable static export)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/build-website")
+async def build_website_endpoint(
+    university_slug: str = Form(...),
+    skip_compile: bool = Form(False),
+):
+    """
+    Build a deployable static website package for a university workspace.
+
+    By default, runs a full workspace compile (Pass 1–3) first so the
+    exported build always reflects the latest source.json files. Pass
+    `skip_compile=true` to export the already-compiled .html files as-is.
+
+    Writes the build to workspaces/<uni>/build/ and returns a summary:
+      { pages_compiled, pages_failed, images_copied, downloads_copied,
+        routes_generated, build_path, build_url, routes, errors, built_at }
+    """
+    try:
+        compile_summary = None
+        if not skip_compile:
+            compile_summary = compile_workspace(university_slug)
+
+        result = build_website(university_slug)
+        result["compile_summary"] = compile_summary
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/build-status")
+async def build_status_endpoint(university_slug: str):
+    """
+    Return whether a build exists for a workspace (without rebuilding),
+    plus its routes and basic stats. Used by the frontend to render the
+    'Build Complete' panel on load.
+    """
+    try:
+        return get_build_status(university_slug)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/build-file")
+async def build_file_endpoint(university_slug: str, path: str = "index.html"):
+    """
+    Serve a single file from a workspace's build/ folder.
+    Used by the iframe / new-tab preview of the built website.
+    """
+    from fastapi.responses import FileResponse
+    try:
+        slug = university_slug.lower().strip()
+        build_dir = WORKSPACES_ROOT / slug / "build"
+        # Normalise and prevent path traversal outside build/
+        target = (build_dir / path).resolve()
+        try:
+            target.relative_to(build_dir.resolve())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid path")
+
+        if not target.exists() or not target.is_file():
+            raise HTTPException(status_code=404, detail="Build file not found")
+
+        # Guess media type from extension
+        ext = target.suffix.lower()
+        media_type = "application/octet-stream"
+        if ext == ".html":
+            media_type = "text/html"
+        elif ext == ".css":
+            media_type = "text/css"
+        elif ext == ".js":
+            media_type = "application/javascript"
+        elif ext == ".json":
+            media_type = "application/json"
+        elif ext == ".xml":
+            media_type = "application/xml"
+        elif ext == ".png":
+            media_type = "image/png"
+        elif ext in (".jpg", ".jpeg"):
+            media_type = "image/jpeg"
+        elif ext == ".webp":
+            media_type = "image/webp"
+        elif ext == ".gif":
+            media_type = "image/gif"
+        elif ext == ".svg":
+            media_type = "image/svg+xml"
+        elif ext == ".pdf":
+            media_type = "application/pdf"
+
+        return FileResponse(target, media_type=media_type)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/download-build")
+async def download_build_endpoint(university_slug: str):
+    """
+    Download the entire build/ folder as a ZIP archive.
+    Returns a file attachment named <uni>-website.zip.
+    """
+    try:
+        zip_bytes, filename = zip_build(university_slug)
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # ──────────────────────────────────────────────────────────────────────────────

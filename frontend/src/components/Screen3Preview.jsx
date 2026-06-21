@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { renderHtml, saveToWorkspace, compileWorkspace } from '../api';
+import { renderHtml, saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
 // Per-page-type transformer field descriptions for context comparison labels
 const TRANSFORMER_DOCS = {
@@ -230,6 +230,37 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
   const [compileResult, setCompileResult] = useState(null);
   const [workspaceError, setWorkspaceError] = useState('');
 
+  // Website build state (Pass 4)
+  const [building, setBuilding] = useState(false);
+  const [buildResult, setBuildResult] = useState(null);
+  const [buildError, setBuildError] = useState('');
+
+  // On mount, check if a build already exists for this workspace so the
+  // "Build Complete" panel can render without forcing a rebuild.
+  useEffect(() => {
+    let cancelled = false;
+    if (!session.university_slug) return undefined;
+    getBuildStatus(session.university_slug)
+      .then((status) => {
+        if (cancelled) return;
+        if (status && status.exists) {
+          setBuildResult({
+            university_slug: status.university_slug,
+            build_path: status.build_path,
+            build_url: status.build_url,
+            pages_compiled: status.pages_compiled,
+            images_copied: status.images_copied,
+            routes_generated: status.routes_count,
+            routes: Object.entries(status.routes || {}).map(([route, type]) => ({ route, type })),
+            built_at: status.built_at,
+            restored: true,
+          });
+        }
+      })
+      .catch(() => { /* non-fatal: build panel just stays idle */ });
+    return () => { cancelled = true; };
+  }, [session.university_slug]);
+
   // Helper: always merge session metadata into acf_data so the backend uses the
   // correct transformer and never falls back to auto-detection.
   const buildAcf = () => ({
@@ -290,6 +321,27 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
     } finally {
       setWorkspaceSaving(false);
       setCompiling(false);
+    }
+  };
+
+  const handleBuildWebsite = async () => {
+    setBuilding(true);
+    setBuildError('');
+    setBuildResult(null);
+    try {
+      const result = await buildWebsite(session.university_slug);
+      if (result.errors && result.errors.length === 0 && result.pages_failed === 0) {
+        setBuildResult(result);
+      } else if (result.build_path) {
+        // Build still produced output even if there were non-fatal warnings.
+        setBuildResult(result);
+      } else {
+        setBuildError(result.error || 'Build failed with no output.');
+      }
+    } catch (e) {
+      setBuildError(e.response?.data?.error || e.message || String(e));
+    } finally {
+      setBuilding(false);
     }
   };
 
@@ -448,6 +500,131 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      {/* ── WEBSITE BUILD (Pass 4 — deployable export) ── */}
+      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Website Build</div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
+              {!buildResult
+                ? 'Export the entire workspace into a deployable static website package.'
+                : buildResult.restored
+                  ? 'A previous build exists on disk. Rebuild to refresh, or download / preview it below.'
+                  : 'Build complete — your deployable website is ready.'}
+            </div>
+          </div>
+          <button
+            onClick={handleBuildWebsite}
+            disabled={building || !session.university_slug}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: building ? '#ccc' : 'var(--amber)',
+              color: '#fff', border: 'none',
+              padding: '8px 16px', borderRadius: 6,
+              fontSize: 13, fontWeight: 700, cursor: building ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {building ? '⏳ Building…' : buildResult ? '🔄 Rebuild Website' : '🚀 Build Website'}
+          </button>
+        </div>
+
+        {/* Status / progress banner */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 8,
+          background: building ? '#f8fafc' : buildError ? '#fef2f2' : (!buildResult ? '#fff7ed' : '#f0f9f4'),
+          border: `1px solid ${building ? 'var(--border)' : buildError ? '#fca5a5' : (!buildResult ? '#fed7aa' : '#b7e4c7')}`,
+        }}>
+          <div style={{ fontSize: 24 }}>
+            {building ? '🏗️' : buildError ? '⚠️' : (!buildResult ? '📦' : '✓')}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: buildError ? '#c53030' : 'var(--navy)' }}>
+              {building
+                ? 'Building website package...'
+                : buildError
+                  ? 'Build Error'
+                  : (!buildResult
+                      ? 'No build yet'
+                      : buildResult.restored
+                        ? 'Existing build found on disk'
+                        : 'Build Complete')}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
+              {building
+                ? 'Compiling pages, rewriting routes, copying assets, generating sitemap...'
+                : buildError
+                  ? buildError
+                  : (!buildResult
+                      ? 'Click "Build Website" to export all pages into a single deployable folder.'
+                      : `Deployable site at workspaces/${session.university_slug}/build/`)}
+            </div>
+          </div>
+        </div>
+
+        {buildError && (
+          <div style={{ marginTop: 12, fontSize: 12, color: '#c53030', fontFamily: 'monospace' }}>
+            {buildError}
+          </div>
+        )}
+
+        {buildResult && (
+          <>
+            {/* Build stats */}
+            <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Pages', value: buildResult.pages_compiled ?? 0 },
+                { label: 'Images', value: buildResult.images_copied ?? 0 },
+                { label: 'Downloads', value: buildResult.downloads_copied ?? 0 },
+                { label: 'Routes', value: buildResult.routes_generated ?? 0 },
+              ].map((s) => (
+                <div key={s.label} style={{ background: '#fff', border: '1px solid #b7e4c7', borderRadius: 6, padding: '8px 14px', textAlign: 'center', minWidth: 84 }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#1a6b3c' }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: '#2d6a4f', marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
+                style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 13, padding: '10px 18px', border: 'none', borderRadius: 7, cursor: 'pointer' }}
+              >
+                📂 Preview Built Site ↗
+              </button>
+              <button
+                onClick={() => downloadBuild(session.university_slug)}
+                style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 13, padding: '10px 18px', border: '1.5px solid var(--border)', borderRadius: 7, cursor: 'pointer' }}
+              >
+                ⬇ Download Website (ZIP)
+              </button>
+            </div>
+
+            {/* Build location */}
+            <div style={{ marginTop: 14, fontSize: 12, color: '#8a95a5', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              📁 Build folder: {buildResult.build_path}
+            </div>
+
+            {/* Non-fatal build warnings (e.g. dangling parent_slug, missing image) */}
+            {buildResult.errors && buildResult.errors.length > 0 && (
+              <div style={{ marginTop: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontWeight: 700, color: '#92400e', fontSize: 12.5, marginBottom: 6 }}>
+                  ⚠️ {buildResult.errors.length} warning(s) — build completed but these should be fixed
+                </div>
+                {buildResult.errors.slice(0, 8).map((e, i) => (
+                  <div key={i} style={{ fontSize: 11.5, color: '#92400e', fontFamily: 'monospace', marginTop: 3 }}>
+                    [{e.page_type}]{e.slug ? ` ${e.slug}:` : ''} {e.error}
+                  </div>
+                ))}
+                {buildResult.errors.length > 8 && (
+                  <div style={{ fontSize: 11, color: '#92400e', marginTop: 4 }}>…and {buildResult.errors.length - 8} more</div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace } from '../api';
+import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
 export default function Screen0Workspace({ session, updateSession, onNext }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -19,6 +19,14 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
   // Compile States
   const [compiling, setCompiling] = useState(false);
   const [compileResult, setCompileResult] = useState(null);
+  const [compileTime, setCompileTime] = useState(null);
+
+  // Website Build States
+  const [building, setBuilding] = useState(false);
+  const [buildResult, setBuildResult] = useState(null);
+  const [buildError, setBuildError] = useState('');
+  const [buildTime, setBuildTime] = useState(null);
+  const [buildStatusData, setBuildStatusData] = useState(null);
 
   // Load available workspaces
   useEffect(() => {
@@ -57,8 +65,11 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
   useEffect(() => {
     if (selectedSlug) {
       loadTree(selectedSlug);
+      loadBuildStatus(selectedSlug);
     } else {
       setTreeData(null);
+      setBuildResult(null);
+      setBuildError('');
     }
   }, [selectedSlug]);
 
@@ -73,6 +84,31 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
       setTreeData(null);
     } finally {
       setTreeLoading(false);
+    }
+  };
+
+  const loadBuildStatus = async (slug) => {
+    setBuildResult(null);
+    setBuildStatusData(null);
+    setBuildError('');
+    try {
+      const status = await getBuildStatus(slug);
+      setBuildStatusData(status);
+      if (status && status.exists) {
+        setBuildResult({
+          university_slug: status.university_slug,
+          build_path: status.build_path,
+          build_url: status.build_url,
+          pages_compiled: status.pages_compiled,
+          images_copied: status.images_copied,
+          routes_generated: status.routes_count,
+          built_at: status.built_at,
+          restored: true,
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load build status', err);
+      setBuildStatusData({ exists: false });
     }
   };
 
@@ -125,16 +161,52 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
     if (!selectedSlug) return;
     setCompiling(true);
     setCompileResult(null);
+    setCompileTime(null);
+    const start = performance.now();
     try {
       const res = await compileWorkspace(selectedSlug);
+      const end = performance.now();
+      setCompileTime(((end - start) / 1000).toFixed(2));
       setCompileResult(res);
       // Reload tree to reflect new files or statuses
       loadTree(selectedSlug);
     } catch (err) {
       console.error(err);
-      setError('Compilation failed: ' + (err.response?.data?.error || err.message));
+      setCompileResult({
+        pages_compiled: 0,
+        pages_failed: 1,
+        errors: [{ page_type: 'workspace', error: err.response?.data?.error || err.message || String(err) }]
+      });
     } finally {
       setCompiling(false);
+    }
+  };
+
+  const handleBuildWebsite = async () => {
+    if (!selectedSlug) return;
+    setBuilding(true);
+    setBuildError('');
+    setBuildResult(null);
+    setBuildTime(null);
+    const start = performance.now();
+    try {
+      const result = await buildWebsite(selectedSlug);
+      const end = performance.now();
+      setBuildTime(((end - start) / 1000).toFixed(2));
+      if (result.errors && result.errors.length === 0 && result.pages_failed === 0) {
+        setBuildResult(result);
+      } else if (result.build_path) {
+        setBuildResult(result);
+      } else {
+        setBuildError(result.error || 'Build failed with no output.');
+      }
+      // Re-load tree and status
+      loadTree(selectedSlug);
+      loadBuildStatus(selectedSlug);
+    } catch (err) {
+      setBuildError(err.response?.data?.error || err.message || String(err));
+    } finally {
+      setBuilding(false);
     }
   };
 
@@ -272,9 +344,209 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
           </div>
         </div>
 
-        {/* Right Side: Tree / Info Context panel */}
+        {/* Right Side: Actions and Tree panel */}
         <div>
-          <div className="card" style={{ height: '100%' }}>
+          {/* Workspace Actions Panel */}
+          {selectedSlug && (
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div className="card-body" style={{ padding: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>⚙️</span> Workspace Actions
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    onClick={handleCompile}
+                    disabled={compiling || building}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {compiling ? '⏳ Compiling…' : '⚡ Compile Workspace'}
+                  </button>
+
+                  <button
+                    onClick={handleBuildWebsite}
+                    disabled={building || compiling}
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {building ? '⏳ Building…' : '🚀 Build Website'}
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      if (buildResult) {
+                        window.open(buildFileUrl(selectedSlug, 'index.html'), '_blank');
+                      }
+                    }}
+                    disabled={!buildResult || compiling || building}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      opacity: buildResult ? 1 : 0.5,
+                      cursor: buildResult ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    📂 Preview Site ↗
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      if (buildResult) {
+                        downloadBuild(selectedSlug);
+                      }
+                    }}
+                    disabled={!buildResult || compiling || building}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      opacity: buildResult ? 1 : 0.5,
+                      cursor: buildResult ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    ⬇ Download ZIP
+                  </button>
+                </div>
+
+                {/* Build Status Section */}
+                <div style={{
+                  marginTop: 14,
+                  padding: 12,
+                  background: '#f8fafc',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: '12px'
+                }}>
+                  <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📊</span> Build Status
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Build Exists:</span>
+                      <strong style={{ color: buildStatusData?.exists ? 'var(--color-success)' : 'var(--color-text-secondary)' }}>
+                        {buildStatusData?.exists ? 'Yes' : 'No'}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Pages Compiled:</span>
+                      <strong>{buildStatusData?.exists ? buildStatusData.pages_compiled : '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Images Copied:</span>
+                      <strong>{buildStatusData?.exists ? buildStatusData.images_copied : '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Build Date:</span>
+                      <strong style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
+                        {buildStatusData?.exists && buildStatusData.built_at ? new Date(buildStatusData.built_at).toLocaleString() : '—'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {compileResult && (
+                  <div style={{
+                    marginTop: 14,
+                    padding: 10,
+                    background: compileResult.pages_failed > 0 ? '#fffbeb' : '#f0f9f4',
+                    border: `1px solid ${compileResult.pages_failed > 0 ? '#fde68a' : '#b7e4c7'}`,
+                    borderRadius: 6,
+                    fontSize: 11.5
+                  }}>
+                    <div style={{ fontWeight: 700, color: compileResult.pages_failed > 0 ? '#92400e' : '#1a6b3c' }}>
+                      {compileResult.pages_failed > 0 ? '⚠️ Compiled with errors' : '✓ Compiled Successfully'}
+                    </div>
+                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--color-text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pages Compiled:</span> <strong>{compileResult.pages_compiled}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pages Failed:</span> <strong style={{ color: compileResult.pages_failed > 0 ? 'var(--color-error)' : 'inherit' }}>{compileResult.pages_failed}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Compile Time:</span> <strong>{compileTime ? `${compileTime}s` : '—'}</strong>
+                      </div>
+                    </div>
+                    {compileResult.errors && compileResult.errors.length > 0 && (
+                      <div style={{ marginTop: 6, maxHeight: 100, overflowY: 'auto', borderTop: '1px dashed #e2e8f0', paddingTop: 6 }}>
+                        {compileResult.errors.slice(0, 3).map((e, idx) => (
+                          <div key={idx} style={{ color: 'var(--color-error)', fontStyle: 'italic', fontSize: 10.5 }}>
+                            [{e.page_type}] {e.error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {buildResult && (
+                  <div style={{
+                    marginTop: 14,
+                    padding: 10,
+                    background: '#f0f9f4',
+                    border: '1px solid #b7e4c7',
+                    borderRadius: 6,
+                    fontSize: 11.5
+                  }}>
+                    <div style={{ fontWeight: 700, color: '#1a6b3c', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>✓ Build Ready</span>
+                      {buildResult.restored && <span style={{ fontSize: 9.5, opacity: 0.6 }}>(cached on disk)</span>}
+                    </div>
+                    
+                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--color-text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Pages Compiled:</span> <strong>{buildResult.pages_compiled}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Images Copied:</span> <strong>{buildResult.images_copied}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Routes Generated:</span> <strong>{buildResult.routes_generated}</strong>
+                      </div>
+                      {!buildResult.restored && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Build Time:</span> <strong>{buildTime ? `${buildTime}s` : '—'}</strong>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {buildResult.errors && buildResult.errors.length > 0 && (
+                      <div style={{ marginTop: 6, maxHeight: 100, overflowY: 'auto', borderTop: '1px dashed #b7e4c7', paddingTop: 6 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Warnings:</div>
+                        {buildResult.errors.slice(0, 3).map((e, idx) => (
+                          <div key={idx} style={{ color: '#92400e', fontStyle: 'italic', fontSize: 10.5 }}>
+                            [{e.page_type}] {e.error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {buildError && (
+                  <div style={{
+                    marginTop: 14,
+                    padding: 10,
+                    background: '#fdf4f4',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    color: '#c53030'
+                  }}>
+                    <strong>Build Failed:</strong>
+                    <div style={{ marginTop: 2, fontFamily: 'monospace', fontSize: 10.5 }}>{buildError}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Workspace Structure Panel */}
+          <div className="card" style={{ minHeight: 280 }}>
             <div className="card-body" style={{ padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>👁️</span> Workspace Structure
@@ -290,35 +562,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                 </div>
               ) : treeData ? (
                 <div>
-                  {/* Action row */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                    <button
-                      onClick={handleCompile}
-                      disabled={compiling}
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: 1, padding: '8px 12px', fontSize: 12 }}
-                    >
-                      {compiling ? 'Compiling…' : '⚡ Compile Workspace'}
-                    </button>
-                  </div>
-
-                  {compileResult && (
-                    <div style={{
-                      padding: 10, background: compileResult.pages_failed > 0 ? '#fffbeb' : '#f0f9f4',
-                      border: `1px solid ${compileResult.pages_failed > 0 ? '#fde68a' : '#b7e4c7'}`,
-                      borderRadius: 6, fontSize: 11.5, marginBottom: 14
-                    }}>
-                      <div style={{ fontWeight: 700, color: compileResult.pages_failed > 0 ? '#92400e' : '#1a6b3c' }}>
-                        {compileResult.pages_failed > 0 ? '⚠️ Compiled with errors' : '✓ Compiled Successfully'}
-                      </div>
-                      <div style={{ marginTop: 2, color: 'var(--color-text-secondary)' }}>
-                        Processed {compileResult.pages_compiled} page(s).
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Render tree */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 380, overflowY: 'auto', paddingRight: 4 }}>
                     
                     {/* University Page */}
                     <div>

@@ -109,3 +109,47 @@ export async function createWorkspace(universitySlug, universityName = null, met
   const res = await axios.post(`${BASE}/workspaces`, payload);
   return res.data;
 }
+
+// ── Website Builder API (Pass 4 — deployable static export) ───────────────────
+
+/**
+ * Build a deployable static website package for a workspace.
+ * Runs a full compile first (Pass 1–3), then exports to workspaces/<uni>/build/.
+ * Returns a summary: { pages_compiled, pages_failed, images_copied,
+ *                      downloads_copied, routes_generated, build_path,
+ *                      build_url, routes, errors, built_at }
+ */
+export async function buildWebsite(universitySlug, { skipCompile = false } = {}) {
+  const formData = new FormData();
+  formData.append('university_slug', universitySlug);
+  if (skipCompile) formData.append('skip_compile', 'true');
+  const res = await axios.post(`${BASE}/build-website`, formData);
+  return res.data;
+}
+
+/**
+ * Check whether a build exists for a workspace (without rebuilding).
+ * Returns { exists, build_path, build_url, routes, routes_count,
+ *           pages_compiled, images_copied, built_at }
+ */
+export async function getBuildStatus(universitySlug) {
+  const res = await axios.get(`${BASE}/build-status`, {
+    params: { university_slug: universitySlug },
+  });
+  return res.data;
+}
+
+/**
+ * Trigger a browser download of the entire build/ folder as a ZIP.
+ */
+export function downloadBuild(universitySlug) {
+  // Direct navigation lets the browser handle the ZIP attachment download.
+  window.location.href = `${BASE}/download-build?university_slug=${encodeURIComponent(universitySlug)}`;
+}
+
+/**
+ * Absolute URL to a file inside the build/ folder (for iframe/new-tab preview).
+ */
+export function buildFileUrl(universitySlug, path = 'index.html') {
+  return `${BASE}/build-file?university_slug=${encodeURIComponent(universitySlug)}&path=${encodeURIComponent(path)}`;
+}

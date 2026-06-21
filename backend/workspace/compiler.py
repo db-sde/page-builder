@@ -200,7 +200,9 @@ def _render_page(enriched: dict) -> str:
         "raw": enriched.get("raw") or enriched.get("data", {}),
     }
 
-    return render_resolved(resolved)
+    page_type = enriched.get("page_type")
+    standalone = page_type in ("course", "specialization", "blog")
+    return render_resolved(resolved, standalone=standalone)
 
 
 def _auto_render_listing_pages(university_slug: str, index: dict) -> list[dict]:
