@@ -319,8 +319,13 @@
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <sc-for list="{{ '{{' }} posts {{ '}}' }}" as="p" hint-placeholder-count="3">
-        <a href="{{ blog_listing_href }}" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:block" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
-          <div style="height:150px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ '{{' }} p.tag {{ '}}' }} image ]</span></div>
+        <a href="{{ '{{' }} p.href {{ '}}' }}" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:block" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
+          <sc-if value="{{ '{{' }} !!p.image {{ '}}' }}">
+            <img src="{{ '{{' }} p.image {{ '}}' }}" alt="{{ '{{' }} p.title {{ '}}' }}" style="width:100%;height:150px;object-fit:cover;display:block">
+          </sc-if>
+          <sc-if value="{{ '{{' }} !p.image {{ '}}' }}">
+            <div style="height:150px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ '{{' }} p.tag {{ '}}' }} image ]</span></div>
+          </sc-if>
           <div style="padding:18px">
             <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ '{{' }} p.tag {{ '}}' }}</span>
             <div style="font-size:16px;font-weight:700;color:#1C1B22;margin-top:8px;line-height:1.35">{{ '{{' }} p.title {{ '}}' }}</div>
@@ -328,6 +333,7 @@
           </div>
         </a>
       </sc-for>
+
     </div>
   </div>
 

@@ -96,10 +96,12 @@
           </div>
         </a>
       {% else %}
+        {% if not featured_post %}
         <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#9A93A8">
           <div style="font-size:20px;font-weight:700">No blog posts added yet.</div>
           <p style="margin-top:8px">Add blog articles in the workspace to see them listed here.</p>
         </div>
+        {% endif %}
       {% endfor %}
     </div>
   </div>

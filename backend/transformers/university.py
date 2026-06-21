@@ -6,6 +6,10 @@ class UniversityTransformer(BaseTransformer):
 
         my_courses = []
 
+        # Workspace-injected lists (added by compiler._enrich_resolved)
+        workspace_specs = raw.get("_workspace_specs") or []
+        workspace_blogs = raw.get("_workspace_blogs") or []
+
         # ── Fallback: mode ──────────────────────────────────────────────────────────
         # Pipeline does not always output 'mode' — default to online since all
         # DegreeBaba courses are online programs.
@@ -128,4 +132,11 @@ class UniversityTransformer(BaseTransformer):
 
             "reviews": self.build_reviews(raw.get("reviews", [])) or None,
             "faqs": raw.get("faqs") or None,
+
+            # Workspace-driven dynamic sections
+            # These are passed through directly to engine.py so the renderer
+            # can build the homepage specializations grid and blog preview cards
+            # from real workspace content instead of hardcoded fallbacks.
+            "_workspace_specs": workspace_specs,
+            "_workspace_blogs": workspace_blogs,
         }

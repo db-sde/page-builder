@@ -232,36 +232,56 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["highlights_json"] = json.dumps(h_list, ensure_ascii=False)
     
     # 4. Specs (items)
-    specs_raw = (ctx.get("specializations") or {}).get("items", []) or []
-    if isinstance(specs_raw, str):
-        specs_raw = [{"t": specs_raw, "d": ""}]
-    elif isinstance(specs_raw, list):
-        new_s = []
-        for s in specs_raw:
-            if isinstance(s, str):
-                new_s.append({"t": s, "d": ""})
-            elif isinstance(s, dict):
-                new_s.append(s)
-        specs_raw = new_s
-    spec_list = [
-        {
-            "t": s.get("name") or s.get("t", ""),
-            "d": s.get("description") or s.get("d", ""),
-            "href": f"{uni_slug}-" + s.get("href", "").strip("/").replace("page/", "") + ".dc.html" if s.get("href") else "#"
-        }
-        for s in specs_raw
-    ]
-    # Fallback to defaults if empty
-    if not spec_list:
+    # Priority: workspace specs injected by compiler (via transformer) → source data items → hardcoded fallback
+    workspace_specs_ctx = ctx.get("_workspace_specs") or []
+    if workspace_specs_ctx:
+        # Build spec cards from real workspace specialization records (capped at 6)
+        spec_list = []
+        for sp in workspace_specs_ctx[:6]:
+            if not isinstance(sp, dict):
+                continue
+            data = sp.get("data", {})
+            sp_slug = sp.get("slug", "")
+            spec_list.append({
+                "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
+                "d": data.get("hero_description") or data.get("description") or "",
+                "href": f"{sp_slug}.html",
+                "fee": data.get("total_fee") or data.get("starting_fee") or "",
+            })
+    else:
+        specs_raw = (ctx.get("specializations") or {}).get("items", []) or []
+        if isinstance(specs_raw, str):
+            specs_raw = [{"t": specs_raw, "d": ""}]
+        elif isinstance(specs_raw, list):
+            new_s = []
+            for s in specs_raw:
+                if isinstance(s, str):
+                    new_s.append({"t": s, "d": ""})
+                elif isinstance(s, dict):
+                    new_s.append(s)
+            specs_raw = new_s
         spec_list = [
-            {"t": "Marketing Management", "d": "Brand, digital & consumer strategy", "href": f"{uni_slug}-mba-marketing.dc.html"},
-            {"t": "Financial Management", "d": "Corporate finance & valuation", "href": f"{uni_slug}-online-mba.dc.html"},
-            {"t": "Human Resource Management", "d": "Talent, OB & HR analytics", "href": f"{uni_slug}-online-mba.dc.html"},
-            {"t": "Operations & Supply Chain", "d": "Logistics, lean & procurement", "href": f"{uni_slug}-online-mba.dc.html"},
-            {"t": "Business Analytics", "d": "Data-driven decision making", "href": f"{uni_slug}-online-mba.dc.html"},
-            {"t": "IT & Systems Management", "d": "Digital transformation & ERP", "href": f"{uni_slug}-online-mba.dc.html"},
-            {"t": "International Business", "d": "Global trade & cross-border strategy", "href": f"{uni_slug}-online-mba.dc.html"}
+            {
+                "t": s.get("name") or s.get("t", ""),
+                "d": s.get("description") or s.get("d", ""),
+                "href": (
+                    s.get("href")
+                    if s.get("href", "").startswith(("#", "/")) or ".html" in s.get("href", "")
+                    else (f"{uni_slug}-" + s.get("href", "").strip("/").replace("page/", "") + ".dc.html" if s.get("href") else "#")
+                )
+            }
+            for s in specs_raw[:6]
         ]
+        # Hardcoded fallback — only used when workspace is truly empty
+        if not spec_list:
+            spec_list = [
+                {"t": "Marketing Management", "d": "Brand, digital & consumer strategy", "href": "#"},
+                {"t": "Financial Management", "d": "Corporate finance & valuation", "href": "#"},
+                {"t": "Human Resource Management", "d": "Talent, OB & HR analytics", "href": "#"},
+                {"t": "Operations & Supply Chain", "d": "Logistics, lean & procurement", "href": "#"},
+                {"t": "Business Analytics", "d": "Data-driven decision making", "href": "#"},
+                {"t": "IT & Systems Management", "d": "Digital transformation & ERP", "href": "#"},
+            ]
     ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
     
     # 5. Fees
@@ -476,7 +496,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         uni_programs = [
             {"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": (ctx.get("sticky_bar") or {}).get("fee") or "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True}
         ]
-    ctx["programs_json"] = json.dumps(uni_programs, ensure_ascii=False)
+    ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 
     # Serialized programs/specs data for listing templates
     programs_list_data = []
@@ -493,7 +513,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "description": data.get("hero_description") or "",
             "mode": data.get("mode") or "100% Online",
         })
-    ctx["programs_json"] = json.dumps(uni_programs, ensure_ascii=False)
+    ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
     ctx["programs_list_json"] = json.dumps(programs_list_data, ensure_ascii=False)
 
     # Spec groups for specializations listing page
@@ -524,11 +544,33 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     # Blog categories & posts
     ctx["cat_labels_json"] = json.dumps(['All', 'Career', 'Admissions', 'Guide', 'Finance', 'Student Life'], ensure_ascii=False)
-    blog_posts = [
-        {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025"},
-        {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025"},
-        {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025"}
-    ]
+
+    # Priority: workspace blogs (via transformer _workspace_blogs) → hardcoded demo fallback
+    workspace_blogs_ctx = ctx.get("_workspace_blogs") or []
+    if workspace_blogs_ctx:
+        blog_posts = []
+        for b in workspace_blogs_ctx[:3]:
+            if not isinstance(b, dict):
+                continue
+            data = b.get("data", {})
+            b_slug = b.get("slug", "")
+            # Determine the blog page href — relative path to the blog detail HTML
+            blog_href = f"{b_slug}.html"
+            blog_posts.append({
+                "tag": data.get("category") or data.get("tag") or "Article",
+                "title": data.get("blog_title") or data.get("title") or b_slug.replace("-", " ").title(),
+                "excerpt": data.get("hero_description") or data.get("excerpt") or "",
+                "meta": data.get("read_time") or data.get("meta") or "",
+                "href": blog_href,
+                "image": data.get("hero_image_url") or "",
+            })
+    else:
+        # Demo fallback — only shown when workspace contains no blogs
+        blog_posts = [
+            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": ""},
+            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": ""},
+            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": ""},
+        ]
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
 
     # Contact details

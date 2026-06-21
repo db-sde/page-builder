@@ -4,7 +4,7 @@ class CourseTransformer(BaseTransformer):
     def transform(self) -> dict:
         raw = self.raw
         # Fetch all specializations that belong to this course
-        my_specs = []
+        my_specs = raw.get("_workspace_specs") or []
 
         # ── Fallback: mode ──────────────────────────────────────────────────────────
         # Pipeline does not always output 'mode' — default to online since all
@@ -41,6 +41,70 @@ class CourseTransformer(BaseTransformer):
         # paragraph so the About section renders with something rather than nothing.
         if not raw.get("about_content") and raw.get("hero_description"):
             raw["about_content"] = f"<p>{raw['hero_description']}</p>"
+
+        # ── Fallback: admission_steps ───────────────────────────────────────────────
+        if not raw.get("admission_steps"):
+            raw["admission_steps"] = (
+                "<p><strong>Step 1.</strong> Visit the official university online admission portal and register.</p>"
+                "<p><strong>Step 2.</strong> Fill in personal, contact, and academic details in the application form.</p>"
+                "<p><strong>Step 3.</strong> Upload scanned copies of required documents (graduation marksheet, ID proof, photograph).</p>"
+                "<p><strong>Step 4.</strong> Pay the program admission fee online to confirm your enrollment.</p>"
+            )
+
+        spec_desc_map = {
+            "marketing": "Brand, digital & consumer strategy",
+            "digital marketing": "SEO, SEM, social media & analytics",
+            "human resource management": "Talent acquisition & HR analytics",
+            "event management": "Event planning, operations & PR",
+            "travel & tourism management": "Tourism, hospitality & leisure management",
+            "ib (international business)": "Global trade & cross-border strategy",
+            "international business": "Global trade & cross-border strategy",
+            "business analytics": "Data-driven business decision making",
+            "hospital management": "Hospital administration & clinical operations",
+            "banking & insurance": "Risk management, commercial banking & underwriting",
+            "entrepreneurship": "New venture creation, scaling & strategy",
+            "operations management": "Operations, logistics & process design",
+            "retail management": "Retail operations & consumer experience",
+            "it (information technology)": "Digital transformation, ERP & IT systems",
+            "information technology": "Digital transformation, ERP & IT systems",
+            "logistics & supply chain management": "Supply chain, lean & procurement",
+            "finance": "Corporate finance, banking & investment",
+            "disaster management": "Crisis response, mitigation & recovery",
+            "airlines & airport management": "Aviation management & airline operations",
+            "data science & artificial intelligence": "Big data, machine learning & AI systems",
+            "general management": "Leadership, organizational behavior & strategy",
+            "fintech": "Financial technology, blockchain & analytics",
+            "media management": "Media planning, journalism & entertainment",
+            "brand management": "Brand positioning & value creation",
+            "healthcare & hospital management": "Hospital administration & healthcare policy"
+        }
+
+        spec_items = []
+        if my_specs:
+            for s in my_specs:
+                spec_items.append({
+                    "name": s["data"].get("spec_name", ""),
+                    "description": s["data"].get("hero_description", "")[:80] + "..." if s["data"].get("hero_description") else "",
+                    "fee": self.format_fee(s["data"].get("total_fee", "")),
+                    "href": f"/{s['slug']}"
+                })
+        elif raw.get("fee_plans"):
+            for fp in raw.get("fee_plans", []):
+                name = fp.get("plan_name", "")
+                if not name or name.lower() in ("full program", "regular", "default", "standard"):
+                    continue
+                name_clean = name.lower().strip()
+                desc = spec_desc_map.get(name_clean)
+                if not desc:
+                    desc = f"Specialized training in {name}."
+                if any(x["name"] == name for x in spec_items):
+                    continue
+                spec_items.append({
+                    "name": name,
+                    "description": desc,
+                    "fee": self.format_fee(fp.get("plan_amount", "")),
+                    "href": "#fees"
+                })
 
         return {
             "hero_image_url": raw.get("hero_image_url"),
@@ -117,29 +181,23 @@ class CourseTransformer(BaseTransformer):
 
             # Accreditations built from flat fields
             "accreditations": [
-                {
-                    "title": "NAAC " + raw.get("naac_grade", ""),
-                    "description": f"{raw.get('university_name', 'The university')} holds NAAC Grade {raw.get('naac_grade', '')} — among India's highest-rated private universities."
-                },
-                {
-                    "title": raw.get("ugc_status", ""),
-                    "description": "Offered under UGC (ODL & Online Programmes) Regulations, 2020 — fully valid for jobs and higher studies."
-                }
-            ] if raw.get("naac_grade") else None,
+                card for card in [
+                    {
+                        "title": "NAAC " + raw.get("naac_grade"),
+                        "description": f"{raw.get('university_name', 'The university')} holds NAAC Grade {raw.get('naac_grade')} — among India's highest-rated private universities."
+                    } if raw.get("naac_grade") else None,
+                    {
+                        "title": raw.get("ugc_status") or raw.get("ugc_approved"),
+                        "description": "Offered under UGC (ODL & Online Programmes) Regulations, 2020 — fully valid for jobs and higher studies."
+                    } if (raw.get("ugc_status") or raw.get("ugc_approved")) else None
+                ] if card is not None
+            ] or None,
 
-            # Specializations grid — from DB if available, fallback to count
+            # Specializations grid — from DB if available, fallback to count or synthesized plans
             "specializations": {
                 "intro": raw.get("specializations_intro", "Choose your specialization at the start of year two."),
-                "items": [
-                    {
-                        "name": s["data"].get("spec_name", ""),
-                        "description": s["data"].get("hero_description", "")[:80] + "..." if s["data"].get("hero_description") else "",
-                        "fee": self.format_fee(s["data"].get("total_fee", "")),
-                        "href": f"/{s['slug']}"
-                    }
-                    for s in my_specs
-                ] if my_specs else []
-            } if (my_specs or raw.get("num_specializations")) else None,
+                "items": spec_items
+            } if (spec_items or raw.get("num_specializations")) else None,
 
             "eligibility": self.section_or_none("eligibility_content"),
 

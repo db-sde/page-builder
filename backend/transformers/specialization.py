@@ -16,7 +16,7 @@ class SpecializationTransformer(BaseTransformer):
 
     def transform(self) -> dict:
         raw = self.raw
-        siblings = []
+        siblings = raw.get("_workspace_sibling_specs") or []
 
         # Clean specialization name if it's mixed with program/university
         university_name = raw.get("university_name", "")

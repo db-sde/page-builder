@@ -315,8 +315,13 @@
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <sc-for list="{{ posts }}" as="p" hint-placeholder-count="3">
-        <a href="blog_listing.html" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:block" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
-          <div style="height:150px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag }} image ]</span></div>
+        <a href="{{ p.href }}" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:block" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
+          <sc-if value="{{ !!p.image }}">
+            <img src="{{ p.image }}" alt="{{ p.title }}" style="width:100%;height:150px;object-fit:cover;display:block">
+          </sc-if>
+          <sc-if value="{{ !p.image }}">
+            <div style="height:150px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag }} image ]</span></div>
+          </sc-if>
           <div style="padding:18px">
             <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ p.tag }}</span>
             <div style="font-size:16px;font-weight:700;color:#1C1B22;margin-top:8px;line-height:1.35">{{ p.title }}</div>
@@ -324,6 +329,7 @@
           </div>
         </a>
       </sc-for>
+
     </div>
   </div>
 
@@ -373,14 +379,14 @@ class Component extends DCLogic {
 
   renderVals() {
     const specIcons = ['◑', '◧', '◴', '◐', '◓', '◒', '◔'];
-    const specs = [{"t": "Marketing Management", "d": "Brand, digital & consumer strategy", "href": "nodia-mba-marketing.dc.html"}, {"t": "Financial Management", "d": "Corporate finance & valuation", "href": "nodia-online-mba.dc.html"}, {"t": "Human Resource Management", "d": "Talent, OB & HR analytics", "href": "nodia-online-mba.dc.html"}, {"t": "Operations & Supply Chain", "d": "Logistics, lean & procurement", "href": "nodia-online-mba.dc.html"}, {"t": "Business Analytics", "d": "Data-driven decision making", "href": "nodia-online-mba.dc.html"}, {"t": "IT & Systems Management", "d": "Digital transformation & ERP", "href": "nodia-online-mba.dc.html"}, {"t": "International Business", "d": "Global trade & cross-border strategy", "href": "nodia-online-mba.dc.html"}].map((s, idx) => Object.assign({}, s, {
+    const specs = [{"t": "Human Resource Management", "d": "This is what user have put in not extracted by the parser.", "href": "nodia-manipal-online-mba-in-human-resource-management.html", "fee": "INR 1,75,000/-"}].map((s, idx) => Object.assign({}, s, {
       icon: specIcons[idx % specIcons.length]
     }));
 
     const features = [{"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."}, {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."}, {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."}, {"stat": "24mo", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}];
     const recruiters = ["Deloitte", "Amazon", "HDFC", "TCS", "Accenture", "HUL"];
     const testimonials = [{"q": "At first when my friend suggested me about Noida International University Online. I wasn't sure about it but it turned out to be an amazing journey.", "name": "", "role": "Online MBA", "initial": "S"}, {"q": "My and my cousin both completed our online MBA from Noida International University Online and we both got placement. Highly recommended to others.", "name": "", "role": "Online MBA", "initial": "S"}, {"q": "The faculty support and other assistance are up to the mark. It was an amazing journey with the university.", "name": "", "role": "Online MBA", "initial": "S"}, {"q": "I am in my third sem, but as of now, there is nothing as such i disliked about the university. Rest, let's wait for the placements…. fingers crossed!", "name": "", "role": "Online MBA", "initial": "S"}];
-    const posts = [{"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025"}, {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025"}, {"tag": "Admissions", "title": "Noida International Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025"}];
+    const posts = [{"tag": "Career", "title": "Is an Online Degree Valid in India? UGC Rules, Recognition & Career Value Explained (2026 Guide)", "excerpt": "The phase where students view online education has shifted from curiosity to credibility in India. Over the last few years, a plethora of candidates have enrolled in online degree programs for higher education while still working and with no geographical constraint.", "meta": "6 min read", "href": "untitled.html", "image": "/assets/images/blog-untitled-hero.jpg"}];
 
     // ---- Degree programs (dynamic list with fallbacks) ----
     const mk = (p) => {
@@ -396,7 +402,7 @@ class Component extends DCLogic {
         badgeStyle: f ? 'background:rgba(255,92,53,.18);color:#FF5C35' : 'background:#FFE7E0;color:#E0431F'
       });
     };
-    const rawPrograms = [{"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": "nodia-online-mba.dc.html", "featured": true}];
+    const rawPrograms = [{"level": "Postgraduate", "name": "Online MBA in Banking & Insurance", "dur": "2 Years", "fee": "INR 1,65,000", "feeUnit": "total course", "elig": "Bachelor's degree", "d": "Chandigarh University Online (CU Online) provides a well-rounded Online MBA degree with a specialization in Banking and Insurance, which prepares students with the knowledge and abilities to succeed in the evolving financial services sector.", "href": "chandigarh-university-online-mba-in-banking-insurance.html", "featured": true}, {"level": "Postgraduate", "name": "Online MBA in Banking & Insurance", "dur": "2 Years", "fee": "INR 1,65,000", "feeUnit": "total course", "elig": "Bachelor's degree", "d": "Chandigarh University Online (CU Online) provides a well-rounded Online MBA degree with a specialization in Banking and Insurance, which prepares students with the knowledge and abilities to succeed in the evolving financial services sector.", "href": "nodia-online-mba-in-banking-insurance.html", "featured": false}];
     const programs = rawPrograms.map(p => mk(p));
 
     // ---- Admission process ----
