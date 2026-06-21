@@ -138,6 +138,36 @@ async def get_asset_image(filename: str):
             return FileResponse(p, media_type=media_type)
     raise HTTPException(status_code=404, detail="Image not found")
 
+@app.get("/assets/{path:path}")
+async def get_build_asset(path: str):
+    from fastapi.responses import FileResponse
+    for p in WORKSPACES_ROOT.glob(f"*/build/assets/{path}"):
+        if p.exists() and p.is_file():
+            ext = p.suffix.lower()
+            media_type = "application/octet-stream"
+            if ext == ".js":
+                media_type = "application/javascript"
+            elif ext == ".css":
+                media_type = "text/css"
+            elif ext == ".png":
+                media_type = "image/png"
+            elif ext in (".jpg", ".jpeg"):
+                media_type = "image/jpeg"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            elif ext == ".svg":
+                media_type = "image/svg+xml"
+            elif ext == ".pdf":
+                media_type = "application/pdf"
+            return FileResponse(p, media_type=media_type)
+    
+    if path == "support.js":
+        return await get_support_js()
+        
+    raise HTTPException(status_code=404, detail="Asset not found")
+
 @app.get("/support.js")
 async def get_support_js():
     from fastapi.responses import FileResponse
@@ -816,6 +846,36 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
             media_type = "image/svg+xml"
         elif ext == ".pdf":
             media_type = "application/pdf"
+
+        if ext == ".html":
+            html = target.read_text(encoding="utf-8")
+            # Inject a client-side link interception script to make navigation work with build-file params
+            script = f"""
+<script>
+document.addEventListener('click', function(e) {{
+  var a = e.target.closest('a');
+  if (a && a.getAttribute('href')) {{
+    var href = a.getAttribute('href');
+    if (href.startsWith('/') && !href.startsWith('/build-file') && !href.startsWith('/download-build')) {{
+      e.preventDefault();
+      var path = href.substring(1);
+      if (!path || path.endsWith('/')) {{
+        path += 'index.html';
+      }}
+      var url = '/build-file?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
+      window.location.href = url;
+    }}
+  }}
+}});
+</script>
+"""
+            if "</body>" in html:
+                html = html.replace("</body>", f"{script}</body>")
+            else:
+                html += script
+            
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(content=html)
 
         return FileResponse(target, media_type=media_type)
     except HTTPException:
