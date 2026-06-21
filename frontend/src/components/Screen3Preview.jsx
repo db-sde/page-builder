@@ -527,7 +527,7 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
               fontSize: 13, fontWeight: 700, cursor: building ? 'not-allowed' : 'pointer',
             }}
           >
-            {building ? '⏳ Building…' : buildResult ? '🔄 Rebuild Website' : '🚀 Build Website'}
+            {building ? '⏳ Building Website…' : buildResult ? '🔄 Rebuild Website' : '🚀 Build Website'}
           </button>
         </div>
 

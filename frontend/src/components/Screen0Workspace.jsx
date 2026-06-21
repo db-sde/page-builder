@@ -16,10 +16,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
   const [treeData, setTreeData] = useState(null);
   const [treeLoading, setTreeLoading] = useState(false);
 
-  // Compile States
-  const [compiling, setCompiling] = useState(false);
-  const [compileResult, setCompileResult] = useState(null);
-  const [compileTime, setCompileTime] = useState(null);
+  // Compile States (kept internally or unused in dashboard)
 
   // Website Build States
   const [building, setBuilding] = useState(false);
@@ -75,7 +72,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
 
   const loadTree = async (slug) => {
     setTreeLoading(true);
-    setCompileResult(null);
+    // No-op
     try {
       const data = await getWorkspaceTree(slug);
       setTreeData(data);
@@ -157,30 +154,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
     });
   };
 
-  const handleCompile = async () => {
-    if (!selectedSlug) return;
-    setCompiling(true);
-    setCompileResult(null);
-    setCompileTime(null);
-    const start = performance.now();
-    try {
-      const res = await compileWorkspace(selectedSlug);
-      const end = performance.now();
-      setCompileTime(((end - start) / 1000).toFixed(2));
-      setCompileResult(res);
-      // Reload tree to reflect new files or statuses
-      loadTree(selectedSlug);
-    } catch (err) {
-      console.error(err);
-      setCompileResult({
-        pages_compiled: 0,
-        pages_failed: 1,
-        errors: [{ page_type: 'workspace', error: err.response?.data?.error || err.message || String(err) }]
-      });
-    } finally {
-      setCompiling(false);
-    }
-  };
+
 
   const handleBuildWebsite = async () => {
     if (!selectedSlug) return;
@@ -356,21 +330,12 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button
-                    onClick={handleCompile}
-                    disabled={compiling || building}
-                    className="btn btn-secondary"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                  >
-                    {compiling ? '⏳ Compiling…' : '⚡ Compile Workspace'}
-                  </button>
-
-                  <button
                     onClick={handleBuildWebsite}
-                    disabled={building || compiling}
+                    disabled={building}
                     className="btn btn-primary"
                     style={{ width: '100%', justifyContent: 'center' }}
                   >
-                    {building ? '⏳ Building…' : '🚀 Build Website'}
+                    {building ? '⏳ Building Website…' : '🚀 Build Website'}
                   </button>
                 </div>
 
@@ -381,7 +346,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                         window.open(buildFileUrl(selectedSlug, 'index.html'), '_blank');
                       }
                     }}
-                    disabled={!buildResult || compiling || building}
+                    disabled={!buildResult || building}
                     className="btn btn-secondary"
                     style={{
                       width: '100%',
@@ -399,7 +364,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                         downloadBuild(selectedSlug);
                       }
                     }}
-                    disabled={!buildResult || compiling || building}
+                    disabled={!buildResult || building}
                     className="btn btn-secondary"
                     style={{
                       width: '100%',
@@ -448,40 +413,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                   </div>
                 </div>
 
-                {compileResult && (
-                  <div style={{
-                    marginTop: 14,
-                    padding: 10,
-                    background: compileResult.pages_failed > 0 ? '#fffbeb' : '#f0f9f4',
-                    border: `1px solid ${compileResult.pages_failed > 0 ? '#fde68a' : '#b7e4c7'}`,
-                    borderRadius: 6,
-                    fontSize: 11.5
-                  }}>
-                    <div style={{ fontWeight: 700, color: compileResult.pages_failed > 0 ? '#92400e' : '#1a6b3c' }}>
-                      {compileResult.pages_failed > 0 ? '⚠️ Compiled with errors' : '✓ Compiled Successfully'}
-                    </div>
-                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--color-text-secondary)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Pages Compiled:</span> <strong>{compileResult.pages_compiled}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Pages Failed:</span> <strong style={{ color: compileResult.pages_failed > 0 ? 'var(--color-error)' : 'inherit' }}>{compileResult.pages_failed}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Compile Time:</span> <strong>{compileTime ? `${compileTime}s` : '—'}</strong>
-                      </div>
-                    </div>
-                    {compileResult.errors && compileResult.errors.length > 0 && (
-                      <div style={{ marginTop: 6, maxHeight: 100, overflowY: 'auto', borderTop: '1px dashed #e2e8f0', paddingTop: 6 }}>
-                        {compileResult.errors.slice(0, 3).map((e, idx) => (
-                          <div key={idx} style={{ color: 'var(--color-error)', fontStyle: 'italic', fontSize: 10.5 }}>
-                            [{e.page_type}] {e.error}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+
 
                 {buildResult && (
                   <div style={{
