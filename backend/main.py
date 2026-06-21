@@ -227,6 +227,33 @@ async def ingest_acf(req: IngestRequest):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# Helper to save draft preview JSON
+def save_draft_data(university_slug: str, page_type: str, slug: str, parent_slug: str | None, data: dict, images: dict):
+    base_dir = Path(__file__).resolve().parent
+    draft_dir = base_dir / "generated" / "drafts" / university_slug / page_type
+    draft_dir.mkdir(parents=True, exist_ok=True)
+    draft_file = draft_dir / f"{slug}.json"
+    draft_record = {
+        "university_slug": university_slug,
+        "page_type": page_type,
+        "slug": slug,
+        "parent_slug": parent_slug,
+        "data": data,
+        "images": images
+    }
+    draft_file.write_text(json.dumps(draft_record, indent=2, ensure_ascii=False), encoding="utf-8")
+
+# Helper to load draft preview JSON
+def load_draft_data(university_slug: str, page_type: str, slug: str) -> dict | None:
+    base_dir = Path(__file__).resolve().parent
+    draft_file = base_dir / "generated" / "drafts" / university_slug / page_type / f"{slug}.json"
+    if draft_file.exists():
+        try:
+            return json.loads(draft_file.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+    return None
+
 class RenderRequest(BaseModel):
     acf_data: dict[str, Any]
     images: dict[str, str] = {}
@@ -236,13 +263,36 @@ async def preview_html(req: RenderRequest):
     """Render dynamically without database persistence — return HTML as text (for iframe preview)."""
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        
+        # Save draft data for GET preview-file endpoint to consume
+        save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
+        
         merged = {**acf_data, **req.images}
+        
+        # Load baseline workspace index
+        from workspace.compiler import _build_index, _enrich_resolved
+        index = _build_index(university_slug)
+        
+        # Construct draft record and inject it into the temporary index
+        draft_record = {
+            "university_slug": university_slug,
+            "page_type": page_type,
+            "slug": slug,
+            "parent_slug": parent_slug,
+            "data": merged
+        }
+        if page_type in index:
+            index[page_type][slug] = draft_record
+            
+        # Enrich raw draft data with index-based workspace context
+        enriched_record = _enrich_resolved(draft_record, index)
+        
         resolved = {
             "slug": slug,
             "page_type": page_type,
             "university_slug": university_slug,
             "parent_slug": parent_slug,
-            "raw": merged
+            "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone)
@@ -252,18 +302,90 @@ async def preview_html(req: RenderRequest):
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.get("/preview-file", response_class=HTMLResponse)
+async def preview_file(university_slug: str, page_type: str, slug: str):
+    """Serve dynamic preview from GET query params. Uses draft cache if available, else saved workspace data."""
+    try:
+        # Load baseline workspace index
+        from workspace.compiler import _build_index, _enrich_resolved
+        index = _build_index(university_slug)
+
+        draft = load_draft_data(university_slug, page_type, slug)
+        if draft:
+            parent_slug = draft.get("parent_slug")
+            merged = {**(draft.get("data") or {}), **(draft.get("images") or {})}
+        else:
+            # Fallback to saved data in index if draft does not exist
+            if page_type in index and slug in index[page_type]:
+                record = index[page_type][slug]
+                parent_slug = record.get("parent_slug")
+                merged = record.get("data") or {}
+            else:
+                raise HTTPException(status_code=404, detail="Preview data not found")
+
+        # Construct draft record and inject it into the temporary index
+        draft_record = {
+            "university_slug": university_slug,
+            "page_type": page_type,
+            "slug": slug,
+            "parent_slug": parent_slug,
+            "data": merged
+        }
+        if page_type in index:
+            index[page_type][slug] = draft_record
+            
+        # Enrich raw draft data with index-based workspace context
+        enriched_record = _enrich_resolved(draft_record, index)
+        
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": enriched_record["raw"]
+        }
+        standalone = page_type in ("course", "specialization", "blog")
+        html = render_resolved(resolved, standalone=standalone)
+        return HTMLResponse(content=html)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/render-html")
 async def render_html(req: RenderRequest):
     """Render dynamically, save file to generated/{page_type}/{slug}.html — return HTML as downloadable attachment."""
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         merged = {**acf_data, **req.images}
+        
+        # Load baseline workspace index
+        from workspace.compiler import _build_index, _enrich_resolved
+        index = _build_index(university_slug)
+        
+        # Construct draft record and inject it into the temporary index
+        draft_record = {
+            "university_slug": university_slug,
+            "page_type": page_type,
+            "slug": slug,
+            "parent_slug": parent_slug,
+            "data": merged
+        }
+        if page_type in index:
+            index[page_type][slug] = draft_record
+            
+        # Enrich raw draft data with index-based workspace context
+        enriched_record = _enrich_resolved(draft_record, index)
+        
         resolved = {
             "slug": slug,
             "page_type": page_type,
             "university_slug": university_slug,
             "parent_slug": parent_slug,
-            "raw": merged
+            "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone)

@@ -223,6 +223,11 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewWidth, setPreviewWidth] = useState('100%');
 
+  const previewUrl = session.slug && session.page_type && session.university_slug
+    ? `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
+    : null;
+
+
   // Workspace state
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
   const [workspaceSaveResult, setWorkspaceSaveResult] = useState(null);
@@ -375,10 +380,8 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             onClick={() => {
-              const newWindow = window.open();
-              if (newWindow) {
-                newWindow.document.write(session.htmlContent || '');
-                newWindow.document.close();
+              if (previewUrl) {
+                window.open(previewUrl, '_blank');
               }
             }}
             style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
@@ -718,7 +721,7 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
           overflow: 'auto',
           minHeight: 560
         }}>
-          {session.htmlContent ? (
+          {previewUrl ? (
             <div style={{
               width: previewWidth,
               maxWidth: '100%',
@@ -730,7 +733,7 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
               overflow: 'hidden'
             }}>
               <iframe
-                srcDoc={session.htmlContent ? session.htmlContent.replace('<head>', '<head><base href="http://localhost:8000/">') : ''}
+                src={previewUrl}
                 title="Page Preview"
                 style={{ width: '100%', height: 600, border: 'none', display: 'block' }}
                 sandbox="allow-scripts allow-same-origin"
