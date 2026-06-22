@@ -66,7 +66,9 @@
         <div style="font-size:12.5px;margin-bottom:14px;color:{{ heroCrumb }}">
           <a href="nodia.dc.html" style="color:inherit">Home</a> › <a href="nodia-online-mba.dc.html" style="color:inherit">Chandigarh University</a> › Online MBA in Banking &amp; Insurance
         </div>
+        
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px;{{ heroBadge }}">UGC-approved</div>
+        
         <h1 style="font-size:40px;font-weight:800;line-height:1.16;letter-spacing:-.01em;color:{{ heroH1 }}">Online MBA in Banking &amp; Insurance</h1>
         <p style="font-size:16px;max-width:540px;margin-top:16px;color:{{ heroSub }}">Chandigarh University Online (CU Online) provides a well-rounded Online MBA degree with a specialization in Banking and Insurance, which prepares students with the knowledge and abilities to succeed in the evolving financial services sector.</p>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
@@ -88,10 +90,7 @@
         
         <img src="/assets/images/university-hero.jpg" alt="" style="width:100%;height:100%;min-height:410px;object-fit:cover;border-radius:16px;display:block;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)">
         
-        <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
-          <div style="font-size:26px;font-weight:800;color:#FF5C35">A+</div>
-          <div style="font-size:12px;font-weight:700;line-height:1.25">Accredited<br><span style="color:#6E6A78;font-weight:600">Highest Category Rating</span></div>
-        </div>
+        
       </div>
     </div>
   </div>
@@ -357,7 +356,7 @@ class Component extends DCLogic {
   renderVals() {
     const O = '#FF5C35', NAVY = '#6B4FC9', MUT = '#6E6A78';
     const stats = [{"v": "2 Years", "k": "Duration"}, {"v": "Online", "k": "Mode"}, {"v": "UGC-approved", "k": "Approval"}, {"v": "₹1,65,000", "k": "Total Fee"}, {"v": "23", "k": "Specializations"}];
-    const railDef = [["About", "#about"], ["Highlights", "#highlights"], ["Specializations", "#specializations"], ["Fee Structure", "#fees"], ["Eligibility", "#eligibility"], ["Admission", "#admission"], ["Syllabus", "#syllabus"], ["Placements", "#placement"], ["Job Profiles", "#jobs"], ["FAQs", "#faq"]];
+    const railDef = [["About", "#about"], ["Highlights", "#highlights"], ["Accreditations", "#accreditations"], ["Specializations", "#specializations"], ["Fee Structure", "#fees"], ["Eligibility", "#eligibility"], ["Admission", "#admission"], ["Syllabus", "#syllabus"], ["Placements", "#placement"], ["Job Profiles", "#jobs"], ["FAQs", "#faq"]];
     const rail = railDef.map(([label, href]) => ({
       label, href, color: MUT, bar: 'transparent', bg: 'transparent'
     }));

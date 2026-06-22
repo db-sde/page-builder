@@ -1,119 +1,200 @@
-# page-engine — Project Report
+# Page-Engine — Architecture & System Report
 
-## What This Project Does
-The `page-engine` project is a high-performance content ingestion and static page generation engine. It enables non-technical university administrators to author comprehensive academic program pages, FAQs, student reviews, and program highlights in standard Microsoft Word (`.docx`) files, which are then parsed and processed into an intermediate Advanced Custom Fields (ACF) JSON database. A FastAPI web application reads from this structured data, processes it via dynamic domain-specific transformers, and renders visually stunning, responsive, and SEO-optimized HTML pages using Jinja2 templates styled with cohesive brand-specific colors and micro-interactions.
+This report documents the current system architecture, components, compilation/build workflows, and active APIs of the `page-engine` backend application. It is based directly on the active Python codebase and filesystem structure.
 
-## Architecture Overview
-The system follows a fully stateless, in-memory transformation pipeline. Instead of storing and querying records from a database, the system processes ACF JSON payloads directly through domain-specific transformers, rendering and returning preview HTML dynamically. Finalized HTML pages are persisted to disk under categorized subdirectories ONLY when the user initiates a download.
+---
 
-Below is the data flow representation:
+## 1. What This Project Does
 
-```
-+----------------+
-|  Source .docx  |
-+-------+--------+
-        |
-        v
-+-------+----------------------------+
-| Ingestion Parser (parser.py)       | (Parses docx paragraphs & tables into a flat block list)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| Ingestion Extractor (extractor.py) | (Groups blocks using fuzzy heading anchors into ACF format)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| Ingestion Entry (ingest.py)        | (Saves output to standalone generated/{type}/{slug}.json)
-+-------+----------------------------+
+The `page-engine` project is a high-performance content ingestion, workspace compilation, and static site generation system. It allows university administrators to author comprehensive academic program pages, blog articles, FAQs, and reviews in standard Microsoft Word (`.docx`) files. 
 
-               OR (FastAPI HTTP Flow)
+The application:
+1. **Parses & Extracts**: Ingests `.docx` files, processes them (either locally or via an external micro-pipeline) into structured Advanced Custom Fields (ACF) JSON databases.
+2. **Organizes via Workspaces**: Groups and stores raw ACF payloads (`source.json`) and compiled HTML templates inside separate, version-controlled workspace folders on disk.
+3. **Compiles & Enriches**: Runs a **two-pass compiler** to index pages, validate assets, and enrich page data with complex parent-sibling relationship structures (e.g., nesting sibling specializations under courses, loading global university badges).
+4. **Static Export**: Generates fully deployable, static website packages ready for production, rewriting URLs, copying assets, and auto-producing XML sitemaps and route manifests.
 
-+--------------------+
-| Pasted ACF JSON    |
-+-------+------------+
-        |
-        v
-+-------+----------------------------+
-| FastAPI Server (main.py)           | (Ingests ACF payload, extracts metadata in-memory)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| router (core/router.py)            | (Instantiates the correct dynamic transformer class)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| transformers/                      | (Compiles stats, breadcrumbs, and presentation fields)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| renderer (renderer/engine.py)      | (Jinja2 compiler renders context dynamically)
-+-------+----------------------------+
-        |
-        v
-+-------+----------------------------+
-| HTML Output & Disk Persistence     | (Writes to backend/generated/{page_type}/{slug}.html)
-+------------------------------------+
+---
+
+## 2. On-Disk Workspace Layout
+
+Workspaces are maintained on-disk inside the `workspaces/` directory alongside the application source. Each university workspace represents a self-contained filesystem-based repository.
+
+Managed by [manager.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/workspace/manager.py), the structure is organized as follows:
+
+```text
+workspaces/
+└── {university_slug}/
+    ├── metadata.json                 # Global configuration (theme colors, contact info, compiling times)
+    ├── University/
+    │   ├── source.json               # Raw transformed ACF JSON (source of truth)
+    │   └── university.html           # Compiled home/landing page
+    ├── Courses/
+    │   └── {course_slug}/
+    │       ├── source.json           # Raw course ACF JSON
+    │       └── course.html           # Compiled course detail page
+    ├── Specializations/              # Flat organization (not nested inside Course folder)
+    │   └── {spec_slug}/
+    │       ├── source.json           # Raw specialization ACF JSON
+    │       └── specialization.html   # Compiled specialization detail page
+    ├── Blogs/
+    │   └── {blog_slug}/
+    │       ├── source.json           # Raw blog ACF JSON
+    │       └── blog.html             # Compiled blog article page
+    ├── Pages/                        # Auto-generated system listing pages
+    │   ├── programs/
+    │   │   ├── source.json           # Listing stub config
+    │   │   └── programs_listing.html # Compiled courses listing page
+    │   ├── specializations/
+    │   │   ├── source.json
+    │   │   └── specializations_listing.html
+    │   └── blog/
+    │       ├── source.json
+    │       └── blog_listing.html
+    ├── Assets/
+    │   ├── images/                   # Localized image assets (logos, certificate images, heroes)
+    │   └── downloads/                # Attachable document downloads
+    └── build/                        # Output folder generated by the exporter (Pass 4)
 ```
 
-## Components Built
+---
 
-### Router (`core/router.py`)
-- **What it does**: Maps incoming resolved page type descriptors to their corresponding transformer classes.
-- **How resolution works**:
-  - `get_transformer(resolved)`: Selects and instantiates the correct subclass from `TRANSFORMER_MAP` (e.g. `CourseTransformer`, `SpecializationTransformer`) passing the in-memory descriptor.
+## 3. Ingestion & In-Memory Transformation Pipeline
 
-### Site Config (`core/site_config.py`)
-- **What it stores**: Global constant parameters (telephone numbers, WhatsApp api hooks, support email address, physical office address, navigation items, footer columns, and copyright clauses).
-- **How it's consumed**: Imported inside `BaseTransformer` (`transformers/base.py`) to compile configuration keys into the base dictionary under the `site` namespace.
+The ingestion pipeline handles raw document ingestion in two ways inside [main.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/main.py):
 
-### Transformers
-Each page class maps raw fields to structural presentation keys:
-- **BaseTransformer** (`transformers/base.py`): Abstract base class. Defines shared methods like `format_fee()`, `build_breadcrumbs()`, `build_pills()`, `build_stats()`, `build_rail()`, `build_reviews()`, and `build_fee_note()`.
-- **UniversityTransformer** (`transformers/university.py`): Inherits `BaseTransformer`. Transforms NIRF facts, logo badges, custom rankings, admission steps list, tuition fee ranges, and programs table.
-- **CourseTransformer** (`transformers/course.py`): Inherits `BaseTransformer`. Transforms courses, syllabus structures, and maps fee plans in-memory.
-- **SpecializationTransformer** (`transformers/specialization.py`): Inherits `BaseTransformer`. Computes active navigation rails, maps average recruiter salaries, and builds breadcrumbs.
-- **BlogTransformer** (`transformers/blog.py`): Prepares article directory mappings. Separates the list of articles into a single `featured_post` and a list of regular `posts`, forwarding category chip items.
-- **ContactTransformer** (`transformers/contact.py`): Maps telephone and email info, office timing states, average queue response times, and selectable programs list.
-
-### Renderer (`renderer/engine.py`)
-- **How Jinja2 is configured**: Configured with `FileSystemLoader` referencing `templates/`, autoescape enabled for HTML, and a custom filter `de` (`default_empty`) to safely resolve empty/missing keys as `""` rather than displaying `None`.
-- **Template map**: Explicitly links `page_type` strings to HTML template filenames (e.g. `specialization -> specialization.html`).
-- **render_resolved function**: Accepts the fully resolved payload dictionary, triggers the appropriate transformer, and compiles the template entirely in-memory.
-
-### Ingestion Pipeline (`ingestion/`)
-- **parser.py**: Reads `.docx` files using `docx.Document`. Maps heading styles (Heading 1 to Heading 4) to HTML heading tokens (`h1`-`h4`), runs bold paragraph classification, and processes tables into clean row lists.
-- **extractor.py**: Maps heading blocks against fuzzy definitions in `HEADING_ANCHORS` to group document sections, converting tables and text into formatted arrays (FAQs, reviews, programs, or fee structures).
-- **ingest.py**: Integrates CLI arguments via `argparse`, parses target documents, formats metadata fields, and writes the output directly to a standalone `{slug}.json` file inside `backend/generated/{page_type}/`.
+*   **Local Python Ingestion**: If the page is classified as a blog or generic document, the system extracts the text directly using the local parser in [parser.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/ingestion/parser.py), evaluates reading times, maps relevant tags (Finance, Career, Admissions, Student Life) based on text heuristics, and returns the payload in-memory.
+*   **External Micro-Pipeline Ingestion**: If it is a university, course, or specialization page, the file is forwarded over multipart/form-data to the external parsing service designated by the `MICRO_APP_URL` environment variable.
 
 ---
 
-## API Endpoints
+## 4. The Two-Pass Workspace Compiler
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/preview-html` | Generates HTML preview dynamically and returns it for in-memory client-side rendering |
-| POST | `/render-html` | Generates HTML, saves it under `backend/generated/{page_type}/{slug}.html`, and returns the file as a download |
-| POST | `/parse-docx` | Uploads and parses a `.docx` file, returning the extracted ACF JSON payload |
-| POST | `/save-temp-json` | Saves a temporary debug JSON file to disk for development inspection |
+The workspace compiler, implemented in [compiler.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/workspace/compiler.py), parses and updates all workspace pages dynamically using a two-pass pipeline:
+
+### Pass 1: Global Index & Validation
+1. Recursively scans the workspace directory, loading all `source.json` files.
+2. Builds an in-memory global map of the university contents: courses, specializations, blogs, and list stubs.
+3. Performs image presence validation. It enforces that required images are present in the page data:
+    *   **University**: `hero_image_url`
+    *   **Course**: `hero_image_url` and `certificate_image_url`
+    *   **Specialization**: `hero_image_url`
+    *   **Blog**: `hero_image_url`
+
+### Pass 2: Context Enrichment & Template Compilation
+Using the global index, the compiler injects cross-page data context and resolved links into each page's raw data namespace:
+*   **University Homepage**: Injects `_workspace_courses`, `_workspace_specs`, and `_workspace_blogs`.
+*   **Course Detail Pages**: Injects child specializations `_workspace_specs` (filtering by parent-slug match) and latest `_workspace_blogs`.
+*   **Specialization Detail Pages**: Injects parent course descriptor `_workspace_parent` and sibling specialization list `_workspace_sibling_specs` (excluding the current page).
+*   **Listing Pages**: Injects corresponding lists to fully populate course, specialization, and article grids.
+
+Finally, the Jinga2 templates are rendered, and compiled HTML files are written directly into their respective folders.
 
 ---
 
-## Data Flow Example
-When a user clicks **Generate Preview** and then **Download** in the frontend:
-1. **Frontend Dispatch**: The React app sends a POST request with the updated ACF JSON state to `/preview-html`.
-2. **Stateless Render**: FastAPI routes the payload, extracts metadata in-memory, instantiates the corresponding transformer, executes Jinja2 template rendering, and returns the raw compiled HTML.
-3. **Client-Side Iframe & Popup**: The frontend injects the returned HTML into an iframe via the `srcDoc` attribute. If "Open Full Page" is clicked, the in-memory content is opened in a new tab via `window.open().document.write()`.
-4. **Finalized Persistence**: When the user clicks the Download button, `/render-html` is called, which compiles the HTML, writes the output file to `backend/generated/{page_type}/{slug}.html` dynamically, and initiates a browser download attachment.
+## 5. The Website Export Builder (Pass 4)
+
+The website exporter, located in [builder.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/workspace/builder.py), turns a compiled university workspace into a standalone, deployable static site. It builds a directory structure under `workspaces/{university_slug}/build/`.
+
+### Export Pipeline Steps:
+1.  **Index & Validation Check**: Performs final sanity checks to ensure a university homepage exists, images are present on disk, and parent-child slugs do not contain dangling pointers.
+2.  **Route Map Generation & Collision Detection**: Maps keys to path templates. Prevents path conflicts by throwing error logs if course or specialization slugs collide with reserved listing routes (`/programs`, `/specializations`, `/blog`) or duplicate each other.
+3.  **Reset Export Target**: Wipes and rebuilds the `build/` output directory.
+4.  **Static Page Exporting**: Copies and saves each compiled page to `index.html` inside subfolders (e.g. `/online-mba/index.html`), maintaining clean URL routing.
+5.  **URL Link Rewriting**: Rewrites all local links in the raw HTML files:
+    *   Replaces dynamic link strings (e.g., `{slug}.dc.html`, `{slug}.html`, `programs_listing.html`) with root-absolute routes (e.g. `/`, `/{slug}/`, `/programs/`).
+    *   Replaces dynamic javascript slug strings (like card click links) to generate clean URLs.
+    *   Points `./support.js` to `/assets/support.js`.
+6.  **Assets Copying**: Migrates all image and download files from the workspace's `Assets/` folders to `/assets/images/` and `/assets/downloads/` in the build target, and saves the central runtime script to `/assets/support.js`.
+7.  **Sitemap & Manifest Generation**:
+    *   Generates a route map dictionary inside `routes.json` mapping routes to page types.
+    *   Creates a compliant `sitemap.xml` containing absolute/relative locations, prioritization, and correct `lastmod` dates pulled from page update parameters.
 
 ---
 
-## Known Limitations & Future Roadmap
-- **No Database Dependency**: The current setup runs completely database-free and stateless.
-- **Single Page Scope**: Because there is no central database store, sibling lookups (e.g., listing other specializations of a university) are disabled and default to empty.
-- **Redis Cache Layer**: Dynamic rendering is performed on each preview request; a cache layer could be introduced if payload sizes grow massive.
-- **Lead persistency**: Form actions on the compiled HTML remain client-side mock-ups.
+## 6. Jinja2 Rendering Engine
+
+The template compiler engine, located in [engine.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/renderer/engine.py), manages template loaders:
+
+*   **Template Loader Configuration**: Loads templates from `templates/` with HTML autoescape enabled. Uses a custom filter `de` (`default_empty`) to safely map `None` references to empty strings `""` to prevent template errors.
+*   **Structured Block Parsers**: Employs built-in HTML parsers (`SyllabusHTMLParser`, `AdmissionHTMLParser`) to extract raw HTML content into structured JSON lists for rendering.
+*   **JSON Script Pre-Serialization**: Pre-compiles complex page components (syllabus arrays, highlights, fees, FAQ items, recruiter list) into JSON strings (e.g., `faq_data_json`, `y1_json`) inside the Jinja2 context namespace so that scripts can initialize their state without client-side parsing delay.
+*   **Centralized Hrefs**: Centralizes navigation links, listing hooks, and tracking/apply links (`build_lead_url`) using the university slug and UTM source tags.
+
+---
+
+## 7. API Reference Matrix
+
+The FastAPI application declared in [main.py](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/backend/main.py) hosts exactly **18 endpoints** orchestrating the pipeline:
+
+| Method | Path | Input Parameters / Payload Model | Return Type | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **GET** | `/assets/images/{filename}` | Path parameter: `filename` (string) | `FileResponse` | Serves local images stored in the workspaces' `Assets/images/` folder. |
+| **GET** | `/assets/{path:path}` | Path parameter: `path` (string) | `FileResponse` | Serves compiled static assets from the `build/assets/` directory. Falls back to serving `/support.js` if the request matches. |
+| **GET** | `/support.js` | None | `FileResponse` | Serves the central javascript support runtime script (`support.js`) from active filesystem paths. |
+| **POST** | `/save-temp-json` | JSON: `SaveTempRequest` (`data: dict`) | `JSONResponse` | Persists a temporary debug payload file directly to `backend/generated/temp_debug.json` for inspect/development purposes. |
+| **POST** | `/ingest-acf` | JSON: `IngestRequest` (`acf_data: dict`) | `JSONResponse` | Ingests raw ACF JSON, triggers in-memory translation via the matching transformer, and returns the constructed dictionary template context. |
+| **POST** | `/preview-html` | JSON: `RenderRequest` (`acf_data`, `images`) | `HTMLResponse` | Renders a page dynamically. Saves a draft record to `backend/generated/drafts/`, enriches it using local workspace content in-memory, and yields compiled HTML. |
+| **GET** | `/preview-file` | Query params: `university_slug`, `page_type`, `slug` | `HTMLResponse` | Serves dynamic preview pages. Uses draft cache if available on disk, falling back to compiled index-saved data. |
+| **POST** | `/render-html` | JSON: `RenderRequest` (`acf_data`, `images`) | `Response` | Renders pages, saves output under `backend/generated/{page_type}/{slug}.dc.html`, and prompts a browser file attachment download. |
+| **POST** | `/parse-docx` | Form: `file: UploadFile`, `page_type: str \| None` | `JSONResponse` | Ingests a `.docx` document. Parses blog/generic files locally, and forwards academic pages to the micro-pipeline parsing server. |
+| **POST** | `/workspaces` | JSON: `CreateWorkspaceRequest` (`university_slug`, `university_name`, `metadata_overrides`) | `JSONResponse` | Generates a new workspace folder structure and initializes three listing stub configurations on disk. |
+| **POST** | `/save-to-workspace` | JSON: `SaveToWorkspaceRequest` (`acf_data`, `images`, `metadata_overrides`) | `JSONResponse` | Validates required images, saves base64 image strings to localized workspace folders, transforms and renders the page, writes `source.json` and `.html` files, and re-renders listing pages. |
+| **POST** | `/compile-workspace` | Form-data: `university_slug` (string) | `JSONResponse` | Runs the full two-pass compiler across the specified workspace, validating assets, and updates `last_compiled_at` timestamps. |
+| **GET** | `/workspace-tree` | Query param: `university_slug` (string) | `JSONResponse` | Returns a nested structural tree detailing workspace pages, metadata settings, and status flags. |
+| **GET** | `/workspaces` | None | `JSONResponse` | Scans the workspaces root directory on disk and returns status summaries for all registered workspaces. |
+| **POST** | `/build-website` | Form-data: `university_slug`, `skip_compile` (bool) | `JSONResponse` | Compiles the workspace (unless skipped) and generates the static website package in `build/`, returning status counts. |
+| **GET** | `/build-status` | Query param: `university_slug` (string) | `JSONResponse` | Returns website build statistics (exists flag, route counts, compiled page totals) without triggering a rebuild. |
+| **GET** | `/build-file` | Query params: `university_slug`, `path` | `HTMLResponse` / `FileResponse` | Serves a single file from the target `build/` folder. For HTML files, injects a click-interceptor script to allow built-site in-preview navigation. |
+| **GET** | `/download-build` | Query param: `university_slug` (string) | `Response` | Packages the entire website build directory into a ZIP archive and triggers a browser download. |
+
+---
+
+## 8. Typical User & Data Lifecycle Workflow
+
+Below is the workflow showing how user inputs progress from document ingest to static site packages:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Admin (Frontend UI)
+    participant API as FastAPI Server
+    participant MP as Micro-Pipeline Server
+    participant WS as Workspace Folder (Disk)
+    participant BLD as Build Exporter
+
+    User->>API: Upload .docx file (/parse-docx)
+    alt is Academic Program / University
+        API->>MP: Forward file bytes
+        MP-->>API: Return parsed ACF JSON
+    else is Blog / General Article
+        API->>API: Parse document locally using Python
+    end
+    API-->>User: Return Extracted ACF JSON Payload
+    
+    User->>API: Preview draft page (/preview-html)
+    API->>API: Cache draft to drafts/{slug}.json
+    API->>API: Temporary in-memory index enrichment
+    API-->>User: Serve dynamic preview HTML
+    
+    User->>API: Approve & Save Page (/save-to-workspace)
+    API->>API: Save base64 images as local files under Assets/
+    API->>WS: Write source.json & page.html
+    API->>API: Trigger local listing pages update
+    API-->>User: Workspace Saved Confirmation
+    
+    User->>API: Run Full Compilation (/compile-workspace)
+    API->>WS: Pass 1: Validate images & index files
+    API->>WS: Pass 2: Inject contexts and write updated html
+    API-->>User: Compilation Summary (Success/Failed Counts)
+    
+    User->>API: Export Deployable Site (/build-website)
+    API->>BLD: Reset workspaces/{uni}/build/
+    API->>BLD: Export pages, rewrite URLs & copy assets
+    API->>BLD: Write routes.json & sitemap.xml
+    API-->>User: Built Website Statistics (Page & Route Maps)
+    
+    User->>API: Request ZIP file (/download-build)
+    API->>API: Zip build/ folder contents in-memory
+    API-->>User: Zipped website file attachment download
+```

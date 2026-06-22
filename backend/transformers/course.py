@@ -163,7 +163,7 @@ class CourseTransformer(BaseTransformer):
             "rail": self.build_rail([
                 ("about", "About", raw.get("about_content")),
                 ("highlights", "Highlights", raw.get("highlights")),
-                ("accreditations", "Accreditations", raw.get("naac_grade")),
+                ("accreditations", "Accreditations", raw.get("naac_grade") or raw.get("ugc_status")),
                 ("specializations", "Specializations", my_specs or raw.get("num_specializations")),
                 ("fees", "Fee Structure", raw.get("fee_plans")),
                 ("eligibility", "Eligibility", raw.get("eligibility_content")),

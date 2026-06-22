@@ -57,7 +57,9 @@
   <div style="{{ '{{' }} heroWrap {{ '}}' }};padding:56px 0 72px">
     <div style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
       <div>
-        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ '{{' }} heroBadge {{ '}}' }}">NAAC {{ naac_grade | default('A+') }} Accredited · UGC {{ ugc_approved | default('Entitled') }} · NIRF #24</div>
+        {% if naac_grade or ugc_approved %}
+        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ '{{' }} heroBadge {{ '}}' }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }} · {% endif %}NIRF #24</div>
+        {% endif %}
         <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ '{{' }} heroH1 {{ '}}' }}">{{ hero.full_name | default("Online Degrees from " ~ hero.title) }}</h1>
         <p style="font-size:16.5px;color:{{ '{{' }} heroSub {{ '}}' }};max-width:520px;margin-top:18px">{{ hero.description }}</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
@@ -66,7 +68,9 @@
         </div>
         <div style="display:flex;gap:34px;margin-top:34px">
           <div><div style="font-size:28px;font-weight:800;color:#FF5C35">{{ established_year | default(stats[0].v if stats else '2010') }}</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">Established</div></div>
-          <div style="border-left:1px solid {{ '{{' }} heroStatDivider {{ '}}' }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#FF5C35">A+</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">NAAC Grade</div></div>
+          {% if naac_grade %}
+          <div style="border-left:1px solid {{ '{{' }} heroStatDivider {{ '}}' }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#FF5C35">{{ naac_grade }}</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">NAAC Grade</div></div>
+          {% endif %}
           <div style="border-left:1px solid {{ '{{' }} heroStatDivider {{ '}}' }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#FF5C35">UGC</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">Approved Degrees</div></div>
         </div>
       </div>
@@ -92,7 +96,7 @@
   <div style="background:#3A2A7A;color:#C9BEEC">
     <div style="max-width:1180px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;font-size:13px;font-weight:600">
       <span style="color:#fff;font-weight:700">Recognised &amp; Accredited:</span>
-      <span>NAAC {{ naac_grade | default('A+') }}</span><span style="opacity:.4">|</span><span>UGC {{ ugc_approved | default('Entitled') }}</span><span style="opacity:.4">|</span><span>AIU Member</span><span style="opacity:.4">|</span><span>NIRF #24 Management</span><span style="opacity:.4">|</span><span>WES Recognised</span>
+      {% if naac_grade %}<span>NAAC {{ naac_grade }}</span><span style="opacity:.4">|</span>{% endif %}{% if ugc_approved %}<span>UGC {{ ugc_approved }}</span><span style="opacity:.4">|</span>{% endif %}<span>AIU Member</span><span style="opacity:.4">|</span><span>NIRF #24 Management</span><span style="opacity:.4">|</span><span>WES Recognised</span>
     </div>
   </div>
 
@@ -130,7 +134,7 @@
           </a>
         </sc-for>
       </div>
-      <div style="text-align:center;margin-top:30px;font-size:13.5px;color:#6E6A78">All programs are UGC-entitled &amp; NAAC A+ accredited · <a href="{{ lead_url }}" style="color:#FF5C35;font-weight:800">Download the full program guide →</a></div>
+      <div style="text-align:center;margin-top:30px;font-size:13.5px;color:#6E6A78">All programs are UGC-entitled{% if naac_grade %} &amp; NAAC {{ naac_grade }} accredited{% endif %} · <a href="{{ lead_url }}" style="color:#FF5C35;font-weight:800">Download the full program guide →</a></div>
     </div>
   </div>
 
