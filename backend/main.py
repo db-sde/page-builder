@@ -615,14 +615,17 @@ async def parse_docx_endpoint(
                 "blocks": cleaned_blocks
             }
 
-            return {
+            result = {
                 "filename": file.filename,
                 "page_type": detected_type,
                 "payload": payload
             }
         else:
             # Route to the micro-pipeline (passing the original file bytes)
-            return forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
+            result = forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
+
+        from core.router import normalize_value
+        return normalize_value(result)
 
     except Exception as e:
         import traceback

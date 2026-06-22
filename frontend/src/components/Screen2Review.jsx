@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ingestAcf, previewHtml } from '../api';
 import FieldHealthPanel from './FieldHealthPanel';
 import AddFieldModal from './AddFieldModal';
+import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
 
 // Image slots required per page type
 const IMAGE_SLOTS = {
@@ -36,24 +37,37 @@ function fieldsToAcf(fields) {
 }
 
 /** Initialise the editable fields state from session.acf_data, excluding metadata keys and structured (object/array) fields. */
-function initFields(acf_data) {
+function initFields(acf_data, page_type) {
   const excludedKeys = [
     'slug', 'page_type', 'university_slug', 'parent_slug',
     'hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url'
   ];
   const out = {};
+  const schema = FIELD_SCHEMA[page_type] || [];
+  const schemaKeys = schema.map(f => f.key);
+
+  // 1. Pre-populate all schema fields, converting placeholders to ''
+  for (const field of schema) {
+    if (excludedKeys.includes(field.key)) continue;
+    const v = acf_data[field.key];
+    out[field.key] = isPlaceholder(v) ? '' : String(v);
+  }
+
+  // 2. Add other fields present in acf_data not in schema
   for (const [k, v] of Object.entries(acf_data)) {
     if (excludedKeys.includes(k)) continue;
+    if (schemaKeys.includes(k)) continue;
     if (typeof v === 'object' && v !== null) continue; // exclude structured fields
-    out[k] = String(v ?? '');
+    out[k] = isPlaceholder(v) ? '' : String(v);
   }
+
   return out;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Screen2Review({ session, updateSession, onNext, onBack }) {
-  const [fields, setFields]       = useState(() => initFields(session.acf_data));
+  const [fields, setFields]       = useState(() => initFields(session.acf_data, session.page_type));
   const [imageUrls, setImageUrls] = useState(() => {
     const initImages = { ...session.images };
     const neededKeys = (IMAGE_SLOTS[session.page_type] || []).map(slot => slot.key);
@@ -222,17 +236,44 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Page Fields</div>
             <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Edit any field before generating the page.</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {simpleFields.map(([key, val]) => (
-                <div key={key}>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>{key}</label>
-                  <input
-                    className="input"
-                    value={val}
-                    onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              ))}
+              {simpleFields.map(([key, val]) => {
+                const schema = FIELD_SCHEMA[session.page_type] || [];
+                const schemaField = schema.find(f => f.key === key);
+                const isRequired = schemaField ? schemaField.required : false;
+                const isFieldEmpty = val === '';
+                
+                return (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>{key}</label>
+                      {isRequired && <span style={{ fontSize: 11, color: '#c53030', fontWeight: 800 }}>Required</span>}
+                    </div>
+                    <input
+                      className="input"
+                      value={val}
+                      onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
+                      style={{ 
+                        width: '100%',
+                        borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
+                        background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
+                      }}
+                    />
+                    {isFieldEmpty && (
+                      <div style={{ 
+                        color: isRequired ? '#c53030' : '#b45309', 
+                        fontSize: 11.5, 
+                        marginTop: 4, 
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        <span>⚠</span> {isRequired ? 'Missing from uploaded document' : 'Not detected from source file'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

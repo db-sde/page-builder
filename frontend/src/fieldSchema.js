@@ -80,6 +80,20 @@ export const FIELD_SCHEMA = {
   ],
 };
 
+const PLACEHOLDER_STRINGS = [
+  'na', 'n/a', 'not available', 'not applicable', 'null', 'none', 'unknown',
+  '-', '--', '---', '--------------', '—'
+];
+
+export function isPlaceholder(val) {
+  if (val === undefined || val === null) return true;
+  if (typeof val !== 'string') return false;
+  const s = val.trim().toLowerCase();
+  if (PLACEHOLDER_STRINGS.includes(s)) return true;
+  if (/^[-—]+$/.test(val.trim())) return true;
+  return false;
+}
+
 /**
  * Diff ACF data against schema for a page type.
  * Returns { present, missing, requiredMissing, schema }
@@ -97,7 +111,8 @@ export function diffFields(acf_data, page_type) {
       val === null ||
       val === '' ||
       (Array.isArray(val) && val.length === 0) ||
-      (typeof val === 'string' && val.trim() === '');
+      (typeof val === 'string' && val.trim() === '') ||
+      isPlaceholder(val);
 
     if (isEmpty) {
       missing.push(field);

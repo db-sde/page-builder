@@ -130,7 +130,7 @@ class CourseTransformer(BaseTransformer):
                     ("No Entrance Exam" if raw.get("program_name") else None, None),
                 ]),
                 "badge": (
-                    f"{raw.get('naac_grade')} Accredited · {raw.get('ugc_status')}"
+                    f"NAAC {raw.get('naac_grade')} Accredited · {raw.get('ugc_status')}"
                     if raw.get("naac_grade") and raw.get("ugc_status")
                     else (f"NAAC {raw.get('naac_grade')} Accredited" if raw.get("naac_grade") else raw.get("ugc_status"))
                 ) or None,
@@ -153,7 +153,7 @@ class CourseTransformer(BaseTransformer):
             "stats": self.build_stats([
                 (raw.get("duration"), "Duration"),
                 (raw.get("mode"), "Mode"),
-                (raw.get("naac_grade"), "Accreditation"),
+                (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", "Accreditation"),
                 (raw.get("ugc_status"), "Approval"),
                 (self.format_fee(raw.get("total_fee", "")), "Total Fee"),
                 (str(raw.get("num_specializations", "")), "Specializations"),

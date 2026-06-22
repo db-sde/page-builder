@@ -88,7 +88,7 @@ class SpecializationTransformer(BaseTransformer):
             "stats": self.build_stats([
                 (raw.get("duration"), "Duration"),
                 (raw.get("mode"), "Mode"),
-                (raw.get("naac_grade"), "Accreditation"),
+                (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", "Accreditation"),
                 (raw.get("ugc_status"), "Approval"),
                 (self.format_fee(raw.get("total_fee", "")), "Total Fee"),
             ]),
