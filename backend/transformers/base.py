@@ -97,12 +97,20 @@ class BaseTransformer(ABC):
             return val
         return None
 
-    def build_fee_note(self, emi_amount: str) -> str:
+    def clean_str(self, val) -> str | None:
+        if val is None:
+            return None
+        s = str(val).strip()
+        if not s or s.upper() in ("NA", "N/A", "NIL", "-", "--", "NONE", "NULL"):
+            return None
+        return s
+
+    def build_fee_note(self, emi_amount: str) -> str | None:
         if not emi_amount:
-            return ""
+            return None
         clean = str(emi_amount).strip()
         if clean.upper() in ("NA", "N/A", "NIL", "-", "--", ""):
-            return ""
+            return None
         # Ensure ₹ prefix
         if not clean.startswith("₹"):
             clean = f"₹{clean}"

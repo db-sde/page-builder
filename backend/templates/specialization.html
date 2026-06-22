@@ -165,13 +165,11 @@
             <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.plan {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.amt {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }};font-weight:700;color:#6B4FC9">{{ '{{' }} f.total {{ '}}' }}</td></tr>
           </sc-for>
         </table>
+        {% if fees.note %}
         <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:14px">
-          {% if fees.note %}
-            {{ fees.note }}
-          {% else %}
-            No-cost EMI from approximately ₹8,334/month over 24 months via {{ university_name }}'s lending partners, plus credit-card EMI and education loan support. Semester-wise payment lets you start with just ₹50,000.
-          {% endif %}
+          {{ fees.note }}
         </div>
+        {% endif %}
       </section>
       {% endif %}
 
@@ -199,7 +197,9 @@
             </div>
           </sc-for>
         </div>
-        <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:12px">{{ admission.fee_note | default("Note: A one-time, non-refundable admission processing fee of ₹1,200 is payable with the first installment.") }}</div>
+        {% if admission.fee_note %}
+        <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:12px">{{ admission.fee_note }}</div>
+        {% endif %}
       </section>
       {% endif %}
 

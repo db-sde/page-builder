@@ -209,7 +209,7 @@ class CourseTransformer(BaseTransformer):
 
             "admission": {
                 "steps": self.section_or_none("admission_steps"),
-                "fee_note": raw.get("admission_fee_note", ""),
+                "fee_note": self.clean_str(raw.get("admission_fee_note")),
             } if raw.get("admission_steps") else None,
 
             # Syllabus — raw HTML, template renders as-is
