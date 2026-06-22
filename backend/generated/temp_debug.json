@@ -1,389 +1,392 @@
 {
-  "upload_id": 73,
-  "filename": "Copy of Manipal Online MBA in Human Resource Management.docx",
-  "page_type": "specialization",
+  "upload_id": 74,
+  "filename": "Copy of Sikkim Professional University Online University Page.docx",
+  "page_type": "university",
   "payload": {
     "_meta": {
-      "document_title": "Copy of Manipal Online MBA in Human Resource Management.docx",
-      "page_type": "specialization",
+      "document_title": "Copy of Sikkim Professional University Online University Page.docx",
+      "page_type": "university",
       "generated_by": "DegreeBaba Content Publisher"
     },
-    "eligibility_content": "<p>Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University are required to fulfill the below-mentioned eligibility criteria and admission requirements of the program:</p><p>The applicant must have completed a bachelor's degree in any stream with a 10+2+3 education qualification pattern.</p><p>The graduation must be completed from a university recognised by the Association of Indian Universities (AIU).</p><p>A minimum of 50% of the aggregate marks must be scored in the graduation.</p>",
-    "fee_heading": "Fee Structure",
-    "admission_steps": "<p>The admission process for an online MBA program at Manipal University Online is quite simple and student friendly. Interested students are required to follow the below-mentioned steps:</p><ol><li><strong>Register</strong> for the Online MBA program at the official website of Manipal University Online.</li><li><strong>Pay the fee</strong> according to the chosen specialization.</li><li><strong>Upload the required documents</strong> and submit the application form.</li><li><strong>Receive confirmation</strong> once the university verifies the student's information and documents.</li></ol>",
-    "highlights": [
+    "mode_of_learning": "Online and on-campus",
+    "admission_fee_note": "Pay the application fee, submit the form, and wait for admission confirmation.",
+    "facts": [
       {
-        "highlight_title": "Equally Valid Credential",
-        "highlight_description": "An Online MBA degree program from Manipal Online is equally valid and credible as a traditional MBA program."
+        "fact_title": "Alumni Network",
+        "fact_description": "The Sikkim Professional University Online provides a vast network of 7,000+ alumni."
       },
       {
-        "highlight_title": "Ranked #1 by Careers360",
-        "highlight_description": "The Manipal Online MBA is ranked #1 by careers360 making it an ideal program for students and working professionals."
+        "fact_title": "Experienced Faculty Members",
+        "fact_description": "To offer dedicated student assistance, the university has 100+ experienced faculty members."
       },
       {
-        "highlight_title": "Access to 10K+ Courses",
-        "highlight_description": "The Manipal University Online MBA provides access to 10K+ courses and professional certifications from top global universities through Coursera."
-      },
-      {
-        "highlight_title": "Work While You Study",
-        "highlight_description": "This program allows working professionals to earn a professional degree without quitting their work schedule."
-      },
-      {
-        "highlight_title": "Placement-Supported Program",
-        "highlight_description": "It is a placement-supported program offering better future aspects and career advancement opportunities to students."
-      },
-      {
-        "highlight_title": "Interactive Faculty Engagement",
-        "highlight_description": "Despite being an online learning program, students can interact with their faculty members through online classes, virtual classrooms, and discussion forums."
-      },
-      {
-        "highlight_title": "Affordable Fees",
-        "highlight_description": "The Manipal University Jaipur Online MBA fees are comparatively affordable and pocket-friendly as a regular postgraduate degree program."
-      },
-      {
-        "highlight_title": "Scholarships & Financial Aid",
-        "highlight_description": "To lessen the financial burden on students, the program includes attractive scholarships and various financial aids."
+        "fact_title": "Multidisciplinary Study Programs",
+        "fact_description": "For a wide choice in opting for the right career path, the university offers multidisciplinary study programs in major disciplines like commerce, arts, science, etc."
       }
     ],
-    "admission_fee_note": "Step 2. After the registration process pay the fee according to the chosen specialization.",
-    "fee_plans": null,
-    "about_content": "<p>Manipal University Online offers a 2 year online Master of Business Administration (MBA) in Human Resource Management course, designed to equip students with essential skills in strategic HR management and change management. The Online MBA in HR Management from the Manipal University program covers key subjects such as employee relations management, compensation and benefits, and organizational behaviour, providing a comprehensive understanding of HR practices.</p><p>Graduates of an Online MBA in Human Resource Management from Manipal Online are prepared to pursue leadership roles in HR departments, consulting firms, and multinational corporations. The curriculum emphasizes practical knowledge and strategic thinking so that the students are well-versed in the effective management of human resources.</p>",
-    "emi_content": "INR 7,292 /- per month with no-cost EMI facility. Total fee: INR 1,75,000 /-, Per semester: INR 43,750 /-",
-    "reviews": [
+    "about_content": "<p>The Sikkim Professional Online University offers completely flexible and affordable online degree programs that are valued by top employers nationwide. The university ensures a dynamic learning environment for students to offer them the international standard of education that assists them in overcoming the complex challenges of the world and business organizations.</p><p>The Sikkim Professional Online University was initially known as Vinayaka Missions Sikkim University but later changed to SPU Online (Sikkim Professional University Online) in 2020 under the Amendment Act, 2020 (Act No. 09 of 2020). To offer a virtual interactive learning environment, the Sikkim Professional University online courses offer guest lecturers and seminars for the development of essential skills and abilities among students.</p><p>Students enrolled in Sikkim Professional University Online are entitled to a plethora of choices to choose from various online undergraduate and postgraduate courses available in different specializations. The Sikkim Professional University Online is a good choice for working professionals and students, as its prime focus is on the graduates' employability.</p>",
+    "faculty_intro": "The faculty members at Sikkim Professional University Online are highly experienced industry experts who offer in-depth knowledge to students with a global perspective. Some of the faculty members of the university are mentioned below, along with their assigned program, designation, and qualifications.",
+    "why_choose_content": "<h3>Online Pros</h3><p>Most Inspirational University: The Ministry of Ayush awarded the Sikkim Professional University as the \"Most Inspirational University of the Year 2021\" at the Education Excellence Conclave.</p><p>Top 100 Universities in the Country: ASSOCHAM EduTech has awarded Sikkim Professional University among the Top 100 Universities in The Country in 2022.</p>",
+    "hero_description": "Established in 2008, the Sikkim Professional University Online is a renowned institution in India that offers quality education and a full-fledged online degree course. The university provides multiple professional degree courses with a virtual interactive learning environment that allows students to interact with faculty and peers to resolve academic queries in no time. It is a strategic choice to pursue Sikkim Professional University's Online degree programs as they are globally accepted and hold immense credibility.",
+    "exam_content": "<h3>Sikkim Professional Online University Examination Process</h3><p>For every online degree program offered at Sikkim Professional University Online, the examination process remains the same, which is completely virtual. The examinations are conducted through an online proctored platform that has a continuous monitoring facility.</p><p>A laptop, a stable internet connection, and a working webcam are required to appear for the Sikkim Professional University Online examination.</p>",
+    "accreditations": [
       {
-        "review_text": "My experience with online manipal is quite okay and honestly, the university is good there facilities were far good from my expectations.",
-        "reviewer_label": "Student"
+        "body_name": "Association of Indian Universities",
+        "body_descriptor": "AIU",
+        "body_detail": "Member"
       },
       {
-        "review_text": "The best thing I liked about the Online Manipal is there placement assistance.",
-        "reviewer_label": "Student"
+        "body_name": "University Grants Commission",
+        "body_descriptor": "UGC",
+        "body_detail": "Recognized"
       },
       {
-        "review_text": "The faculty members are very cooperative and supportive because of them I was able to complete my online BBA with good marks.",
-        "reviewer_label": "Student"
+        "body_name": "Bar Council of India",
+        "body_descriptor": "BCI",
+        "body_detail": "Acknowledged"
       },
       {
-        "review_text": "Good facilities and affordable fee, I highly recommend it to others.",
-        "reviewer_label": "Student"
+        "body_name": "Pharmacy Council of India",
+        "body_descriptor": "PCI",
+        "body_detail": "Approved"
+      },
+      {
+        "body_name": "Indian Nursing Council",
+        "body_descriptor": "INC",
+        "body_detail": "Approved"
+      },
+      {
+        "body_name": "Sikkim Nursing Council",
+        "body_descriptor": "SNC",
+        "body_detail": "Approved"
       }
     ],
-    "exam_content": "<p>The Online Manipal examinations are conducted digitally via computer-based and online procured means. The examinations for Manipal Online programs are highly flexible and allow students to appear for term-end examinations from any corner of the world. However, students must have a laptop or desktop/computer with a good connection to the internet and a functional webcam. The evaluation of the online degree program at Online Manipal is carried out with two major components i.e. theory papers and practical papers. Simultaneously, students are required to score a minimum of 40% aggregate score in both parts to be considered as pass.</p>",
-    "job_profiles": [
-      {
-        "job_title": "Human Resources Manager",
-        "avg_salary": "INR 3 LPA"
-      },
-      {
-        "job_title": "Learning and Development Manager",
-        "avg_salary": "INR 5 LPA"
-      },
-      {
-        "job_title": "Employee Relations Manager",
-        "avg_salary": "INR 6.1 LPA"
-      },
-      {
-        "job_title": "Compensation and Benefits Manager",
-        "avg_salary": "INR 9 LPA"
-      },
-      {
-        "job_title": "Organizational Development Manager",
-        "avg_salary": "INR 4 LPA"
-      },
-      {
-        "job_title": "HR Consultant",
-        "avg_salary": "INR 3.5 LPA"
-      }
-    ],
+    "emi_content": "<p>The Sikkim Professional University Online does not provide an EMI facility directly. However, the fee structure of Sikkim Professional University's Online courses is affordable and cost-effective as compared to other universities, which makes it feasible for students to pay their course fees without any financial burden.</p><p>Simultaneously, students with financial constraints can seek scholarships offered by the university or seek third-party NBFCs for academic loan services that also offer zero-cost EMI.</p><p>The Sikkim Professional University Online scholarships available are mentioned below:</p><ul><li>MS: Merit Scholarship.</li><li>EC: University Employees' siblings, wards &amp; spouses.</li><li>PH: Physically Handicapped.</li><li>FD: Freedom Fighter/Defence Personnel/Police and paramilitary Wards.</li><li>SQ: Sikkim Quota Allotment.</li><li>MC: Minority Concession.</li></ul>",
+    "placement_content": "<p>The placement services at Sikkim Professional University Online are offered under its dedicated training and placement cell. The placement cell develops the soft skills and knowledge among the students, motivates them, and enables them to face the challenges in life. The training and placement cell organizes seminars, guest lectures, conferences, project work, and several other academic activities to maintain regular interaction.</p><p>The training programs included in the Sikkim Professional University's Online placement services are:</p><ul><li>Workshop.</li><li>Entrepreneurial development programs.</li><li>Industry internship program.</li><li>Mock interviews, aptitude tests, and group discussions.</li></ul><p>The Sikkim Professional University Online has 100+ active recruiters, namely:</p><ul><li>Cipla</li><li>Sun Pharma</li><li>Nexus Computing Solutions</li><li>ICICI Prudential</li><li>Lemon Tree Hotels</li></ul>",
+    "admission_steps": "<p>Students or working professionals interested in pursuing an online degree from Sikkim Professional University Online are obliged to fulfill the admission requirements of their chosen program and then proceed with the admission process.</p><p>The complete Sikkim Professional University Online admission process is listed below with a step-by-step procedure:</p><ol><li>Visit the official website of Sikkim Professional University Online and register yourself.</li><li>Complete the Sikkim Professional University Online registration process to receive login credentials to the student portal.</li><li>Log in to the student portal and start filling out the Sikkim Professional University Online application form.</li><li>Fill in the personal information, academic qualifications, and work experience.</li><li>Attach the supporting documents along with the application form.</li><li>Pay the application fee, submit the form, and wait for admission confirmation.</li><li>The university will confirm your admission and share the student enrollment number and other information on your registered email.</li></ol><p><strong>NOTE:</strong> The Sikkim Professional University Online provides free counselling services to assist students in selecting the best-fit online program and specialization for them.</p>",
     "faqs": [
       {
-        "question": "What is the eligibility to apply for the HR Management Course from Manipal Online?",
-        "answer": "The applicant must have completed 10 + 2 + 3 years of educational qualification from a recognized institute with a minimum of 50% aggregate marks, to fall under the eligibility criteria of the HR Management Course from Manipal Online."
+        "question": "Is Sikkim Professional University's online degree valid?",
+        "answer": "Sikkim Professional University Online is UGC-recognized, and every online degree program offered at the institution is completely valid."
       },
       {
-        "question": "Is the HR Management online MBA from Manipal Online valid?",
-        "answer": "Yes, HR Management Course from Manipal Online is UGC-recognized making it a completely valid degree course."
+        "question": "What are the fees of Sikkim Professional University online?",
+        "answer": "The fee structure for the Sikkim Professional University Online program varies from one course to another. Simultaneously, the online UG courses cost about INR 75,000 /-, whereas, the online PG course fee is between INR 75,000 /- & INR 1,11,000 /- approximately."
       },
       {
-        "question": "What is the average package for Manipal Online University MBA HR Management?",
-        "answer": "The average package offered to Manipal Online University HR Management and other online MBA courses is INR 5.2 LPA approx."
+        "question": "What is the rank of Sikkim Professional University online?",
+        "answer": "The ASSOCHAM EduTech has ranked Sikkim Professional University among the Top 100 Universities in The Country in 2022."
+      },
+      {
+        "question": "Is Sikkim University online UGC approved?",
+        "answer": "Yes, Sikkim University online is UGC-approved, and every online degree acquired from it holds the same value as an on-campus degree."
       }
     ],
-    "placement_content": "<p>The Online Manipal University Jaipur (MUJ) offers placement assistance to every enrolled student. To ensure a fruitful career for students Manipal Online offers various facilities along with its placement assistance including:</p><ul><li>Assistance in preparing an impactful resume with the advanced placement portal of Manipal Online.</li><li>Alumni interaction during and after the program for better industry insight and career guidance.</li><li>Multiple industry readiness sessions to make students familiar with global market trends, requirements, and recruiter behaviour.</li><li>Mock interviews to motivate students and help them identify their strengths and weaknesses.</li><li>Virtual placement drives are conducted by Manipal University Online to make the job research journey easy and compatible.</li></ul><p>A few major active hiring partners of Online Manipal University Jaipur (MUJ) are:</p><ul><li>Genpact</li><li>Accenture</li><li>KPMG</li><li>Capgemini</li><li>Infosys</li><li>TATA Communications</li><li>MyGate</li><li>IBM, etc.</li></ul>",
-    "other_specs": [
+    "programs_table": [
       {
-        "other_spec_name": "Finance"
+        "program_name": "Online BA",
+        "program_fee": "INR 75,000 /- (total fee)",
+        "program_eligibility": "10+2 educational qualification from a recognized education board."
       },
       {
-        "other_spec_name": "Marketing"
+        "program_name": "Online B.Com",
+        "program_fee": "INR 75,000 /- (total fee)",
+        "program_eligibility": "10+2 educational qualification from a recognized education board."
       },
       {
-        "other_spec_name": "Retail Management"
+        "program_name": "Online MBA",
+        "program_fee": "INR 1,10,000 /- (total fee)",
+        "program_eligibility": "A valid 3 year bachelor's degree from a recognized university. Minimum of 50% aggregate marks at the graduation level."
       },
       {
-        "other_spec_name": "Digital Marketing"
+        "program_name": "Online MCA",
+        "program_fee": "INR 98,000 (total fee)",
+        "program_eligibility": "A valid 3 year bachelor's degree from a recognized university. Minimum of 50% aggregate marks at the graduation level."
       },
       {
-        "other_spec_name": "BFSI"
-      },
-      {
-        "other_spec_name": "Project Management"
-      },
-      {
-        "other_spec_name": "IT & FinTech"
-      },
-      {
-        "other_spec_name": "Human Resource Management"
-      },
-      {
-        "other_spec_name": "Operations Management"
-      },
-      {
-        "other_spec_name": "International Business"
-      },
-      {
-        "other_spec_name": "Information System Management"
-      },
-      {
-        "other_spec_name": "Analytics and Data Science"
-      },
-      {
-        "other_spec_name": "Supply Chain Management"
+        "program_name": "Online M.Com",
+        "program_fee": "INR 75,000 /- (total fee)",
+        "program_eligibility": "A valid 3 year bachelor's degree from a recognized university. Minimum of 50% aggregate marks at the graduation level."
       }
     ],
-    "syllabus_content": "<p>The Manipal Online MBA in Human Resource Management syllabus is crafted to offer an overall grasp of HR industry trends and requirements to aspiring HR professionals. The Manipal Online MBA in Human Resource Management follows a semester pattern, referred to as the table mentioned below:</p><h4>Year I</h4><h4>Semester I</h4><ul><li>Entrepreneurial Practice</li><li>Business Communication (WAC)</li><li>Managerial Economics</li><li>Financial Accounting</li><li>Data Visualisation (Excel/Tableau)</li><li>Organizational Behaviour</li><li>Marketing Management</li></ul><h4>Semester II</h4><ul><li>Business Research Methods (R/Python)</li><li>Operation Management</li><li>Human Resource Management</li><li>Management Accounting</li><li>Financial Management</li><li>Legal Aspects of Business</li><li>Business Communication (VAC)</li></ul><h4>Year II</h4><h4>Semester III</h4><ul><li>Strategic Management</li><li>Electives/Specializations subjects</li><li>Manpower Planning and Sourcing</li><li>Management and Organizational Development</li><li>Employee Relations Management</li><li>HR Audit</li><li>Term Paper</li></ul><h4>Semester IV</h4><ul><li>International Business Management</li><li>Electives/Specializations subjects</li><li>Compensation and Benefits</li><li>Performance Management and Appraisal</li><li>Talent Management and Employee Retention</li><li>Change Management</li><li>Project</li></ul>",
-    "duration": "2 years",
-    "naac_grade": "A",
-    "ugc_status": "Entitled",
-    "total_fee": "INR 1,75,000/-",
-    "num_programs": "Manipal Online Jaipur MBA",
-    "spec_name": "Manipal Online Mba In Human Resource Management",
-    "course_name": "Manipal Online Mba In Human Resource Management",
-    "program_name": "MBA",
-    "university_name": "Manipal",
-    "mode": "Online",
-    "starting_fee": "INR 1,75,000/-",
-    "eligibility_summary": "Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University ar...",
-    "seo_title": "Online MBA in HR Management | Manipal University",
-    "meta_description": "Online MBA in Human Resource Management from Manipal University. 2-year program, NAAC A-rated, UGC entitled. ₹1,75,000 total fee. Enroll now!",
-    "about_heading": "Manipal Online MBA in HR Course Details",
-    "admission_heading": "Manipal Online MBA Admission process",
-    "emi_heading": "Manipal Online MBA in Human Resource EMI Details",
-    "exam_heading": "Examination process at Online Manipal",
-    "placement_heading": "Placement Partners of Online Manipal",
-    "reviews_heading": "Online Manipal University Reviews (Online Manipal University Jaipur - MUJ)",
-    "faqs_heading": "FAQs",
-    "highlights_heading": "Course Facts",
-    "eligibility_heading": "Eligibility Criteria",
-    "syllabus_heading": "Online Human Resource Management Syllabus of Manipal Online",
-    "jobs_heading": "Manipal Online MBA in HR Job Opportunities",
-    "other_specs_heading": "Specializations offered"
+    "faculty_members": [
+      {
+        "member_name": "Dr. Pradip Kumar Das",
+        "member_program": "Sikkim Professional University Online MBA",
+        "member_designation": "Assistant Professor",
+        "member_qualification": "MA (Personnel Management & Industrial Relations), MA (Economics), Ph.D, UGC-NET"
+      },
+      {
+        "member_name": "Dr. A. Ravi Prakash",
+        "member_program": "Sikkim Professional University Online MBA",
+        "member_designation": "Assistant Professor",
+        "member_qualification": "M.Com, Ph.D, M.B.A, UGC-NET Qualified"
+      },
+      {
+        "member_name": "Dr. Rachana Rai",
+        "member_program": "Sikkim Professional University Online MBA",
+        "member_designation": "Assistant Professor",
+        "member_qualification": "Ph.D (Marketing of Renewable Energy: Problems and Prospects), MBA (marketing/HR)"
+      },
+      {
+        "member_name": "Dr. Shalini Shukla",
+        "member_program": "Sikkim Professional University Online MBA",
+        "member_designation": "Assistant Professor",
+        "member_qualification": "MBA (Human Resource & International Business), M.Sc. (Food and Nutrition), Ph.D (UGC-JRF/SRF), UGC-NET/JRF in Human Resource Management, UGC-NET in Management, UGC-NET in Home-Science"
+      },
+      {
+        "member_name": "Dr. Shailendra Kumar",
+        "member_program": "Sikkim Professional University Online MBA",
+        "member_designation": "Assistant Professor",
+        "member_qualification": "MCom (Gold Medalist), MBA (with dual specialization in Finance and Marketing), UGC-NET-JRF"
+      }
+    ],
+    "reviews": [
+      {
+        "review_text": "Indeed, Sikkim Professional University is a good option, and for me it is a worth it institution.",
+        "reviewer_label": "Student"
+      },
+      {
+        "review_text": "Its been a year since i have competed my Sikkim Professional University Online mba and has seen positive outcomes like promotion and increment. It is a considerable opportunity for all.",
+        "reviewer_label": "MBA Graduate, 1 Year"
+      },
+      {
+        "review_text": "The faculty support was really good, and because of it i managed to score good marks.",
+        "reviewer_label": "Student"
+      },
+      {
+        "review_text": "The fee structure is highly affordable and it is the best thing for me. I faced some financial difficulties but now it is all okay, and i recommend Sikkim Professional University Online to others as well.",
+        "reviewer_label": "Student"
+      }
+    ],
+    "established_year": "2008",
+    "naac_grade": "NA",
+    "ugc_approved": "Entitled",
+    "starting_fee": "INR 75,000 /-",
+    "university_name": "Sikkim Professional Online",
+    "stat_years": "2008",
+    "seo_title": "Sikkim Professional Online University Degree Programs",
+    "meta_description": "Explore flexible online & on-campus degree programs at Sikkim Professional Online University. UGC entitled, affordable education from INR 75,000.",
+    "programs_intro": "Choose from our comprehensive range of online and on-campus degree programs designed for working professionals.",
+    "about_heading": "About Sikkim Professional University Online",
+    "why_choose_heading": "Sikkim Professional University Online Pros:",
+    "facts_heading": "Sikkim Professional Online University Facts",
+    "accreditations_heading": "Sikkim Professional Online University Details",
+    "programs_heading": "Sikkim Professional University Online Courses",
+    "admission_heading": "Sikkim Professional University Online Admission Process",
+    "emi_heading": "Sikkim Professional Online University EMI details",
+    "exam_heading": "Sikkim Professional Online University Examination Process",
+    "faculty_heading": "Sikkim Professional University Online Faculty Members",
+    "placement_heading": "Sikkim Professional University Online Placement Partners",
+    "reviews_heading": "Sikkim Professional University Online Reviews",
+    "faqs_heading": "Sikkim Professional University Online FAQs"
   },
   "validation": {
     "summary": {
       "total_required": 38,
-      "mapped": 32,
-      "thin": 1,
-      "missing": 3,
-      "quality_score": 90.28
+      "mapped": 36,
+      "thin": 0,
+      "missing": 2,
+      "quality_score": 94.74
     },
     "field_report": [
-      {
-        "field_key": "spec_name",
-        "status": "thin",
-        "has_value": true,
-        "value_preview": "Manipal Online Mba In Human Resource Management"
-      },
       {
         "field_key": "university_name",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Manipal"
+        "value_preview": "Sikkim Professional Online"
       },
       {
-        "field_key": "linked_university",
-        "status": "skipped",
+        "field_key": "university_full_name",
+        "status": "missing",
         "has_value": false,
         "value_preview": null
       },
       {
-        "field_key": "linked_course",
-        "status": "skipped",
-        "has_value": false,
-        "value_preview": null
-      },
-      {
-        "field_key": "duration",
+        "field_key": "hero_description",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "2 years"
+        "value_preview": "Established in 2008, the Sikkim Professional University Online is a renowned institution in India that offers quality ed…"
       },
       {
-        "field_key": "mode",
+        "field_key": "established_year",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Online"
+        "value_preview": "2008"
       },
       {
         "field_key": "naac_grade",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "A"
+        "value_preview": "NA"
       },
       {
-        "field_key": "ugc_status",
+        "field_key": "ugc_approved",
         "status": "mapped",
         "has_value": true,
         "value_preview": "Entitled"
       },
       {
-        "field_key": "total_fee",
+        "field_key": "mode_of_learning",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "INR 1,75,000/-"
+        "value_preview": "Online and on-campus"
+      },
+      {
+        "field_key": "starting_fee",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "INR 75,000 /-"
+      },
+      {
+        "field_key": "num_programs",
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
       },
       {
         "field_key": "about_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Manipal Online MBA in HR Course Details"
+        "value_preview": "About Sikkim Professional University Online"
       },
       {
-        "field_key": "highlights_heading",
+        "field_key": "why_choose_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Course Facts"
+        "value_preview": "Sikkim Professional University Online Pros:"
       },
       {
-        "field_key": "eligibility_heading",
+        "field_key": "facts_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Eligibility Criteria"
+        "value_preview": "Sikkim Professional Online University Facts"
       },
       {
-        "field_key": "fee_heading",
+        "field_key": "accreditations_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Fee Structure"
+        "value_preview": "Sikkim Professional Online University Details"
       },
       {
-        "field_key": "other_specs_heading",
+        "field_key": "programs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Specializations offered"
-      },
-      {
-        "field_key": "syllabus_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Online Human Resource Management Syllabus of Manipal Online"
-      },
-      {
-        "field_key": "exam_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Examination process at Online Manipal"
+        "value_preview": "Sikkim Professional University Online Courses"
       },
       {
         "field_key": "admission_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Manipal Online MBA Admission process"
+        "value_preview": "Sikkim Professional University Online Admission Process"
+      },
+      {
+        "field_key": "emi_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Sikkim Professional Online University EMI details"
+      },
+      {
+        "field_key": "exam_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Sikkim Professional Online University Examination Process"
+      },
+      {
+        "field_key": "faculty_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Sikkim Professional University Online Faculty Members"
       },
       {
         "field_key": "placement_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Placement Partners of Online Manipal"
+        "value_preview": "Sikkim Professional University Online Placement Partners"
       },
       {
-        "field_key": "jobs_heading",
+        "field_key": "reviews_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Manipal Online MBA in HR Job Opportunities"
-      },
-      {
-        "field_key": "certificate_heading",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
+        "value_preview": "Sikkim Professional University Online Reviews"
       },
       {
         "field_key": "faqs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "FAQs"
+        "value_preview": "Sikkim Professional University Online FAQs"
       },
       {
         "field_key": "about_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>Manipal University Online offers a 2 year online Master of Business Administration (MBA) in Human Resource Management…"
+        "value_preview": "<p>The Sikkim Professional Online University offers completely flexible and affordable online degree programs that are v…"
       },
       {
-        "field_key": "eligibility_content",
+        "field_key": "why_choose_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University…"
-      },
-      {
-        "field_key": "syllabus_content",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "<p>The Manipal Online MBA in Human Resource Management syllabus is crafted to offer an overall grasp of HR industry tren…"
-      },
-      {
-        "field_key": "exam_content",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "<p>The Online Manipal examinations are conducted digitally via computer-based and online procured means. The examination…"
+        "value_preview": "<h3>Online Pros</h3><p>Most Inspirational University: The Ministry of Ayush awarded the Sikkim Professional University a…"
       },
       {
         "field_key": "admission_steps",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>The admission process for an online MBA program at Manipal University Online is quite simple and student friendly. In…"
+        "value_preview": "<p>Students or working professionals interested in pursuing an online degree from Sikkim Professional University Online …"
       },
       {
         "field_key": "admission_fee_note",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Step 2. After the registration process pay the fee according to the chosen specialization."
+        "value_preview": "Pay the application fee, submit the form, and wait for admission confirmation."
+      },
+      {
+        "field_key": "emi_content",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "<p>The Sikkim Professional University Online does not provide an EMI facility directly. However, the fee structure of Si…"
+      },
+      {
+        "field_key": "exam_content",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "<h3>Sikkim Professional Online University Examination Process</h3><p>For every online degree program offered at Sikkim P…"
+      },
+      {
+        "field_key": "faculty_intro",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "The faculty members at Sikkim Professional University Online are highly experienced industry experts who offer in-depth …"
       },
       {
         "field_key": "placement_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>The Online Manipal University Jaipur (MUJ) offers placement assistance to every enrolled student. To ensure a fruitfu…"
+        "value_preview": "<p>The placement services at Sikkim Professional University Online are offered under its dedicated training and placemen…"
       },
       {
-        "field_key": "certificate_description",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
-      },
-      {
-        "field_key": "emi_amount",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
-      },
-      {
-        "field_key": "highlights",
+        "field_key": "facts",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[8 items]"
+        "value_preview": "[3 items]"
       },
       {
-        "field_key": "other_specs",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "[13 items]"
-      },
-      {
-        "field_key": "job_profiles",
+        "field_key": "accreditations",
         "status": "mapped",
         "has_value": true,
         "value_preview": "[6 items]"
+      },
+      {
+        "field_key": "programs_table",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "[5 items]"
+      },
+      {
+        "field_key": "faculty_members",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "[5 items]"
       },
       {
         "field_key": "reviews",
@@ -395,165 +398,179 @@
         "field_key": "faqs",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[3 items]"
+        "value_preview": "[4 items]"
       },
       {
         "field_key": "seo_title",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Online MBA in HR Management | Manipal University"
+        "value_preview": "Sikkim Professional Online University Degree Programs"
       },
       {
         "field_key": "meta_description",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Online MBA in Human Resource Management from Manipal University. 2-year program, NAAC A-rated, UGC entitled. ₹1,75,000 t…"
+        "value_preview": "Explore flexible online & on-campus degree programs at Sikkim Professional Online University. UGC entitled, affordable e…"
       },
       {
-        "field_key": "eligibility_summary",
+        "field_key": "programs_intro",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University ar…"
+        "value_preview": "Choose from our comprehensive range of online and on-campus degree programs designed for working professionals."
       }
     ]
   },
   "field_mappings": [
     {
-      "field_key": "eligibility_content",
-      "heading_in_doc": "[eligibility_heading,eligibility_content] eligibility criteria",
-      "confidence": 1,
+      "field_key": "mode_of_learning",
+      "heading_in_doc": "sikkim professional online university details",
+      "confidence": 0.72,
       "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "fee_heading",
-      "heading_in_doc": "[fee_heading] fee structure",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "admission_steps",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "highlights",
-      "heading_in_doc": "[highlights_heading,highlights] course facts",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
+      "source": "AI"
     },
     {
       "field_key": "admission_fee_note",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "fee_plans",
-      "heading_in_doc": "[fee_heading] fee structure",
+      "field_key": "facts",
+      "heading_in_doc": "[facts_heading,facts] sikkim professional online university facts",
       "confidence": 1,
-      "status": "missing",
+      "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "about_content",
-      "heading_in_doc": "[about_heading,about_content]  online mba in hr course details",
+      "heading_in_doc": "[about_heading,about_content] about  online",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "emi_content",
-      "heading_in_doc": "[emi_content]  online mba in human resource emi details",
+      "field_key": "faculty_intro",
+      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members]  online faculty members",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "reviews",
-      "heading_in_doc": "[reviews_heading,reviews] online  university reviews (online manipal university jaipur - muj)",
+      "field_key": "why_choose_content",
+      "heading_in_doc": "[why_choose_content]  online pros",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "hero_description",
+      "heading_in_doc": "[hero_description] hero description",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "exam_content",
-      "heading_in_doc": "[exam_heading,exam_content] examination process at online",
+      "heading_in_doc": "[exam_content] sikkim professional online university examination process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "job_profiles",
-      "heading_in_doc": "[jobs_heading,job_profiles]  online mba in hr job opportunities",
+      "field_key": "accreditations",
+      "heading_in_doc": "[accreditations_heading,accreditations]  online accreditation",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "faqs",
-      "heading_in_doc": "[faqs_heading,faqs] faqs",
+      "field_key": "emi_content",
+      "heading_in_doc": "[emi_heading,emi_content] sikkim professional online university emi details",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "placement_content",
-      "heading_in_doc": "[placement_heading,placement_content] placement partners of online",
+      "heading_in_doc": "[placement_heading,placement_content]  online placement partners",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "other_specs",
-      "heading_in_doc": "[other_specs_heading,other_specs] specializations offered",
+      "field_key": "admission_steps",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "syllabus_content",
-      "heading_in_doc": "[syllabus_heading,syllabus_content] online human resource management syllabus of  online",
+      "field_key": "faqs",
+      "heading_in_doc": "[faqs_heading,faqs]  online faqs",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "duration",
-      "heading_in_doc": "manipal in human resource management",
+      "field_key": "programs_table",
+      "heading_in_doc": "[programs_heading,programs_table]  online courses",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "faculty_members",
+      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members]  online faculty members",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "reviews",
+      "heading_in_doc": "[reviews_heading,reviews]  online reviews",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "established_year",
+      "heading_in_doc": "university full name:  online",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
       "field_key": "naac_grade",
-      "heading_in_doc": "manipal in human resource management",
+      "heading_in_doc": "university full name:  online",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "ugc_status",
-      "heading_in_doc": "manipal in human resource management",
+      "field_key": "ugc_approved",
+      "heading_in_doc": "university full name:  online",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "total_fee",
-      "heading_in_doc": "manipal in human resource management",
+      "field_key": "starting_fee",
+      "heading_in_doc": "university full name:  online",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "num_programs",
-      "heading_in_doc": "manipal in human resource management",
+      "field_key": "accreditations",
+      "heading_in_doc": "sikkim professional online university details",
+      "confidence": 0.9,
+      "status": "mapped",
+      "source": "KV"
+    },
+    {
+      "field_key": "mode_of_learning",
+      "heading_in_doc": "sikkim professional online university details",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
@@ -573,138 +590,110 @@
       "source": "AI_GENERATED"
     },
     {
-      "field_key": "spec_name",
-      "heading_in_doc": "[enriched from filename:Copy of Manipal Online MBA in Human Resource Management.docx]",
-      "confidence": 0.95,
+      "field_key": "programs_intro",
+      "heading_in_doc": "[AI Generated]",
+      "confidence": 1,
       "status": "mapped",
-      "source": "ENRICHED"
-    },
-    {
-      "field_key": "course_name",
-      "heading_in_doc": "[enriched from filename:Copy of Manipal Online MBA in Human Resource Management.docx]",
-      "confidence": 0.95,
-      "status": "mapped",
-      "source": "ENRICHED"
-    },
-    {
-      "field_key": "program_name",
-      "heading_in_doc": "[enriched from filename]",
-      "confidence": 0.95,
-      "status": "mapped",
-      "source": "ENRICHED"
+      "source": "AI_GENERATED"
     },
     {
       "field_key": "university_name",
-      "heading_in_doc": "[enriched from filename]",
+      "heading_in_doc": "[enriched from filename:Copy of Sikkim Professional University Online University Page.docx]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
     },
     {
-      "field_key": "mode",
-      "heading_in_doc": "[enriched from derive:about_content]",
-      "confidence": 0.95,
-      "status": "mapped",
-      "source": "ENRICHED"
-    },
-    {
-      "field_key": "starting_fee",
-      "heading_in_doc": "[enriched from derive:total_fee]",
-      "confidence": 0.95,
-      "status": "mapped",
-      "source": "ENRICHED"
-    },
-    {
-      "field_key": "eligibility_summary",
-      "heading_in_doc": "[enriched from derive:eligibility_content]",
+      "field_key": "stat_years",
+      "heading_in_doc": "[enriched from derive:established_year]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
     },
     {
       "field_key": "about_heading",
-      "heading_in_doc": "[about_heading,about_content]  online mba in hr course details",
+      "heading_in_doc": "[about_heading,about_content] about  online",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "why_choose_heading",
+      "heading_in_doc": "[why_choose_content]  online pros",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "facts_heading",
+      "heading_in_doc": "[facts_heading,facts] sikkim professional online university facts",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "accreditations_heading",
+      "heading_in_doc": "sikkim professional online university details",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "programs_heading",
+      "heading_in_doc": "[programs_heading,programs_table]  online courses",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "admission_heading",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "emi_heading",
-      "heading_in_doc": "[emi_content]  online mba in human resource emi details",
+      "heading_in_doc": "[emi_heading,emi_content] sikkim professional online university emi details",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "exam_heading",
-      "heading_in_doc": "[exam_heading,exam_content] examination process at online",
+      "heading_in_doc": "[exam_content] sikkim professional online university examination process",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "faculty_heading",
+      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members]  online faculty members",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "placement_heading",
-      "heading_in_doc": "[placement_heading,placement_content] placement partners of online",
+      "heading_in_doc": "[placement_heading,placement_content]  online placement partners",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "reviews_heading",
-      "heading_in_doc": "[reviews_heading,reviews] online  university reviews (online manipal university jaipur - muj)",
+      "heading_in_doc": "[reviews_heading,reviews]  online reviews",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "faqs_heading",
-      "heading_in_doc": "[faqs_heading,faqs] faqs",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "highlights_heading",
-      "heading_in_doc": "[highlights_heading,highlights] course facts",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "eligibility_heading",
-      "heading_in_doc": "[eligibility_heading,eligibility_content] eligibility criteria",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "syllabus_heading",
-      "heading_in_doc": "[syllabus_heading,syllabus_content] online human resource management syllabus of  online",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "jobs_heading",
-      "heading_in_doc": "[jobs_heading,job_profiles]  online mba in hr job opportunities",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "other_specs_heading",
-      "heading_in_doc": "[other_specs_heading,other_specs] specializations offered",
+      "heading_in_doc": "[faqs_heading,faqs]  online faqs",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     }
   ],
-  "processing_time_ms": 9766
+  "processing_time_ms": 8655.9
 }

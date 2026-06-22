@@ -358,9 +358,14 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
     <div>
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.14em', color: 'var(--amber)', textTransform: 'uppercase' }}>Step 4</div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)', marginTop: 6 }}>Preview & Download</h1>
+        <h1 
+          onDoubleClick={() => setShowAdvanced(!showAdvanced)} 
+          style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)', marginTop: 6, cursor: 'default', userSelect: 'none' }}
+        >
+          Preview &amp; Publish
+        </h1>
         <p style={{ color: 'var(--muted)', fontSize: 15, marginTop: 6 }}>
-          Your page is generated and saved directly to the workspace below. Review the live iframe mockup or download the file.
+          Review the live preview, save the page to your workspace, and build the website.
         </p>
       </div>
 
@@ -369,12 +374,6 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={onBack} style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: '1.5px solid var(--border)', borderRadius: 9, cursor: 'pointer' }}>
             ← Back
-          </button>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            style={{ background: showAdvanced ? '#e2e8f0' : '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: '1.5px solid var(--border)', borderRadius: 9, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-          >
-            {showAdvanced ? '⚙️ Hide Advanced Info' : '⚙️ Show Advanced Info'}
           </button>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -388,13 +387,6 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
           >
             Open Full Page ↗
           </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            style={{ background: downloading ? '#ccc' : 'var(--amber)', color: '#fff', fontWeight: 800, fontSize: 15, padding: '13px 28px', border: 'none', borderRadius: 9, cursor: 'pointer' }}
-          >
-            {downloading ? 'Preparing…' : `⬇ Download ${session.slug}.html`}
-          </button>
         </div>
       </div>
 
@@ -404,230 +396,95 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
         </div>
       )}
 
-      {/* ── WORKSPACE STATUS SECTION ── */}
+      {/* ── SAVE PAGE SECTION ── */}
       <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>University Workspace Status</div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-              {!workspaceSaveResult ? 'This page is in preview and has not been saved to your workspace on disk yet.' : 'This page is saved and compiled within your selected university workspace.'}
-            </div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Save Page</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            {workspaceSaving ? (
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Saving your changes...</p>
+            ) : !workspaceSaveResult ? (
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>This page has not yet been saved to your workspace.</p>
+            ) : (
+              <p style={{ color: 'var(--color-success)', fontSize: 14, fontWeight: 600, margin: 0 }}>✓ Saved To Workspace (Last saved successfully)</p>
+            )}
           </div>
           <button
             onClick={handleSaveAndCompile}
-            disabled={workspaceSaving || compiling}
+            disabled={workspaceSaving}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: !workspaceSaveResult ? 'var(--amber)' : '#f8fafc',
-              color: !workspaceSaveResult ? '#fff' : 'var(--navy)',
-              border: !workspaceSaveResult ? '1px solid var(--amber)' : '1px solid var(--border)',
-              padding: '8px 16px',
-              borderRadius: 6,
-              fontSize: 13,
+              background: workspaceSaving ? '#ccc' : 'var(--amber)',
+              color: '#fff',
+              border: 'none',
+              padding: '10px 22px',
+              borderRadius: 8,
+              fontSize: 14,
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: workspaceSaving ? 'not-allowed' : 'pointer'
             }}
           >
-            {!workspaceSaveResult ? '💾 Add to Workspace & Compile' : '🔄 Sync & Compile Workspace'}
+            {workspaceSaving ? 'Saving…' : !workspaceSaveResult ? 'Save To Workspace' : 'Save Changes'}
           </button>
         </div>
-
-        {/* Status indicator banner */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: 16,
-          borderRadius: 8,
-          background: workspaceSaving || compiling ? '#f8fafc' : workspaceError ? '#fef2f2' : (!workspaceSaveResult ? '#fffbeb' : '#f0f9f4'),
-          border: `1px solid ${workspaceSaving || compiling ? 'var(--border)' : workspaceError ? '#fca5a5' : (!workspaceSaveResult ? '#fde68a' : '#b7e4c7')}`,
-        }}>
-          <div style={{ fontSize: 24 }}>
-            {workspaceSaving ? '💾' : compiling ? '⚡' : workspaceError ? '⚠️' : (!workspaceSaveResult ? '📝' : '✓')}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: workspaceError ? '#c53030' : 'var(--navy)' }}>
-              {workspaceSaving ? 'Saving to workspace folder...' : compiling ? 'Compiling and updating workspace site context...' : workspaceError ? 'Workspace Error' : (!workspaceSaveResult ? 'Page not yet added to workspace folder' : 'All changes saved & compiled successfully')}
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-              {workspaceSaving ? 'Writing source.json and template HTML...' : compiling ? 'Running the two-pass builder compiler...' : workspaceError ? workspaceError : (!workspaceSaveResult ? 'Review the preview mockup below, then click "Add to Workspace & Compile" to save this page and build all relationships.' : `Saved under workspaces/${session.university_slug || 'unknown'}`)}
-            </div>
-          </div>
-        </div>
-
-        {workspaceSaveResult && (
-          <div style={{ marginTop: 16, background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {[
-                { label: 'University Workspace', value: workspaceSaveResult.university_slug },
-                { label: 'Page Directory', value: workspaceSaveResult.page_type },
-                { label: 'Slug ID', value: workspaceSaveResult.slug },
-                { label: 'Parent Link Slug', value: workspaceSaveResult.parent_slug || '—' },
-              ].map(item => (
-                <div key={item.label} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 12px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#8a95a5', textTransform: 'uppercase', letterSpacing: '.05em' }}>{item.label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginTop: 2 }}>{item.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: '#8a95a5', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              📁 Path on server disk: {workspaceSaveResult.workspace_dir}
-            </div>
-          </div>
-        )}
-
-        {compileResult && (
-          <div style={{ marginTop: 12, background: compileResult.pages_failed > 0 ? '#fffbeb' : '#f0f9f4', border: `1px solid ${compileResult.pages_failed > 0 ? '#fde68a' : '#b7e4c7'}`, borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ fontWeight: 700, color: compileResult.pages_failed > 0 ? '#92400e' : '#1a6b3c', fontSize: 13, marginBottom: 8 }}>
-              {compileResult.pages_failed > 0 ? '⚠️ Compiled with errors' : '⚡ Workspace Site Compilation Summary'}
-            </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <div style={{ background: '#fff', border: '1px solid #b7e4c7', borderRadius: 6, padding: '8px 14px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#1a6b3c' }}>{compileResult.pages_compiled}</div>
-                <div style={{ fontSize: 11, color: '#2d6a4f', marginTop: 2 }}>Pages compiled</div>
-              </div>
-              <div style={{ background: '#fff', border: `1px solid ${compileResult.pages_failed > 0 ? '#fca5a5' : '#b7e4c7'}`, borderRadius: 6, padding: '8px 14px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: compileResult.pages_failed > 0 ? '#c53030' : '#1a6b3c' }}>{compileResult.pages_failed}</div>
-                <div style={{ fontSize: 11, color: compileResult.pages_failed > 0 ? '#c53030' : '#2d6a4f', marginTop: 2 }}>Errors</div>
-              </div>
-            </div>
-            {compileResult.errors && compileResult.errors.length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                {compileResult.errors.map((e, i) => (
-                  <div key={i} style={{ fontSize: 12, color: '#c53030', fontFamily: 'monospace', marginTop: 4 }}>
-                    [{e.page_type}] {e.slug}: {e.error}
-                  </div>
-                ))}
-              </div>
-            )}
+        {workspaceError && (
+          <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 8, padding: '12px 16px', color: '#c53030', fontSize: 13, marginTop: 12 }}>
+            {workspaceError}
           </div>
         )}
       </div>
 
-      {/* ── WEBSITE BUILD (Pass 4 — deployable export) ── */}
+      {/* ── WEBSITE BUILD (Optional) ── */}
       <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Website Build</div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-              {!buildResult
-                ? 'Export the entire workspace into a deployable static website package.'
-                : buildResult.restored
-                  ? 'A previous build exists on disk. Rebuild to refresh, or download / preview it below.'
-                  : 'Build complete — your deployable website is ready.'}
-            </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>Website Export</div>
+            {building ? (
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Building your website package...</p>
+            ) : !buildResult ? (
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Build the entire website package using the latest workspace data.</p>
+            ) : (
+              <p style={{ color: 'var(--color-success)', fontSize: 14, fontWeight: 600, margin: 0 }}>✓ Website Built</p>
+            )}
           </div>
           <button
             onClick={handleBuildWebsite}
             disabled={building || !session.university_slug}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
               background: building ? '#ccc' : 'var(--amber)',
-              color: '#fff', border: 'none',
-              padding: '8px 16px', borderRadius: 6,
-              fontSize: 13, fontWeight: 700, cursor: building ? 'not-allowed' : 'pointer',
+              color: '#fff',
+              border: 'none',
+              padding: '10px 22px',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: building ? 'not-allowed' : 'pointer'
             }}
           >
-            {building ? '⏳ Building Website…' : buildResult ? '🔄 Rebuild Website' : '🚀 Build Website'}
+            {building ? 'Building…' : buildResult ? 'Rebuild Website' : 'Build Website'}
           </button>
         </div>
 
-        {/* Status / progress banner */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 8,
-          background: building ? '#f8fafc' : buildError ? '#fef2f2' : (!buildResult ? '#fff7ed' : '#f0f9f4'),
-          border: `1px solid ${building ? 'var(--border)' : buildError ? '#fca5a5' : (!buildResult ? '#fed7aa' : '#b7e4c7')}`,
-        }}>
-          <div style={{ fontSize: 24 }}>
-            {building ? '🏗️' : buildError ? '⚠️' : (!buildResult ? '📦' : '✓')}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: buildError ? '#c53030' : 'var(--navy)' }}>
-              {building
-                ? 'Building website package...'
-                : buildError
-                  ? 'Build Error'
-                  : (!buildResult
-                      ? 'No build yet'
-                      : buildResult.restored
-                        ? 'Existing build found on disk'
-                        : 'Build Complete')}
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-              {building
-                ? 'Compiling pages, rewriting routes, copying assets, generating sitemap...'
-                : buildError
-                  ? buildError
-                  : (!buildResult
-                      ? 'Click "Build Website" to export all pages into a single deployable folder.'
-                      : `Deployable site at workspaces/${session.university_slug}/build/`)}
-            </div>
-          </div>
-        </div>
-
         {buildError && (
-          <div style={{ marginTop: 12, fontSize: 12, color: '#c53030', fontFamily: 'monospace' }}>
+          <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 8, padding: '12px 16px', color: '#c53030', fontSize: 13, marginTop: 12 }}>
             {buildError}
           </div>
         )}
 
         {buildResult && (
-          <>
-            {/* Build stats */}
-            <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Pages', value: buildResult.pages_compiled ?? 0 },
-                { label: 'Images', value: buildResult.images_copied ?? 0 },
-                { label: 'Downloads', value: buildResult.downloads_copied ?? 0 },
-                { label: 'Routes', value: buildResult.routes_generated ?? 0 },
-              ].map((s) => (
-                <div key={s.label} style={{ background: '#fff', border: '1px solid #b7e4c7', borderRadius: 6, padding: '8px 14px', textAlign: 'center', minWidth: 84 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#1a6b3c' }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: '#2d6a4f', marginTop: 2 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Action buttons */}
-            <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
-                style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 13, padding: '10px 18px', border: 'none', borderRadius: 7, cursor: 'pointer' }}
-              >
-                📂 Preview Built Site ↗
-              </button>
-              <button
-                onClick={() => downloadBuild(session.university_slug)}
-                style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 13, padding: '10px 18px', border: '1.5px solid var(--border)', borderRadius: 7, cursor: 'pointer' }}
-              >
-                ⬇ Download Website (ZIP)
-              </button>
-            </div>
-
-            {/* Build location */}
-            <div style={{ marginTop: 14, fontSize: 12, color: '#8a95a5', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              📁 Build folder: {buildResult.build_path}
-            </div>
-
-            {/* Non-fatal build warnings (e.g. dangling parent_slug, missing image) */}
-            {buildResult.errors && buildResult.errors.length > 0 && (
-              <div style={{ marginTop: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px' }}>
-                <div style={{ fontWeight: 700, color: '#92400e', fontSize: 12.5, marginBottom: 6 }}>
-                  ⚠️ {buildResult.errors.length} warning(s) — build completed but these should be fixed
-                </div>
-                {buildResult.errors.slice(0, 8).map((e, i) => (
-                  <div key={i} style={{ fontSize: 11.5, color: '#92400e', fontFamily: 'monospace', marginTop: 3 }}>
-                    [{e.page_type}]{e.slug ? ` ${e.slug}:` : ''} {e.error}
-                  </div>
-                ))}
-                {buildResult.errors.length > 8 && (
-                  <div style={{ fontSize: 11, color: '#92400e', marginTop: 4 }}>…and {buildResult.errors.length - 8} more</div>
-                )}
-              </div>
-            )}
-          </>
+          <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
+            <button
+              onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
+              style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+            >
+              Preview Website ↗
+            </button>
+            <button
+              onClick={() => downloadBuild(session.university_slug)}
+              style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}
+            >
+              Download ZIP
+            </button>
+          </div>
         )}
       </div>
 
