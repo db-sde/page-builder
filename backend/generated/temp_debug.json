@@ -1,174 +1,203 @@
 {
-  "upload_id": 75,
-  "filename": "Copy of Jamia Islamia Online MBA program.docx",
-  "page_type": "course",
+  "upload_id": 76,
+  "filename": "Copy of Manipal Online MBA in Human Resource Management.docx",
+  "page_type": "specialization",
   "payload": {
     "_meta": {
-      "document_title": "Copy of Jamia Islamia Online MBA program.docx",
-      "page_type": "course",
+      "document_title": "Copy of Manipal Online MBA in Human Resource Management.docx",
+      "page_type": "specialization",
       "generated_by": "DegreeBaba Content Publisher"
     },
-    "program_name": "Jamia Millia Islamia Online MBA",
-    "accreditations_heading": "Jamia Millia Islamia Online MBA Accreditations",
-    "specializations_intro": "The Jamia Millia Islamia Online MBA is offered in three career oriented specializations to offer a wide range of career options as per students' requirements.",
-    "admission_fee_note": null,
-    "certificate_description": "The Jamia Millia Islamia Online MBA degree holds the same value and recognition as a regular MBA degree course. A sample degree for the Jamia Millia Islamia Online MBA can be viewed below:",
-    "eligibility_content": "<p>Before proceeding further with the admission process, you must qualify for the below mentioned Jamia Millia Islamia Online MBA eligibility criteria first:</p><p>The applicant must have completed a valid bachelor's degree in any stream from a recognized university.</p>",
-    "highlights": [
+    "fee_heading": "Fee Structure",
+    "fee_plans": null,
+    "admission_fee_note": "Step 2. After the registration process pay the fee according to the chosen specialization.",
+    "about_content": "<p>Manipal University Online offers a 2 year online Master of Business Administration (MBA) in Human Resource Management course, designed to equip students with essential skills in strategic HR management and change management. The Online MBA in HR Management from the Manipal University program covers key subjects such as employee relations management, compensation and benefits, and organizational behaviour, providing a comprehensive understanding of HR practices.</p><p>Graduates of an Online MBA in Human Resource Management from Manipal Online are prepared to pursue leadership roles in HR departments, consulting firms, and multinational corporations. The curriculum emphasizes practical knowledge and strategic thinking so that the students are well-versed in the effective management of human resources.</p>",
+    "eligibility_content": "<p>Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University are required to fulfill the below-mentioned eligibility criteria and admission requirements of the program:</p><p>The applicant must have completed a bachelor's degree in any stream with a 10+2+3 education qualification pattern.</p><p>The graduation must be completed from a university recognised by the Association of Indian Universities (AIU).</p><p>A minimum of 50% of the aggregate marks must be scored in the graduation.</p>",
+    "emi_content": "INR 7,292 /- per month with no-cost EMI facility. Total fee is INR 1,75,000 /- with per semester fee of INR 43,750 /-.",
+    "admission_steps": "<h3>Online MBA Admission Process</h3><p>The admission process for an online MBA program at Manipal University Online is quite simple and student friendly. Interested students are required to follow the below-mentioned steps:</p><ol><li>Register for the Online MBA program at the official website of Manipal University Online.</li><li>After the registration process pay the fee according to the chosen specialization.</li><li>Upload the required documents and submit the application form.</li><li>Once the university verifies the student's information and documents, a confirmation is forwarded to the student.</li></ol>",
+    "exam_content": "<p>The Online Manipal examinations are conducted digitally via computer-based and online procured means. The examinations for Manipal Online programs are highly flexible and allow students to appear for term-end examinations from any corner of the world. However, students must have a laptop or desktop/computer with a good connection to the internet and a functional webcam. The evaluation of the online degree program at Online Manipal is carried out with two major components i.e. theory papers and practical papers. Simultaneously, students are required to score a minimum of 40% aggregate score in both parts to be considered as pass.</p>",
+    "faqs": [
       {
-        "highlight_title": "Course Duration",
-        "highlight_description": "2 years, with an option to complete in a maximum of 4 years"
+        "question": "What is the eligibility to apply for the HR Management Course from Manipal Online?",
+        "answer": "The applicant must have completed 10 + 2 + 3 years of educational qualification from a recognized institute with a minimum of 50% aggregate marks, to fall under the eligibility criteria of the HR Management Course from Manipal Online."
       },
       {
-        "highlight_title": "Medium of Instruction",
-        "highlight_description": "Offered in English, Hindi, and Urdu"
-      }
-    ],
-    "accreditations": [
-      {
-        "body_name": "NAAC",
-        "body_descriptor": "A++ Grade",
-        "body_detail": "National Assessment and Accreditation Council"
+        "question": "Is the HR Management online MBA from Manipal Online valid?",
+        "answer": "Yes, HR Management Course from Manipal Online is UGC-recognized making it a completely valid degree course."
       },
       {
-        "body_name": "UGC",
-        "body_descriptor": "Recognized",
-        "body_detail": "University Grants Commission"
-      },
-      {
-        "body_name": "NIRF",
-        "body_descriptor": "Ranked #4 University",
-        "body_detail": "#13 Overall, #28 Management Category"
-      }
-    ],
-    "fee_plans": [
-      {
-        "plan_name": "Year I",
-        "plan_amount": "INR 25,000 /-",
-        "plan_total": "Year I"
-      },
-      {
-        "plan_name": "Year II",
-        "plan_amount": "INR 25,000 /-",
-        "plan_total": "Year II"
-      },
-      {
-        "plan_name": "Total Fee",
-        "plan_amount": "INR 50,000 /-",
-        "plan_total": "Total Fee"
+        "question": "What is the average package for Manipal Online University MBA HR Management?",
+        "answer": "The average package offered to Manipal Online University HR Management and other online MBA courses is INR 5.2 LPA approx."
       }
     ],
     "job_profiles": [
       {
-        "job_title": "Accounting Manager",
-        "avg_salary": "INR 7 LPA"
+        "job_title": "Human Resources Manager",
+        "avg_salary": "INR 3 LPA"
       },
       {
-        "job_title": "Corporate Controllers",
-        "avg_salary": "INR 12 LPA"
+        "job_title": "Learning and Development Manager",
+        "avg_salary": "INR 5 LPA"
       },
       {
-        "job_title": "HR Operations Manager",
-        "avg_salary": "INR 8 LPA"
+        "job_title": "Employee Relations Manager",
+        "avg_salary": "INR 6.1 LPA"
       },
       {
-        "job_title": "System Manager",
-        "avg_salary": "INR 7.9 LPA"
+        "job_title": "Compensation and Benefits Manager",
+        "avg_salary": "INR 9 LPA"
       },
       {
-        "job_title": "Area Sales Manager",
-        "avg_salary": "INR 6 LPA"
+        "job_title": "Organizational Development Manager",
+        "avg_salary": "INR 4 LPA"
+      },
+      {
+        "job_title": "HR Consultant",
+        "avg_salary": "INR 3.5 LPA"
       }
     ],
     "reviews": [
       {
-        "review_text": "The Jamia Millia Islamia Online MBA is an ideal course in terms of quality education and academic excellence.",
+        "review_text": "My experience with online manipal is quite okay and honestly, the university is good there facilities were far good from my expectations.",
         "reviewer_label": "Student"
       },
       {
-        "review_text": "Being a working professional, I recommend the online MBA course from Jamia Millia Islamia because it is highly flexible and accessible.",
-        "reviewer_label": "Working Professional"
-      },
-      {
-        "review_text": "For self paced learning this course is the best and if you want minimal interaction, then go for this course.",
+        "review_text": "The best thing I liked about the Online Manipal is there placement assistance.",
         "reviewer_label": "Student"
       },
       {
-        "review_text": "The faculty support is really amazing and for me the fee structure is the best part about this course.",
+        "review_text": "The faculty members are very cooperative and supportive because of them I was able to complete my online BBA with good marks.",
+        "reviewer_label": "Student"
+      },
+      {
+        "review_text": "Good facilities and affordable fee, I highly recommend it to others.",
         "reviewer_label": "Student"
       }
     ],
-    "faqs": [
+    "syllabus_content": "<p>The Manipal Online MBA in Human Resource Management syllabus is crafted to offer an overall grasp of HR industry trends and requirements to aspiring HR professionals. The Manipal Online MBA in Human Resource Management follows a semester pattern, referred to as the table mentioned below:</p><h3>Year I</h3><h4>Semester I</h4><ul><li>Entrepreneurial Practice</li><li>Business Communication (WAC)</li><li>Managerial Economics</li><li>Financial Accounting</li><li>Data Visualisation (Excel/Tableau)</li><li>Organizational Behaviour</li><li>Marketing Management</li></ul><h4>Semester II</h4><ul><li>Business Research Methods (R/Python)</li><li>Operation Management</li><li>Human Resource Management</li><li>Management Accounting</li><li>Financial Management</li><li>Legal Aspects of Business</li><li>Business Communication (VAC)</li></ul><h3>Year II</h3><h4>Semester III</h4><ul><li>Strategic Management</li><li>Electives/Specializations subjects</li><li>Manpower Planning and Sourcing</li><li>Management and Organizational Development</li><li>Employee Relations Management</li><li>HR Audit</li><li>Term Paper</li></ul><h4>Semester IV</h4><ul><li>International Business Management</li><li>Electives/Specializations subjects</li><li>Compensation and Benefits</li><li>Performance Management and Appraisal</li><li>Talent Management and Employee Retention</li><li>Change Management</li><li>Project</li></ul>",
+    "other_specs": [
       {
-        "question": "How long does the online MBA program at Jamia Millia Islamia last?",
-        "answer": "The online MBA program at Jamia Millia Islamia lasts 2 years but can be completed in a maximum of 4 years."
+        "other_spec_name": "Finance"
       },
       {
-        "question": "What are the requirements for enrolling in the online MBA program?",
-        "answer": "A valid bachelor's degree is required for enrollment in the online MBA program."
+        "other_spec_name": "Marketing"
       },
       {
-        "question": "How are lessons and exams performed for the online MBA program?",
-        "answer": "The lessons and exams for online MBA are performed through audio/video programs, face-to-face counseling sessions, self learning print material, and contact courses."
+        "other_spec_name": "Retail Management"
       },
       {
-        "question": "Is the online MBA program at Jamia Millia Islamia recognized and accredited?",
-        "answer": "Yes, the online MBA program at Jamia Millia Islamia is recognized and accredited by UGC and NAAC A++."
+        "other_spec_name": "Digital Marketing"
       },
       {
-        "question": "What types of support services are accessible to online MBA students?",
-        "answer": "Placement services, financial aid, faculty support, and several other services are available to online MBA students."
+        "other_spec_name": "BFSI"
+      },
+      {
+        "other_spec_name": "Project Management"
+      },
+      {
+        "other_spec_name": "IT & FinTech"
+      },
+      {
+        "other_spec_name": "Human Resource Management"
+      },
+      {
+        "other_spec_name": "Operations Management"
+      },
+      {
+        "other_spec_name": "International Business"
+      },
+      {
+        "other_spec_name": "Information System Management"
+      },
+      {
+        "other_spec_name": "Analytics and Data Science"
+      },
+      {
+        "other_spec_name": "Supply Chain Management"
       }
     ],
-    "admission_steps": "<p>Once you fulfill the eligibility criteria, proceed with the enrollment process by following the steps involved in the Jamia Millia Islamia Online MBA admission process:</p><p><strong>Step 1.</strong> Visit the official website of Jamia Millia Islamia Online and register yourself.</p><p><strong>Step 2.</strong> Fill in your personal information and verify your email address.</p><p><strong>Step 3.</strong> Click on the Apply Now button.</p><p><strong>Step 4.</strong> Start filling out the application form and attach the supporting documents.</p><p><strong>Step 5.</strong> The university will verify your details and wait for confirmation.</p><p><strong>Step 6.</strong> After the verification is completed, the university will provide you with the enrollment number and admission confirmation.</p>",
-    "placement_content": "<p>The Jamia Millia Islamia Online MBA includes personalized placement support with several activities, with an emphasis on enhancing your employability. The several activities conducted by the Jamia Millia Islamia Online MBA placement cell include internships, resume writing, mock interviews, mentorship, and other dedicated student support services.</p><p>Some of the active recruiting partners of Jamia Millia Islamia Online MBA graduates include:</p><ul><li>Rockwell Automation</li><li>KPMG</li><li>Adobe</li><li>Microsoft</li><li>Accenture</li><li>FedEx</li></ul>",
-    "syllabus_content": "<p>The Jamia Millia Islamia online MBA syllabus follows a semester pattern that spans over 2 years, consisting of 4 semesters. The core curriculum is designed to develop core competencies among enrolled students, which helps to build a promising career in their respective fields. The detailed syllabus for the online MBA course at Jamia Millia Islamia Online is mentioned below:</p><h4>Year I</h4><h4>Semester I</h4><ul><li>Management Concepts and Organizational Behaviour</li><li>Quantitative Methods</li><li>Managerial Economics</li><li>Human Resource Management</li><li>Business Communication</li><li>Financial Accounting</li><li>Marketing Management</li><li>IT Applications in Management</li></ul><h4>Semester II</h4><ul><li>Organization Structure, Dynamics and Change</li><li>Management Science</li><li>Economic Environment of Business</li><li>Financial Management</li><li>Methodology of Business Research</li><li>Operations Management</li><li>Information Systems for Management</li><li>Accounting for Managerial Decision Making</li></ul><h4>Year II</h4><h4>Semester III</h4><ul><li>Business Policy and Strategic Management</li><li>Comprehensive Corporate Analysis</li><li>Legal Environment of Business</li><li>Summer Training Project</li><li>Major</li><li>Optional I</li><li>Optional II</li><li>Optional III</li><li>Minor</li><li>Optional I</li><li>Optional II</li></ul><h4>Semester IV</h4><ul><li>Business Ethics and Corporate Governance</li><li>E-Business</li><li>Project Study / Dissertation</li><li>Major</li><li>Optional I</li><li>Optional II</li><li>Optional III</li><li>Minor</li><li>Optional I</li></ul>",
+    "highlights": [
+      {
+        "highlight_title": "Valid & Credible Degree",
+        "highlight_description": "An Online MBA degree program from Manipal Online is equally valid and credible as a traditional MBA program."
+      },
+      {
+        "highlight_title": "Ranked #1 by Careers360",
+        "highlight_description": "The Manipal Online MBA is ranked #1 by careers360 making it an ideal program for students and working professionals."
+      },
+      {
+        "highlight_title": "Access to 10K+ Courses",
+        "highlight_description": "The Manipal University Online MBA provides access to 10K+ courses and professional certifications from top global universities through Coursera."
+      },
+      {
+        "highlight_title": "Study While You Work",
+        "highlight_description": "This program allows working professionals to earn a professional degree without quitting their work schedule."
+      },
+      {
+        "highlight_title": "Placement Support",
+        "highlight_description": "It is a placement-supported program offering better future aspects and career advancement opportunities to students."
+      },
+      {
+        "highlight_title": "Interactive Learning",
+        "highlight_description": "Despite being an online learning program, students can interact with their faculty members through online classes, virtual classrooms, and discussion forums."
+      },
+      {
+        "highlight_title": "Affordable Fees",
+        "highlight_description": "The Manipal University Jaipur Online MBA fees are comparatively affordable and pocket-friendly as a regular postgraduate degree program."
+      },
+      {
+        "highlight_title": "Scholarships & Financial Aid",
+        "highlight_description": "To lessen the financial burden on students, the program includes attractive scholarships and various financial aids."
+      }
+    ],
+    "placement_content": "<p>The Online Manipal University Jaipur (MUJ) offers placement assistance to every enrolled student. To ensure a fruitful career for students Manipal Online offers various facilities along with its placement assistance including:</p><ul><li>Assistance in preparing an impactful resume with the advanced placement portal of Manipal Online.</li><li>Alumni interaction during and after the program for better industry insight and career guidance.</li><li>Multiple industry readiness sessions to make students familiar with global market trends, requirements, and recruiter behaviour.</li><li>Mock interviews to motivate students and help them identify their strengths and weaknesses.</li><li>Virtual placement drives are conducted by Manipal University Online to make the job research journey easy and compatible.</li></ul><p>A few major active hiring partners of Online Manipal University Jaipur (MUJ) are:</p><ul><li>Genpact</li><li>Accenture</li><li>KPMG</li><li>Capgemini</li><li>Infosys</li><li>TATA Communications</li><li>MyGate</li><li>IBM, etc.</li></ul>",
     "duration": "2 years",
-    "total_fee": "INR 25,000 /-",
-    "starting_fee": "INR 25,000 /- (per annum)",
-    "naac_grade": "A++",
-    "num_specializations": "3",
-    "emi_amount": null,
-    "validity": "2 years",
-    "ugc_status": "Recognized",
-    "course_name": "Jamia Islamia Online Mba",
-    "university_name": "Jamia Islamia",
-    "eligibility_summary": "Before proceeding further with the admission process, you must qualify for the below mentioned Jamia Millia Islamia Onli...",
-    "seo_title": "Jamia Millia Islamia Online MBA - 2 Year Program",
-    "meta_description": "Jamia Millia Islamia Online MBA with 3 specializations. UGC recognized, NAAC A++ rated. Flexible 2-year program with placement support.",
-    "hero_description": "Advance your career with Jamia Millia Islamia's UGC-recognized Online MBA, offered in 3 career-oriented specializations over 2 years. Benefit from personalized placement support, industry mentorship, and credentials valued equally to traditional MBA degrees.",
-    "admission_heading": "Jamia Millia Islamia Online MBA Admission Process",
-    "placement_heading": "Jamia Millia Islamia Online MBA Placement Partners",
-    "reviews_heading": "Jamia Millia Islamia Online MBA Reviews",
-    "faqs_heading": "Jamia Millia Islamia Online MBA FAQs",
-    "highlights_heading": "Jamia Millia Islamia Online MBA Course Facts",
-    "specializations_heading": "Jamia Millia Islamia Online MBA Specializations",
-    "fee_heading": "Jamia Millia Islamia Online MBA Fee Structure",
-    "eligibility_heading": "Jamia Millia Islamia Online MBA Eligibility Criteria",
-    "syllabus_heading": "Jamia Millia Islamia Online MBA Syllabus/Curriculum",
-    "jobs_heading": "Jamia Millia Islamia Online MBA Job Roles & Salary",
-    "certificate_heading": "Jamia Millia Islamia Online MBA Sample Certificate Photo"
+    "naac_grade": "A",
+    "ugc_status": "Entitled",
+    "total_fee": "INR 1,75,000/-",
+    "num_programs": "Manipal Online Jaipur MBA",
+    "spec_name": "Manipal Online Mba In Human Resource Management",
+    "course_name": "Manipal Online Mba In Human Resource Management",
+    "program_name": "MBA",
+    "university_name": "Manipal",
+    "mode": "Online",
+    "starting_fee": "INR 1,75,000/-",
+    "eligibility_summary": "Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University ar...",
+    "seo_title": "MBA Human Resource Management | Manipal Online",
+    "meta_description": "Online MBA in HR Management from Manipal University. 2-year program with flexible exams, industry mentors, and placement assistance. ₹1,75,000 fee.",
+    "about_heading": "Manipal Online MBA in HR Course Details",
+    "admission_heading": "Manipal Online MBA Admission process",
+    "emi_heading": "Manipal Online MBA in Human Resource EMI Details",
+    "exam_heading": "Examination process at Online Manipal",
+    "placement_heading": "Placement Partners of Online Manipal",
+    "reviews_heading": "Online Manipal University Reviews (Online Manipal University Jaipur - MUJ)",
+    "faqs_heading": "FAQs",
+    "highlights_heading": "Course Facts",
+    "eligibility_heading": "Eligibility Criteria",
+    "syllabus_heading": "Online Human Resource Management Syllabus of Manipal Online",
+    "jobs_heading": "Manipal Online MBA in HR Job Opportunities",
+    "other_specs_heading": "Specializations offered"
   },
   "validation": {
     "summary": {
-      "total_required": 40,
-      "mapped": 34,
+      "total_required": 38,
+      "mapped": 32,
       "thin": 1,
-      "missing": 4,
-      "quality_score": 88.46
+      "missing": 3,
+      "quality_score": 90.28
     },
     "field_report": [
       {
-        "field_key": "program_name",
+        "field_key": "spec_name",
         "status": "thin",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA"
+        "value_preview": "Manipal Online Mba In Human Resource Management"
       },
       {
         "field_key": "university_name",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Islamia"
+        "value_preview": "Manipal"
       },
       {
         "field_key": "linked_university",
@@ -177,10 +206,10 @@
         "value_preview": null
       },
       {
-        "field_key": "hero_description",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Advance your career with Jamia Millia Islamia's UGC-recognized Online MBA, offered in 3 career-oriented specializations …"
+        "field_key": "linked_course",
+        "status": "skipped",
+        "has_value": false,
+        "value_preview": null
       },
       {
         "field_key": "duration",
@@ -190,177 +219,171 @@
       },
       {
         "field_key": "mode",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Online"
       },
       {
         "field_key": "naac_grade",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "A++"
+        "value_preview": "A"
       },
       {
         "field_key": "ugc_status",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Recognized"
+        "value_preview": "Entitled"
       },
       {
         "field_key": "total_fee",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "INR 25,000 /-"
-      },
-      {
-        "field_key": "num_specializations",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "3"
+        "value_preview": "INR 1,75,000/-"
       },
       {
         "field_key": "about_heading",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Manipal Online MBA in HR Course Details"
       },
       {
         "field_key": "highlights_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Course Facts"
-      },
-      {
-        "field_key": "accreditations_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Accreditations"
-      },
-      {
-        "field_key": "specializations_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Specializations"
-      },
-      {
-        "field_key": "fee_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Fee Structure"
+        "value_preview": "Course Facts"
       },
       {
         "field_key": "eligibility_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Eligibility Criteria"
+        "value_preview": "Eligibility Criteria"
       },
       {
-        "field_key": "admission_heading",
+        "field_key": "fee_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Admission Process"
+        "value_preview": "Fee Structure"
+      },
+      {
+        "field_key": "other_specs_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Specializations offered"
       },
       {
         "field_key": "syllabus_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Syllabus/Curriculum"
+        "value_preview": "Online Human Resource Management Syllabus of Manipal Online"
+      },
+      {
+        "field_key": "exam_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Examination process at Online Manipal"
+      },
+      {
+        "field_key": "admission_heading",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Manipal Online MBA Admission process"
       },
       {
         "field_key": "placement_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Placement Partners"
+        "value_preview": "Placement Partners of Online Manipal"
       },
       {
         "field_key": "jobs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA Job Roles & Salary"
+        "value_preview": "Manipal Online MBA in HR Job Opportunities"
+      },
+      {
+        "field_key": "certificate_heading",
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
       },
       {
         "field_key": "faqs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA FAQs"
+        "value_preview": "FAQs"
       },
       {
         "field_key": "about_content",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
-      },
-      {
-        "field_key": "specializations_intro",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "The Jamia Millia Islamia Online MBA is offered in three career oriented specializations to offer a wide range of career …"
+        "value_preview": "<p>Manipal University Online offers a 2 year online Master of Business Administration (MBA) in Human Resource Management…"
       },
       {
         "field_key": "eligibility_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>Before proceeding further with the admission process, you must qualify for the below mentioned Jamia Millia Islamia O…"
-      },
-      {
-        "field_key": "admission_steps",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "<p>Once you fulfill the eligibility criteria, proceed with the enrollment process by following the steps involved in the…"
-      },
-      {
-        "field_key": "admission_fee_note",
-        "status": "missing",
-        "has_value": false,
-        "value_preview": null
+        "value_preview": "<p>Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University…"
       },
       {
         "field_key": "syllabus_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>The Jamia Millia Islamia online MBA syllabus follows a semester pattern that spans over 2 years, consisting of 4 seme…"
+        "value_preview": "<p>The Manipal Online MBA in Human Resource Management syllabus is crafted to offer an overall grasp of HR industry tren…"
+      },
+      {
+        "field_key": "exam_content",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "<p>The Online Manipal examinations are conducted digitally via computer-based and online procured means. The examination…"
+      },
+      {
+        "field_key": "admission_steps",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "<h3>Online MBA Admission Process</h3><p>The admission process for an online MBA program at Manipal University Online is …"
+      },
+      {
+        "field_key": "admission_fee_note",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Step 2. After the registration process pay the fee according to the chosen specialization."
       },
       {
         "field_key": "placement_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>The Jamia Millia Islamia Online MBA includes personalized placement support with several activities, with an emphasis…"
+        "value_preview": "<p>The Online Manipal University Jaipur (MUJ) offers placement assistance to every enrolled student. To ensure a fruitfu…"
       },
       {
         "field_key": "certificate_description",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "The Jamia Millia Islamia Online MBA degree holds the same value and recognition as a regular MBA degree course. A sample…"
-      },
-      {
-        "field_key": "validity",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "2 years"
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
       },
       {
         "field_key": "emi_amount",
-        "status": "mapped",
-        "has_value": true,
+        "status": "missing",
+        "has_value": false,
         "value_preview": null
       },
       {
         "field_key": "highlights",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[2 items]"
+        "value_preview": "[8 items]"
       },
       {
-        "field_key": "fee_plans",
+        "field_key": "other_specs",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[3 items]"
+        "value_preview": "[13 items]"
       },
       {
         "field_key": "job_profiles",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[5 items]"
+        "value_preview": "[6 items]"
       },
       {
         "field_key": "reviews",
@@ -372,199 +395,165 @@
         "field_key": "faqs",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[5 items]"
+        "value_preview": "[3 items]"
       },
       {
         "field_key": "seo_title",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA - 2 Year Program"
+        "value_preview": "MBA Human Resource Management | Manipal Online"
       },
       {
         "field_key": "meta_description",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Jamia Millia Islamia Online MBA with 3 specializations. UGC recognized, NAAC A++ rated. Flexible 2-year program with pla…"
-      },
-      {
-        "field_key": "starting_fee",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "INR 25,000 /- (per annum)"
+        "value_preview": "Online MBA in HR Management from Manipal University. 2-year program with flexible exams, industry mentors, and placement…"
       },
       {
         "field_key": "eligibility_summary",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Before proceeding further with the admission process, you must qualify for the below mentioned Jamia Millia Islamia Onli…"
+        "value_preview": "Students and interested working professionals to enroll in an Online MBA program offered at Manipal Online University ar…"
       }
     ]
   },
   "field_mappings": [
     {
-      "field_key": "program_name",
-      "heading_in_doc": "[about_description]jamia millia islamia online mba course",
-      "confidence": 0.92,
-      "status": "mapped",
-      "source": "AI"
-    },
-    {
-      "field_key": "accreditations_heading",
-      "heading_in_doc": "[accreditations_heading] jamia millia islamia online mba accreditations",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "specializations_intro",
-      "heading_in_doc": "[specializations_heading,specializations_intro] jamia millia islamia online mba specializations",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "admission_fee_note",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] jamia millia islamia online mba admission process",
-      "confidence": 1,
-      "status": "missing",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "certificate_description",
-      "heading_in_doc": "[certificate_description] jamia millia islamia online mba sample certificate photo",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "eligibility_content",
-      "heading_in_doc": "[eligibility_heading,eligibility_content] jamia millia islamia online mba eligibility criteria",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "highlights",
-      "heading_in_doc": "[highlights_heading,highlights] jamia millia islamia online mba course facts",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "accreditations",
-      "heading_in_doc": "[accreditations_heading] jamia millia islamia online mba accreditations",
+      "field_key": "fee_heading",
+      "heading_in_doc": "[fee_heading] fee structure",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "fee_plans",
-      "heading_in_doc": "[fee_heading,fee_plans] jamia millia islamia online mba fee structure",
+      "heading_in_doc": "[fee_heading] fee structure",
+      "confidence": 1,
+      "status": "missing",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "admission_fee_note",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "job_profiles",
-      "heading_in_doc": "[jobs_heading,job_profiles] jamia millia islamia online mba job roles & salary",
+      "field_key": "about_content",
+      "heading_in_doc": "[about_heading,about_content]  online mba in hr course details",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "reviews",
-      "heading_in_doc": "[reviews_heading,reviews] jamia millia islamia online mba reviews",
+      "field_key": "eligibility_content",
+      "heading_in_doc": "[eligibility_heading,eligibility_content] eligibility criteria",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "faqs",
-      "heading_in_doc": "[faqs_heading,faqs] jamia millia islamia online mba faqs",
+      "field_key": "emi_content",
+      "heading_in_doc": "[emi_content]  online mba in human resource emi details",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "admission_steps",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] jamia millia islamia online mba admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "placement_content",
-      "heading_in_doc": "[placement_heading,placement_content] jamia millia islamia online mba placement partners",
+      "field_key": "exam_content",
+      "heading_in_doc": "[exam_heading,exam_content] examination process at online",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "faqs",
+      "heading_in_doc": "[faqs_heading,faqs] faqs",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "job_profiles",
+      "heading_in_doc": "[jobs_heading,job_profiles]  online mba in hr job opportunities",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "reviews",
+      "heading_in_doc": "[reviews_heading,reviews] online  university reviews (online manipal university jaipur - muj)",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "syllabus_content",
-      "heading_in_doc": "[syllabus_heading,syllabus_content] jamia millia islamia online mba syllabus/curriculum",
+      "heading_in_doc": "[syllabus_heading,syllabus_content] online human resource management syllabus of  online",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "program_name",
-      "heading_in_doc": "university full name:  online",
-      "confidence": 0.9,
+      "field_key": "other_specs",
+      "heading_in_doc": "[other_specs_heading,other_specs] specializations offered",
+      "confidence": 1,
       "status": "mapped",
-      "source": "KV"
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "highlights",
+      "heading_in_doc": "[highlights_heading,highlights] course facts",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "placement_content",
+      "heading_in_doc": "[placement_heading,placement_content] placement partners of online",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
     },
     {
       "field_key": "duration",
-      "heading_in_doc": "university full name:  online",
-      "confidence": 0.9,
-      "status": "mapped",
-      "source": "KV"
-    },
-    {
-      "field_key": "total_fee",
-      "heading_in_doc": "university full name:  online",
-      "confidence": 0.9,
-      "status": "mapped",
-      "source": "KV"
-    },
-    {
-      "field_key": "starting_fee",
-      "heading_in_doc": "university full name:  online",
+      "heading_in_doc": "manipal in human resource management",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
       "field_key": "naac_grade",
-      "heading_in_doc": "university full name:  online",
+      "heading_in_doc": "manipal in human resource management",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
       "field_key": "ugc_status",
-      "heading_in_doc": "university full name:  online",
+      "heading_in_doc": "manipal in human resource management",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "num_specializations",
-      "heading_in_doc": "university full name:  online",
+      "field_key": "total_fee",
+      "heading_in_doc": "manipal in human resource management",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "emi_amount",
-      "heading_in_doc": "university full name:  online",
-      "confidence": 0.9,
-      "status": "mapped",
-      "source": "KV"
-    },
-    {
-      "field_key": "validity",
-      "heading_in_doc": "university full name:  online",
+      "field_key": "num_programs",
+      "heading_in_doc": "manipal in human resource management",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
@@ -584,15 +573,22 @@
       "source": "AI_GENERATED"
     },
     {
-      "field_key": "hero_description",
-      "heading_in_doc": "[AI Generated]",
-      "confidence": 1,
+      "field_key": "spec_name",
+      "heading_in_doc": "[enriched from filename:Copy of Manipal Online MBA in Human Resource Management.docx]",
+      "confidence": 0.95,
       "status": "mapped",
-      "source": "AI_GENERATED"
+      "source": "ENRICHED"
     },
     {
       "field_key": "course_name",
-      "heading_in_doc": "[enriched from filename:Copy of Jamia Islamia Online MBA program.docx]",
+      "heading_in_doc": "[enriched from filename:Copy of Manipal Online MBA in Human Resource Management.docx]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "program_name",
+      "heading_in_doc": "[enriched from filename]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
@@ -605,8 +601,15 @@
       "source": "ENRICHED"
     },
     {
-      "field_key": "naac_grade",
-      "heading_in_doc": "[enriched from derive:accreditations]",
+      "field_key": "mode",
+      "heading_in_doc": "[enriched from derive:about_content]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "starting_fee",
+      "heading_in_doc": "[enriched from derive:total_fee]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
@@ -619,89 +622,89 @@
       "source": "ENRICHED"
     },
     {
-      "field_key": "accreditations_heading",
-      "heading_in_doc": "[accreditations_heading] jamia millia islamia online mba accreditations",
+      "field_key": "about_heading",
+      "heading_in_doc": "[about_heading,about_content]  online mba in hr course details",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "admission_heading",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] jamia millia islamia online mba admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online mba admission process",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "emi_heading",
+      "heading_in_doc": "[emi_content]  online mba in human resource emi details",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "exam_heading",
+      "heading_in_doc": "[exam_heading,exam_content] examination process at online",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "placement_heading",
-      "heading_in_doc": "[placement_heading,placement_content] jamia millia islamia online mba placement partners",
+      "heading_in_doc": "[placement_heading,placement_content] placement partners of online",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "reviews_heading",
-      "heading_in_doc": "[reviews_heading,reviews] jamia millia islamia online mba reviews",
+      "heading_in_doc": "[reviews_heading,reviews] online  university reviews (online manipal university jaipur - muj)",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "faqs_heading",
-      "heading_in_doc": "[faqs_heading,faqs] jamia millia islamia online mba faqs",
+      "heading_in_doc": "[faqs_heading,faqs] faqs",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "highlights_heading",
-      "heading_in_doc": "[highlights_heading,highlights] jamia millia islamia online mba course facts",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "specializations_heading",
-      "heading_in_doc": "[specializations_heading,specializations_intro] jamia millia islamia online mba specializations",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "fee_heading",
-      "heading_in_doc": "[fee_heading,fee_plans] jamia millia islamia online mba fee structure",
+      "heading_in_doc": "[highlights_heading,highlights] course facts",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "eligibility_heading",
-      "heading_in_doc": "[eligibility_heading,eligibility_content] jamia millia islamia online mba eligibility criteria",
+      "heading_in_doc": "[eligibility_heading,eligibility_content] eligibility criteria",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "syllabus_heading",
-      "heading_in_doc": "[syllabus_heading,syllabus_content] jamia millia islamia online mba syllabus/curriculum",
+      "heading_in_doc": "[syllabus_heading,syllabus_content] online human resource management syllabus of  online",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "jobs_heading",
-      "heading_in_doc": "[jobs_heading,job_profiles] jamia millia islamia online mba job roles & salary",
+      "heading_in_doc": "[jobs_heading,job_profiles]  online mba in hr job opportunities",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
-      "field_key": "certificate_heading",
-      "heading_in_doc": "[certificate_description] jamia millia islamia online mba sample certificate photo",
+      "field_key": "other_specs_heading",
+      "heading_in_doc": "[other_specs_heading,other_specs] specializations offered",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     }
   ],
-  "processing_time_ms": 10709.3
+  "processing_time_ms": 10585.5
 }
