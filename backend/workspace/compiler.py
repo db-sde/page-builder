@@ -145,6 +145,50 @@ def _enrich_resolved(record: dict, index: dict) -> dict:
     university_slug = record.get("university_slug", "")
     raw = (record.get("data") or {}).copy()
 
+    # Find the shared university page record in the index
+    uni_name = None
+    uni_full_name = None
+    uni_short_name = None
+    uni_logo = None
+    
+    if index.get("university"):
+        # Match by university_slug (e.g. "test-1")
+        uni_record = index["university"].get(university_slug)
+        if not uni_record:
+            # Fallback to the first university record in this workspace's index
+            uni_records = list(index["university"].values())
+            if uni_records:
+                uni_record = uni_records[0]
+        
+        if uni_record:
+            uni_data = uni_record.get("data") or {}
+            uni_name = uni_data.get("university_name")
+            uni_full_name = uni_data.get("university_full_name")
+            uni_short_name = uni_data.get("university_short_name")
+            uni_logo = uni_data.get("university_logo")
+
+    # Fallback to workspace metadata or formatted slug if university page data is missing
+    if not uni_name:
+        meta = {}
+        meta_path = _workspace_root(university_slug) / "metadata.json"
+        if meta_path.exists():
+            try:
+                with open(meta_path) as f:
+                    meta = json.load(f)
+            except Exception:
+                pass
+        uni_name = meta.get("university_name") or university_slug.replace("-", " ").title()
+
+    # Inject shared branding variables
+    raw["university_name"] = uni_name
+    if uni_full_name:
+        raw["university_full_name"] = uni_full_name
+    if uni_short_name:
+        raw["university_short_name"] = uni_short_name
+    if uni_logo:
+        raw["university_logo"] = uni_logo
+    raw["university_branding"] = uni_name
+
     all_courses = _build_workspace_course_list(index, university_slug)
     all_specs = _build_workspace_spec_list(index, university_slug)
     all_blogs = _build_workspace_blog_list(index, university_slug)
@@ -213,16 +257,26 @@ def _auto_render_listing_pages(university_slug: str, index: dict) -> list[dict]:
     """
     from renderer.engine import render_resolved
 
-    meta = {}
-    meta_path = _workspace_root(university_slug) / "metadata.json"
-    if meta_path.exists():
-        try:
-            with open(meta_path) as f:
-                meta = json.load(f)
-        except Exception:
-            pass
+    uni_name = None
+    if index.get("university"):
+        uni_record = index["university"].get(university_slug)
+        if not uni_record:
+            uni_records = list(index["university"].values())
+            if uni_records:
+                uni_record = uni_records[0]
+        if uni_record:
+            uni_name = uni_record.get("data", {}).get("university_name")
 
-    uni_name = meta.get("university_name", university_slug.replace("-", " ").title())
+    if not uni_name:
+        meta = {}
+        meta_path = _workspace_root(university_slug) / "metadata.json"
+        if meta_path.exists():
+            try:
+                with open(meta_path) as f:
+                    meta = json.load(f)
+            except Exception:
+                pass
+        uni_name = meta.get("university_name") or university_slug.replace("-", " ").title()
 
     all_courses = _build_workspace_course_list(index, university_slug)
     all_specs = _build_workspace_spec_list(index, university_slug)
