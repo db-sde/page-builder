@@ -125,6 +125,16 @@ function App() {
     setSubmitError(null);
   };
 
+  const getUniEmail = () => {
+    if (!payload.uni_name) return 'admissions@degreebaba.com';
+    const clean = payload.uni_name
+      .toLowerCase()
+      .replace(/online/g, '')
+      .replace(/university/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    return `admissions@${clean || 'degreebaba'}online.edu`;
+  };
+
   // Generate dynamic hero titles based on source/action
   const getHeroTitle = () => {
     const src = (payload.source || 'enquiry').toLowerCase();
@@ -446,7 +456,7 @@ function App() {
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[#9A93A8]">Official Email</div>
                   <div className="text-sm font-semibold text-[#434346] mt-0.5 break-all">
-                    admissions@{payload.uni ? `${payload.uni}online.edu` : 'degreebaba.com'}
+                    {getUniEmail()}
                   </div>
                 </div>
               </div>
@@ -572,42 +582,84 @@ function App() {
 
       {/* ===== FOOTER ===== */}
       <footer className="bg-[#6B4FC9] text-[#C9BEEC] pt-12 pb-6 px-5 mt-auto">
-        <div className="max-w-[1180px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-[1180px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-8">
+          
+          {/* Column 1: Logo and details */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded bg-[#FF5C35] text-[#1C1B22] flex items-center justify-center font-bold text-base">
+              <div className="w-[36px] h-[36px] rounded-lg bg-[#FF5C35] text-[#1C1B22] flex items-center justify-center font-bold text-[19px]">
                 {payload.logo_letter}
               </div>
               <div className="font-extrabold text-base text-white">
-                {payload.uni_name} <span className="text-[#FF5C35]">Online</span>
+                {payload.uni_name.toLowerCase().endsWith('online') ? (
+                  <>
+                    {payload.uni_name.substring(0, payload.uni_name.length - 6).trim()}{' '}
+                    <span className="text-[#FF5C35]">Online</span>
+                  </>
+                ) : (
+                  <>
+                    {payload.uni_name} <span className="text-[#FF5C35]">Online</span>
+                  </>
+                )}
               </div>
             </div>
-            <p className="text-xs max-w-[280px] leading-relaxed text-[#C9BEEC]/80">
+            <p className="text-xs max-w-[300px] leading-relaxed text-[#C9BEEC]/80">
               UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.
             </p>
           </div>
+
+          {/* Column 2: Programs */}
           <div>
-            <h4 className="text-white font-bold text-sm mb-3">Company Links</h4>
+            <h4 className="text-white font-bold text-sm mb-3">Programs</h4>
             <div className="flex flex-col gap-2 text-xs">
-              {payload.return_url && payload.return_url !== '#' && (
+              <span className="text-[#C9BEEC]/80 select-none">Online MBA</span>
+              <span className="text-[#C9BEEC]/80 select-none">MBA Marketing</span>
+              <span className="text-[#C9BEEC]/80 select-none">MBA Finance</span>
+              <span className="text-[#C9BEEC]/80 select-none">MBA HR</span>
+            </div>
+          </div>
+
+          {/* Column 3: Company */}
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">Company</h4>
+            <div className="flex flex-col gap-2 text-xs">
+              {payload.return_url && payload.return_url !== '#' ? (
                 <button onClick={returnToWebsite} className="text-left hover:text-white transition-colors cursor-pointer">
-                  University Website Home
+                  Home
                 </button>
+              ) : (
+                <span className="text-[#C9BEEC]/80 select-none">Home</span>
               )}
-              <span className="text-[#C9BEEC]/50 select-none">Contact Admissions Desk</span>
+              <span className="text-[#C9BEEC]/80 select-none">Blog</span>
+              <span className="text-[#C9BEEC]/80 select-none">Admissions</span>
+              <span className="text-[#C9BEEC]/80 select-none">Contact Us</span>
             </div>
           </div>
+
+          {/* Column 4: Get in touch */}
           <div>
-            <h4 className="text-white font-bold text-sm mb-3">Official Communication</h4>
+            <h4 className="text-white font-bold text-sm mb-3">Get in Touch</h4>
             <div className="flex flex-col gap-2 text-xs">
-              <span className="break-all">Email: admissions@{payload.uni ? `${payload.uni}online.edu` : 'degreebaba.com'}</span>
-              <span>Desk Support: Mon–Sat (9 AM – 8 PM)</span>
+              {payload.phone && (
+                <span>Call: {payload.phone}</span>
+              )}
+              <span className="break-all">Email: {getUniEmail()}</span>
+              <span>
+                {payload.uni === 'nmims' 
+                  ? 'V. L. Mehta Road, Vile Parle (W), Mumbai 400056' 
+                  : `${payload.uni_name} Corporate Campus`}
+              </span>
             </div>
           </div>
+
         </div>
         
         <div className="max-w-[1180px] mx-auto mt-10 pt-5 border-t border-[#3E2A7A] text-[11px] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#C9BEEC]/60">
-          <span>&copy; 2026 {payload.uni_name} Online. All rights reserved.</span>
+          <span>
+            &copy; 2026 {payload.uni_name.toLowerCase().endsWith('online') 
+              ? payload.uni_name 
+              : `${payload.uni_name} Online`}. All rights reserved.
+          </span>
           <div className="flex gap-4">
             <span>Privacy Policy</span>
             <span>Terms of Service</span>
