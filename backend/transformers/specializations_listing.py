@@ -1,3 +1,21 @@
+import re
+
+def clean_fee(amount_str: str) -> str:
+    if not amount_str:
+        return ""
+    s = str(amount_str).strip()
+    if not s or s.upper() in ("NA", "N/A", "NIL", "FREE", "-", "--"):
+        return ""
+    if s.startswith("₹"):
+        return s
+    s = re.sub(r'^INR\s*', '', s, flags=re.IGNORECASE).strip()
+    s = re.sub(r'\s*/[-–]+.*$', '', s).strip()
+    s = re.sub(r'\s*/\s*(year|sem|semester|month|mo).*$', '', s, flags=re.IGNORECASE).strip()
+    s = re.sub(r'[^0-9,.].*$', '', s).strip()
+    if not s:
+        return ""
+    return f"₹{s}"
+
 class SpecializationsListingTransformer:
     """
     Transformer for the auto-generated Specializations Listing page.
@@ -41,7 +59,7 @@ class SpecializationsListingTransformer:
             groups_map[parent]["specs"].append({
                 "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
                 "slug": sp_slug,
-                "fee": data.get("total_fee") or "",
+                "fee": clean_fee(data.get("total_fee") or ""),
                 "duration": data.get("duration") or "2 Years",
                 "description": data.get("hero_description") or "",
             })

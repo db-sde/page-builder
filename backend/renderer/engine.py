@@ -20,6 +20,25 @@ def default_empty(value):
 
 env.filters["de"] = default_empty
 
+def clean_fee(amount_str: str) -> str:
+    if not amount_str:
+        return ""
+    s = str(amount_str).strip()
+    if not s or s.upper() in ("NA", "N/A", "NIL", "FREE", "-", "--"):
+        return ""
+    if s.startswith("₹"):
+        return s
+    # Strip INR prefix (case-insensitive)
+    s = re.sub(r'^INR\s*', '', s, flags=re.IGNORECASE).strip()
+    # Strip trailing garbage: /-, /--, /year, /sem etc
+    s = re.sub(r'\s*/[-–]+.*$', '', s).strip()
+    s = re.sub(r'\s*/\s*(year|sem|semester|month|mo).*$', '', s, flags=re.IGNORECASE).strip()
+    # Strip any non-numeric/comma/dot characters remaining at end
+    s = re.sub(r'[^0-9,.].*$', '', s).strip()
+    if not s:
+        return ""
+    return f"₹{s}"
+
 TEMPLATE_MAP = {
     "university": "university.html",
     "course": "course.html",
@@ -453,7 +472,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
                 "d": data.get("hero_description") or data.get("description") or "",
                 "href": f"{sp_slug}.html",
-                "fee": data.get("total_fee") or data.get("starting_fee") or "",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             })
     else:
         specs_raw = (ctx.get("specializations") or {}).get("items", []) or []
@@ -638,9 +657,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     stat_card = hero_dict.get("stat_card") or {}
     hero_title = hero_dict.get("title") or ""
     stat_value = stat_card.get("value") or ""
-    other_specs_list.append([hero_title, stat_value, True])
+    other_specs_list.append([hero_title, clean_fee(stat_value), True])
     for s in siblings:
-        other_specs_list.append([s.get("name") or "", s.get("fee") or "", False])
+        other_specs_list.append([s.get("name") or "", clean_fee(s.get("fee") or ""), False])
     if len(other_specs_list) <= 1:
         other_specs_list = [
             ["Marketing Management", "₹2,00,000", True],
@@ -714,7 +733,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         programs_list_data.append({
             "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
             "slug": slug,
-            "fee": data.get("total_fee") or data.get("starting_fee") or "",
+            "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             "duration": data.get("duration") or "2 Years",
             "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
             "description": data.get("hero_description") or "",
@@ -743,7 +762,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         spec_groups_map[parent]["specs"].append({
             "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
             "slug": sp_slug,
-            "fee": data.get("total_fee") or "",
+            "fee": clean_fee(data.get("total_fee") or ""),
             "duration": data.get("duration") or "2 Years",
             "description": data.get("hero_description") or "",
         })
