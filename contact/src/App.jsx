@@ -26,7 +26,6 @@ function App() {
     specialization: '',
     specialization_name: '',
     source: 'enquiry',
-    return_url: '#',
     phone: ''
   });
 
@@ -48,6 +47,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [hasBackButton, setHasBackButton] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -56,7 +56,22 @@ function App() {
     if (decoded) {
       setPayload(decoded);
     }
+
+    // Capture and store browser referrer
+    if (typeof document !== 'undefined' && document.referrer) {
+      if (!sessionStorage.getItem("return_url") && !document.referrer.includes(window.location.host)) {
+        sessionStorage.setItem("return_url", document.referrer);
+      }
+    }
   }, []);
+
+  // Determine back button visibility client-side
+  useEffect(() => {
+    const storedUrl = sessionStorage.getItem("return_url");
+    if ((storedUrl && storedUrl !== '#') || (typeof window !== 'undefined' && window.history.length > 1)) {
+      setHasBackButton(true);
+    }
+  }, [payload]);
 
   // Set page document title based on university and program context
   useEffect(() => {
@@ -175,8 +190,11 @@ function App() {
   };
 
   const returnToWebsite = () => {
-    if (payload.return_url && payload.return_url !== '#') {
-      window.location.href = payload.return_url;
+    const storedUrl = sessionStorage.getItem("return_url");
+    if (storedUrl && storedUrl !== '#') {
+      window.location.href = storedUrl;
+    } else if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
     }
   };
 
@@ -234,7 +252,7 @@ function App() {
 
           {/* Simplified Navigation */}
           <div className="flex items-center gap-4">
-            {payload.return_url && payload.return_url !== '#' && (
+            {hasBackButton && (
               <button 
                 onClick={returnToWebsite}
                 className="text-sm font-semibold text-[#6E6A78] hover:text-[#1C1B22] flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -252,12 +270,12 @@ function App() {
           </div>
         </div>
       </header>
-
+ 
       {/* ===== HERO SECTION ===== */}
-      <div className="bg-white border-b border-[#ECE8F6] py-12 md:py-16 text-[#434346]">
+      <div className="bg-white border-b border-[#ECE8F6] pt-12 pb-24 md:pt-16 md:pb-32 text-[#434346]">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="text-xs text-[#9A93A8] mb-3 flex items-center gap-1.5">
-            {payload.return_url && payload.return_url !== '#' ? (
+            {hasBackButton ? (
               <span onClick={returnToWebsite} className="hover:underline cursor-pointer">Home</span>
             ) : (
               <span>Home</span>
@@ -293,7 +311,7 @@ function App() {
                 An admissions advisor will contact you shortly.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                {payload.return_url && payload.return_url !== '#' && (
+                {hasBackButton && (
                   <button 
                     onClick={returnToWebsite}
                     className="w-full sm:w-auto bg-[#6B4FC9] text-white hover:bg-[#5737C5] font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer"
@@ -623,7 +641,7 @@ function App() {
           <div>
             <h4 className="text-white font-bold text-sm mb-3">Company</h4>
             <div className="flex flex-col gap-2 text-xs">
-              {payload.return_url && payload.return_url !== '#' ? (
+              {hasBackButton ? (
                 <button onClick={returnToWebsite} className="text-left hover:text-white transition-colors cursor-pointer">
                   Home
                 </button>

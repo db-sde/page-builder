@@ -52,8 +52,7 @@ def build_lead_payload(
     uni_name: str = None,
     logo_letter: str = None,
     program_name: str = None,
-    specialization_name: str = None,
-    return_url: str = None
+    specialization_name: str = None
 ) -> str:
     """Build a deterministic, URL-safe Base64 encoded JSON payload ignoring null/empty fields."""
     import base64
@@ -75,8 +74,6 @@ def build_lead_payload(
         payload["program_name"] = str(program_name).strip()
     if specialization_name and str(specialization_name).strip():
         payload["specialization_name"] = str(specialization_name).strip()
-    if return_url and str(return_url).strip():
-        payload["return_url"] = str(return_url).strip()
     
     json_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
     return base64.urlsafe_b64encode(json_bytes).decode('utf-8')
@@ -89,11 +86,13 @@ def build_lead_url(
     uni_name: str = None,
     logo_letter: str = None,
     program_name: str = None,
-    specialization_name: str = None,
-    return_url: str = None
+    specialization_name: str = None
 ) -> str:
     """Build a centralized lead capture URL with encoded payload."""
-    base = os.environ.get("LEAD_BASE_URL", "http://localhost:3001")
+    base = os.environ.get("LEAD_BASE_URL")
+    if not base:
+        raise ValueError("LEAD_BASE_URL environment variable is missing")
+        
     base = base.rstrip("/")
     payload = build_lead_payload(
         university_slug=uni_slug,
@@ -103,8 +102,7 @@ def build_lead_url(
         uni_name=uni_name,
         logo_letter=logo_letter,
         program_name=program_name,
-        specialization_name=specialization_name,
-        return_url=return_url
+        specialization_name=specialization_name
     )
     return f"{base}/form?d={payload}"
 
@@ -242,88 +240,68 @@ def parse_admission_html(html_str: str) -> list[dict]:
 
 def render_resolved(resolved: dict, standalone: bool = False) -> str:
     transformer = get_transformer(resolved)
-    ctx = transformer.transform()
-
-    # Dynamic names & links
-    uni_name = resolved.get("university_slug", "nmims").upper()
+    ctx = transformer.transform()    # Phase 3 — Context Extraction
     raw_dict = resolved.get("raw") or {}
-    if raw_dict.get("university_name"):
+    
+    # 1. University Display Name
+    uni_name = None
+    if ctx.get("university_name"):
+        uni_name = ctx["university_name"]
+    elif raw_dict.get("university_name"):
         uni_name = raw_dict["university_name"]
-    elif raw_dict.get("university_full_name"):
-        uni_name = raw_dict["university_full_name"]
-
+    elif raw_dict.get("name") and resolved.get("page_type") == "university":
+        uni_name = raw_dict["name"]
+    else:
+        uni_name = raw_dict.get("university_full_name") or resolved.get("university_slug", "nmims").upper()
+        
+    logo_letter = uni_name[0].upper() if uni_name else "N"
+    
     uni_slug = resolved.get("university_slug") or "nmims"
     page_type = resolved.get("page_type", "course")
     course_slug = resolved.get("parent_slug") or resolved.get("slug") or ""
 
     ctx["university_name"] = uni_name
-    ctx["university_letter"] = uni_name[0].upper() if uni_name else "N"
+    ctx["university_letter"] = logo_letter
     ctx["homepage_href"] = f"{uni_slug}.dc.html"
     ctx["course_href"] = f"{uni_slug}-online-mba.dc.html"
     ctx["spec_href"] = f"{uni_slug}-mba-marketing.dc.html"
     ctx["blog_href"] = f"{uni_slug}-blog.dc.html"
-    # New listing page hrefs (workspace-relative)
     ctx["programs_listing_href"] = "programs_listing.html"
     ctx["specs_listing_href"] = "specializations_listing.html"
     ctx["blog_listing_href"] = "blog_listing.html"
 
-    # Dynamic program and specialization names for the payload
+    # 2. Program Display Name
     prog_name = None
-    spec_name = None
     if page_type == "course":
-        prog_name = raw_dict.get("program_name") or raw_dict.get("course_name")
-        if not prog_name and resolved.get("slug"):
-            prog_name = resolved.get("slug").replace("-", " ").title()
+        prog_name = raw_dict.get("program_name") or raw_dict.get("course_name") or raw_dict.get("title")
     elif page_type == "specialization":
-        spec_name = raw_dict.get("spec_name")
+        parent_course = raw_dict.get("_workspace_parent") or {}
+        parent_data = parent_course.get("data") or parent_course.get("raw") or {}
+        prog_name = parent_data.get("program_name") or parent_data.get("course_name") or parent_data.get("title")
+
+    if not prog_name:
+        course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
+        if course_slug_val:
+            prog_name = course_slug_val.replace("-", " ").title()
+
+    # 3. Specialization Display Name
+    spec_name = None
+    if page_type == "specialization":
+        spec_name = raw_dict.get("specialization_name") or raw_dict.get("name") or raw_dict.get("spec_name")
         if not spec_name and resolved.get("slug"):
             slug_val = resolved.get("slug")
             parent_val = resolved.get("parent_slug") or ""
             if parent_val and slug_val.startswith(parent_val + "-"):
                 slug_val = slug_val[len(parent_val) + 1:]
             spec_name = slug_val.replace("-", " ").title()
-        
-        parent_course = raw_dict.get("_workspace_parent") or {}
-        parent_data = parent_course.get("data") or parent_course.get("raw") or {}
-        prog_name = parent_data.get("program_name") or parent_data.get("course_name")
-        if not prog_name and resolved.get("parent_slug"):
-            prog_name = resolved.get("parent_slug").replace("-", " ").title()
-
-    # Dynamic return URL logic
-    import json
-    domain = f"https://{uni_slug}.domain.com"
-    meta_path = os.path.join(os.path.dirname(__file__), "..", "workspaces", uni_slug, "metadata.json")
-    if os.path.exists(meta_path):
-        try:
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-                site_url = meta.get("site_url") or meta.get("domain")
-                if site_url:
-                    domain = site_url.rstrip("/")
-        except Exception:
-            pass
-
-    ret_url = f"{domain}/{uni_slug}.dc.html"
-    if page_type == "course":
-        ret_url = f"{domain}/{uni_slug}-online-mba.dc.html"
-    elif page_type == "specialization":
-        ret_url = f"{domain}/{uni_slug}-mba-marketing.dc.html"
-    elif page_type == "blog":
-        ret_url = f"{domain}/{uni_slug}-blog.dc.html"
-    elif page_type == "programs_listing":
-        ret_url = f"{domain}/programs_listing.html"
-    elif page_type == "specializations_listing":
-        ret_url = f"{domain}/specializations_listing.html"
-    elif page_type == "blog_listing":
-        ret_url = f"{domain}/blog_listing.html"
 
     # Centralized lead URL — no contact/lead forms in this project
     spec_slug_arg = resolved.get("slug") if page_type == "specialization" else None
     course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
     ctx["lead_url"] = build_lead_url(
         uni_slug, course_slug_val, source=page_type, spec_slug=spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     
     # Inject lead URLs context variables
@@ -336,28 +314,28 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # Inject action-specific encoded lead URLs
     ctx["lead_url_apply"] = build_lead_url(
         uni_slug, course_slug_val, "apply", spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     ctx["lead_url_brochure"] = build_lead_url(
         uni_slug, course_slug_val, "brochure", spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     ctx["lead_url_enquiry"] = build_lead_url(
         uni_slug, course_slug_val, "enquiry", spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     ctx["lead_url_fees"] = build_lead_url(
         uni_slug, course_slug_val, "fees", spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     ctx["lead_url_counselling"] = build_lead_url(
         uni_slug, course_slug_val, "counselling", spec_slug_arg,
-        uni_name=uni_name, logo_letter=ctx["university_letter"], program_name=prog_name,
-        specialization_name=spec_name, return_url=ret_url
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
     )
     
     ctx["site"] = ctx.get("site") or {}

@@ -80,19 +80,6 @@ export function decodePayload(dParam) {
     // 4. Normalize Source
     const source = raw.source || 'enquiry';
     
-    // 5. Normalize Return URL
-    let return_url = raw.return_url || '';
-    if (!return_url) {
-      if (typeof document !== 'undefined' && document.referrer) {
-        return_url = document.referrer;
-      } else if (uni) {
-        // Fallback relative home
-        return_url = `/${uni}.html`;
-      } else {
-        return_url = '#';
-      }
-    }
-    
     // 6. Normalize Phone number (optional field for Call CTA)
     const phoneMap = {
       'nmims': '1800-102-5136',
@@ -113,7 +100,6 @@ export function decodePayload(dParam) {
       specialization,
       specialization_name,
       source,
-      return_url,
       phone
     };
   } catch (e) {
