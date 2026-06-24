@@ -166,11 +166,35 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
     # Always carry meta fields through
     acf.update(meta)
 
-    # Extract KV fields from the top blocks (before any heading)
+    # Extract KV fields from the top blocks (before any section heading)
     kv = {}
+    anchors_map = HEADING_ANCHORS.get(page_type, {})
+    reverse = {}
+    for key, variants in anchors_map.items():
+        for v in variants:
+            reverse[v] = key
+
     for b in blocks:
         if b["type"] in ("h1", "h2", "h3"):
-            break
+            # Check if this heading corresponds to a valid section anchor
+            text_lower = b.get("text", "").lower()
+            import re
+            tags_match = re.search(r'\[([^\]]+)\]', text_lower)
+            matched_key = None
+            if tags_match:
+                tag_content = tags_match.group(1)
+                for key in anchors_map.keys():
+                    if key in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                        matched_key = key
+                        break
+            if not matched_key:
+                matched = normalize_heading(b.get("text", ""), list(reverse.keys()))
+                matched_key = reverse.get(matched) if matched else None
+            
+            if matched_key:
+                break
+            else:
+                continue
         text = b.get("text", "")
         if not text:
             continue

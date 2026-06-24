@@ -205,7 +205,7 @@ class CourseTransformer(BaseTransformer):
             "fees": {
                 "plans": raw.get("fee_plans") or [],
                 "note": self.build_fee_note(raw.get("emi_amount")),
-            } if raw.get("fee_plans") else None,
+            } if (raw.get("fee_plans") or self.clean_str(raw.get("emi_amount"))) else None,
 
             "admission": {
                 "steps": self.section_or_none("admission_steps"),
@@ -218,7 +218,7 @@ class CourseTransformer(BaseTransformer):
             "placement": {
                 "content": self.section_or_none("placement_content"),
                 "certificate": self.section_or_none("certificate_description"),
-            } if raw.get("placement_content") else None,
+            } if (raw.get("placement_content") or raw.get("certificate_description")) else None,
 
             # Sticky bar
             "sticky_bar": {
