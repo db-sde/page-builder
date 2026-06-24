@@ -396,6 +396,16 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
         specialization_name=spec_name
     )
+    ctx["lead_url_syllabus"] = build_lead_url(
+        uni_slug, course_slug_val, "syllabus", spec_slug_arg,
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
+    )
+    ctx["lead_url_whatsapp"] = build_lead_url(
+        uni_slug, course_slug_val, "whatsapp", spec_slug_arg,
+        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
+        specialization_name=spec_name
+    )
     
     ctx["site"] = ctx.get("site") or {}
 

@@ -1,6 +1,6 @@
 {
-  "university_slug": "chandigarh-university",
-  "university_name": "Chandigarh University",
+  "university_slug": "nmims",
+  "university_name": "NMIMS ",
   "established_year": "",
   "default_theme": {
     "primary_color": "#6B4FC9",
@@ -13,6 +13,6 @@
     "address": ""
   },
   "lead_url": "https://apply.degreebaba.com",
-  "created_at": "2026-06-21T15:22:02.328092+00:00",
-  "last_compiled_at": "2026-06-24T10:44:17.128248+00:00"
+  "created_at": "2026-06-24T10:47:36.870580+00:00",
+  "last_compiled_at": null
 }
