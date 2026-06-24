@@ -30,15 +30,47 @@ TEMPLATE_MAP = {
     "blog_listing": "blog_listing.html",
 }
 
+def load_env():
+    env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip()
 
-def build_lead_url(uni_slug: str, course_slug: str = None, source: str = "page") -> str:
-    """Build a centralized DegreeBaba lead capture URL with query parameters."""
-    base = "https://apply.degreebaba.com"
-    params = f"?university={uni_slug}"
-    if course_slug:
-        params += f"&course={course_slug}"
-    params += f"&source={source}"
-    return base + params
+load_env()
+
+def build_lead_payload(university_slug: str = None, program_slug: str = None, specialization_slug: str = None, source: str = None) -> str:
+    """Build a deterministic, URL-safe Base64 encoded JSON payload ignoring null/empty fields."""
+    import base64
+    payload = {}
+    if university_slug and str(university_slug).strip():
+        payload["uni"] = str(university_slug).strip()
+    if program_slug and str(program_slug).strip():
+        payload["program"] = str(program_slug).strip()
+    if specialization_slug and str(specialization_slug).strip():
+        payload["specialization"] = str(specialization_slug).strip()
+    if source and str(source).strip():
+        payload["source"] = str(source).strip()
+    
+    json_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return base64.urlsafe_b64encode(json_bytes).decode('utf-8')
+
+def build_lead_url(uni_slug: str, course_slug: str = None, source: str = "page", spec_slug: str = None) -> str:
+    """Build a centralized lead capture URL with encoded payload."""
+    base = os.environ.get("LEAD_BASE_URL", "http://localhost:3001")
+    base = base.rstrip("/")
+    payload = build_lead_payload(
+        university_slug=uni_slug,
+        program_slug=course_slug,
+        specialization_slug=spec_slug,
+        source=source
+    )
+    return f"{base}/form?d={payload}"
 
 class SyllabusHTMLParser(HTMLParser):
     def __init__(self):
@@ -199,7 +231,24 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["specs_listing_href"] = "specializations_listing.html"
     ctx["blog_listing_href"] = "blog_listing.html"
     # Centralized lead URL — no contact/lead forms in this project
-    ctx["lead_url"] = build_lead_url(uni_slug, course_slug, source=page_type)
+    spec_slug_arg = resolved.get("slug") if page_type == "specialization" else None
+    course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
+    ctx["lead_url"] = build_lead_url(uni_slug, course_slug_val, source=page_type, spec_slug=spec_slug_arg)
+    
+    # Inject lead URLs context variables
+    ctx["lead_base_url"] = os.environ.get("LEAD_BASE_URL", "http://localhost:3001")
+    ctx["university_slug"] = uni_slug
+    ctx["slug"] = resolved.get("slug") or ""
+    ctx["parent_course_slug"] = resolved.get("parent_slug") or ""
+    ctx["specialization_slug"] = resolved.get("slug") or ""
+    
+    # Inject action-specific encoded lead URLs
+    ctx["lead_url_apply"] = build_lead_url(uni_slug, course_slug_val, "apply", spec_slug_arg)
+    ctx["lead_url_brochure"] = build_lead_url(uni_slug, course_slug_val, "brochure", spec_slug_arg)
+    ctx["lead_url_enquiry"] = build_lead_url(uni_slug, course_slug_val, "enquiry", spec_slug_arg)
+    ctx["lead_url_fees"] = build_lead_url(uni_slug, course_slug_val, "fees", spec_slug_arg)
+    ctx["lead_url_counselling"] = build_lead_url(uni_slug, course_slug_val, "counselling", spec_slug_arg)
+    
     ctx["site"] = ctx.get("site") or {}
 
     # Pre-serialize variables to JSON for the Component script block

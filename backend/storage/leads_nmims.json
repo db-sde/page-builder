@@ -1,0 +1,13 @@
+[
+  {
+    "id": "b6a5164f-68fa-4f05-87e0-a9d1402afb9b",
+    "timestamp": "2026-06-24T08:45:17.819134+00:00",
+    "site_id": "nmims",
+    "name": "Alice Smith",
+    "phone": "9999999999",
+    "email": "alice@gmail.com",
+    "program": "Online MBA",
+    "message": "Test lead",
+    "source_domain": "nmims.degreebaba.com"
+  }
+]
