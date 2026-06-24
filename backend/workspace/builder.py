@@ -622,10 +622,18 @@ def get_build_status(university_slug: str) -> dict:
 
 def zip_build(university_slug: str) -> tuple[bytes, str]:
     """
-    Zip the build/ folder into an in-memory archive.
+    Zip the build/ folder into an in-memory archive, compiling/rebuilding first
+    to ensure it contains the absolute latest files, and packaging it inside
+    a parent 'build/' folder.
     Returns (zip_bytes, filename).
     """
     university_slug = university_slug.lower().strip()
+
+    # Compile & build the workspace first so the ZIP is always up to date
+    from workspace.compiler import compile_workspace
+    compile_workspace(university_slug)
+    build_website(university_slug)
+
     build_dir = _build_root(university_slug)
     if not build_dir.exists():
         raise FileNotFoundError(f"No build found for workspace '{university_slug}'")
@@ -634,7 +642,8 @@ def zip_build(university_slug: str) -> tuple[bytes, str]:
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for p in build_dir.rglob("*"):
             if p.is_file():
-                arcname = p.relative_to(build_dir)
-                zf.write(p, arcname)
+                # Package inside a parent 'build/' directory in the ZIP
+                arcname = Path("build") / p.relative_to(build_dir)
+                zf.write(p, str(arcname))
     filename = f"{university_slug}-website.zip"
     return buf.getvalue(), filename
