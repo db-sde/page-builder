@@ -531,20 +531,6 @@ function App() {
             </div>
           </div>
 
-          {/* Location map layout */}
-          <div className="bg-white border border-[#E9E5F2] rounded-2xl overflow-hidden shadow-xs">
-            <div className="h-32 bg-linear-to-tr from-[#EFEBF8] to-[#E4DEF4] flex items-center justify-center select-none">
-              <span className="font-mono text-xs text-[#A99BD8] tracking-wider">[ Admissions office map ]</span>
-            </div>
-            <div className="p-4 border-t border-[#E9E5F2]">
-              <div className="text-sm font-bold text-[#1C1B22]">{payload.uni_name} Campus</div>
-              <div className="text-xs text-[#6E6A78] mt-1">
-                {payload.uni === 'nmims' 
-                  ? 'V. L. Mehta Road, Vile Parle (W), Mumbai 400056' 
-                  : 'Main office coordinates available upon request'}
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>

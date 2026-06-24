@@ -238,6 +238,28 @@ def parse_admission_html(html_str: str) -> list[dict]:
     except Exception:
         return []
 
+def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> str:
+    if not name:
+        return name
+    name_clean = name.strip()
+    
+    # 1. Targeted regex pattern to strip any university or course prefix followed by "Online MBA in" / "MBA in"
+    # E.g., "Manipal Online Mba In Human Resource Management" -> "Human Resource Management"
+    pattern = re.compile(r'.*?\b(online\s+)?(mba|mca|bba|bca|msc|bcom|mcom)\s+in\s+', re.IGNORECASE)
+    match = pattern.match(name_clean)
+    if match:
+        return name_clean[match.end():].strip()
+        
+    # 2. Split fallback: if there is a standalone "in"/"In", get the final part
+    parts = re.split(r'\s+in\s+', name_clean, flags=re.IGNORECASE)
+    if len(parts) > 1:
+        candidate = parts[-1].strip()
+        if candidate:
+            return candidate
+            
+    return name_clean
+
+
 def render_resolved(resolved: dict, standalone: bool = False) -> str:
     transformer = get_transformer(resolved)
     ctx = transformer.transform()    # Phase 3 — Context Extraction
@@ -272,13 +294,40 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     # 2. Program Display Name
     prog_name = None
-    if page_type == "course":
-        prog_name = raw_dict.get("program_name") or raw_dict.get("course_name") or raw_dict.get("title")
-    elif page_type == "specialization":
+    
+    # Check parent course first if on specialization page
+    if page_type == "specialization":
         parent_course = raw_dict.get("_workspace_parent") or {}
         parent_data = parent_course.get("data") or parent_course.get("raw") or {}
-        prog_name = parent_data.get("program_name") or parent_data.get("course_name") or parent_data.get("title")
-
+        if parent_data:
+            prog_name = (
+                parent_data.get("program_name") or
+                parent_data.get("course_name") or
+                parent_data.get("title")
+            )
+            
+    # Search current page raw_dict and ctx
+    if not prog_name:
+        prog_name = (
+            raw_dict.get("program_name") or
+            raw_dict.get("course_name") or
+            raw_dict.get("title") or
+            ctx.get("program_name") or
+            ctx.get("course_name")
+        )
+        
+    # Priority 3: Search other courses in the workspace
+    if not prog_name:
+        workspace_courses = raw_dict.get("_workspace_courses") or []
+        for c in workspace_courses:
+            if isinstance(c, dict):
+                c_data = c.get("data") or c.get("raw") or {}
+                val = c_data.get("program_name") or c_data.get("course_name") or c_data.get("title")
+                if val and str(val).strip():
+                    prog_name = str(val).strip()
+                    break
+                    
+    # Priority 4: Last-resort fallback to slug
     if not prog_name:
         course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
         if course_slug_val:
@@ -287,7 +336,17 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # 3. Specialization Display Name
     spec_name = None
     if page_type == "specialization":
-        spec_name = raw_dict.get("specialization_name") or raw_dict.get("name") or raw_dict.get("spec_name")
+        raw_spec_name = (
+            raw_dict.get("spec_name") or
+            raw_dict.get("specialization_name") or
+            raw_dict.get("title") or
+            ctx.get("spec_name") or
+            ctx.get("specialization_name")
+        )
+        
+        if raw_spec_name:
+            spec_name = clean_spec_name(raw_spec_name, uni_name=uni_name, prog_name=prog_name)
+            
         if not spec_name and resolved.get("slug"):
             slug_val = resolved.get("slug")
             parent_val = resolved.get("parent_slug") or ""
