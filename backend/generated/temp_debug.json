@@ -1,221 +1,201 @@
 {
-  "upload_id": 77,
-  "filename": "Copy of NMIMS University Page.docx",
-  "page_type": "university",
+  "upload_id": 80,
+  "filename": "Copy of NMIMS Online BBA in Business Analytics.docx",
+  "page_type": "specialization",
   "payload": {
     "_meta": {
-      "document_title": "Copy of NMIMS University Page.docx",
-      "page_type": "university",
+      "document_title": "Copy of NMIMS Online BBA in Business Analytics.docx",
+      "page_type": "specialization",
       "generated_by": "DegreeBaba Content Publisher"
     },
-    "admission_fee_note": "Step 3. Pay the mentioned NMIMS online application fee.",
-    "mode_of_learning": "Open, distance, and on-campus",
-    "faculty_intro": "To offer top-notch education assistance to students, the NMIMS Online has 140+ faculty members from IIMs/IITs and 90+ PhD scholars. That guides students throughout their academic careers and helps them develop their promising professional careers.",
-    "why_choose_content": "<h3>Pros of the NMIMS Online</h3><ul><li><strong>Best University for online degree:</strong> NMIMS Online has received the Education Innovation Awards, Entrepreneur India (2022), for the best university offering an online degree.</li><li><strong>NGA-SCE:</strong> The NMIMS Global Access School for Continuing Education has officially partnered with 50+ corporate MNCs and start-ups for NMIMS Online courses.</li><li><strong>Program Customization:</strong> With NMIMS Online, students can customize their course with the specialization of their choice and pursue it at their own pace.</li></ul>",
-    "hero_description": "<p>NMIMS is a renowned private deemed university in India that offers fully valid online learning undergraduate and postgraduate programs. The institution follows the motto of \"Upskill, Upgrade, Uninterrupted,\" and to date, NMIMS has empowered over 185,000 students. An online degree pursued from NMIMS Online is valued by top employers and comes with several benefits, including integrated industry and academic best practices, highly acclaimed career-led courses, and practical learning opportunities through the NMIMS Online digital campus.</p>",
+    "fee_heading": "NMIMS Online BBA in Business Analytics Fee",
+    "other_specs": [
+      {
+        "other_spec_name": "Finance",
+        "other_spec_fee": null
+      },
+      {
+        "other_spec_name": "Marketing",
+        "other_spec_fee": null
+      },
+      {
+        "other_spec_name": "Business Analytics",
+        "other_spec_fee": null
+      }
+    ],
+    "eligibility_content": "<p>To enroll in the NMIMS online BBA program, interested students are required to fulfil the following eligibility criteria:</p><p>The applicants must have completed a 10+2 educational qualification from a recognised board in any discipline.</p><p>A minimum of 50% aggregate marks at the 10+2 qualification is mandatory (45% for reserved category students).</p>",
     "exam_content": "<p>The NMIMS online courses examination process is similar for both UG and PG programs. The exams are conducted through an online proctored platform that allows students to appear for the examinations from any corner of the globe; they only need a good internet connection, a laptop, and a working webcam.</p><p>The NMIMS online examinations follow an evaluation method of IA + TEE, which stands for Internal Assessment + Term End Examinations.</p>",
-    "about_content": "<p>The Narsee Monjee Institute for Management Studies, abbreviated as NMIMS, was established in 1981. Since then, NMIMS has been among the top institutions in India offering quality education matching global standards. Simultaneously, to make higher education more convenient and accessible, NMIMS initiated its Centre for Distance and Online Education (CDOE) in 1994, also known as NMIMS Online CDOE.</p><p>The NMIMS Online (CDOE) offers several online undergraduate, postgraduate, and MBA (WX) programs. The NMIMS online courses are completely online and delivered through virtual learning platforms that consist of e-books, journals, and lecture transcripts with 24*7 access. Choosing NMIMS online courses is a good choice as it has a vast network of 82,000+ alumni across the world, 40+ years of legacy, 157,000+ lives transformed, and 20,000+ recruiters shaping dream careers for students.</p><p>To ensure a promising future for enrolled students and working professionals, the NMIMS Online course includes coveted faculty with nurturing leaders. Meanwhile, the course structure follows a KSA (Knowledge Skill Aptitude) format that develops the industry relevant skillset among professionals for workplace success and career advancement.</p>",
-    "emi_content": "<p>To lessen the financial burden on students and working professionals willing to acquire an online degree from NMIMS Online CDOE, the institute provides several financial assistance options, including loans, no-cost EMI, and scholarship facilities. The NMIMS online EMI assistance is available for a tenure of 3, 6, 9, or 12 months. The loan and EMI facility is available through the credit cards of the following banks:</p><ul><li>HDFC Bank</li><li>ICICI Bank</li><li>Axis Bank</li><li>Citi Bank</li><li>Standard Chartered Bank</li><li>HSBC Bank</li><li>Kotak Mahindra Bank</li></ul><p>A scholarship of 20% on the program fee is also available at the NMIMS Online CDOE for the armed forces, defence personnel, and their immediate family.</p>",
-    "accreditations": [
+    "emi_content": "The NMIMS online BBA does not offer any EMI or loan assistance directly. However, students can opt for third-party financial assistance or the scholarship opportunity available at the university. Students can also pay their course fee through semester-wise (INR 30,000 /-), annually (INR 56,400 /-), or one-time payment (INR 1,45,000 /-) plans.",
+    "admission_steps": "<p>The entire NMIMS online BBA admission process is mentioned below to ensure a hassle-free enrolment process for interested students:</p><ol><li><strong>Visit the official website of NMIMS CDOE and complete the registration process by paying the admission processing fee.</strong></li><li><strong>Select online BBA along with your preferred specialization and start filling out the online application form.</strong></li><li><strong>Attach the supporting documents along with the online application form.</strong></li><li><strong>Pay the course fee as per your chosen plan.</strong></li><li><strong>Submit the application and wait for confirmation.</strong></li><li><strong>Once the university verifies your application and documents, a confirmation letter is provided to your registered email.</strong></li></ol>",
+    "about_content": "<h3>Course Details</h3><p>The NMIMS online BBA in business analytics is a 3 year undergraduate degree course that is delivered through a 100% online learning platform. The course allows students to learn at their own pace, and it offers maximum flexibility with its 6 year validity.</p><p>The NMIMS online BBA in business analytics course develops a foundational understanding of core business management aspects with a blend of in-depth concepts of business analytics such as data management, big data technologies, machine learning, and others.</p><p>Students enrolled in the NMIMS online BBA in business analytics are guided by industry experts to develop and apply business models and frameworks to solve real-world business problems. The course is designed in such a way that it enhances the employability skills of enrolled students to ensure a promising future.</p>",
+    "job_profiles": [
       {
-        "body_name": "University Grants Commission",
-        "body_descriptor": "UGC Entitled",
-        "body_detail": null
+        "job_title": "Financial Analyst",
+        "avg_salary": "INR 6 LPA"
       },
       {
-        "body_name": "National Assessment and Accreditation Council",
-        "body_descriptor": "A+ Grade",
-        "body_detail": null
+        "job_title": "Marketing Analyst",
+        "avg_salary": "INR 5 LPA"
       },
       {
-        "body_name": "National Institutional Ranking Framework",
-        "body_descriptor": "NIRF Ranked",
-        "body_detail": "#95 overall, #52 university category, #24 management category"
+        "job_title": "Operations Analyst",
+        "avg_salary": "INR 3.8 LPA"
       },
       {
-        "body_name": "NMIMS Online",
-        "body_descriptor": "Top Engineering & Commerce College",
-        "body_detail": "4th-best engineering college in the West, top-ranking commerce college in India"
+        "job_title": "Data Analyst",
+        "avg_salary": "INR 4.5 LPA"
+      },
+      {
+        "job_title": "Business Analyst",
+        "avg_salary": "INR 4.5 LPA"
       }
     ],
-    "admission_steps": "<h4>NMIMS Online Admission Process</h4><p>Candidates who are interested in pursuing an online degree from NMIMS Online are required to first qualify for the eligibility criteria of their chosen program prior to beginning the following NMIMS online admission process:</p><ol><li>Visit the official website of the university and register online at online.nmims.edu.</li><li>Fill out the NMIMS online application form with the required information.</li><li>Pay the mentioned NMIMS online application fee.</li><li>Submit the supporting documents along with the NMIMS online application form.</li><li>Pay the NIMIMS course fee via a demand draft in favour of \"SVKM's NMIMS\" payable at Mumbai.</li><li>Wait for confirmation from the university end. Once the application is confirmed, the university will generate a student number for you.</li></ol><h4>Important Notes:</h4><ul><li>The NMIMS online application fee is INR 1,200 /-.</li><li>The documents required for the NMIMS online admission process are academic documents, a photo ID, and passport-size photographs.</li></ul>",
-    "programs_table": [
-      {
-        "program_name": "Online B.Com",
-        "program_fee": "INR 18,000 /- (per semester)",
-        "program_eligibility": "HSC 10+2 in any discipline from a recognized board with 50% aggregate marks."
-      },
-      {
-        "program_name": "Online BBA",
-        "program_fee": "INR 25,000 /- (per semester)",
-        "program_eligibility": "HSC 10+2 in any discipline from a recognized board with 50% aggregate marks."
-      },
-      {
-        "program_name": "Online MBA",
-        "program_fee": "INR 55,000 /- (per semester)",
-        "program_eligibility": "Valid 3-year bachelor's degree in any discipline from a recognized university. Minimum of 50% aggregate marks at the graduation level."
-      },
-      {
-        "program_name": "Online MBA (WX)",
-        "program_fee": "INR 4,00,000 /- (complete course)",
-        "program_eligibility": "Valid 3-year bachelor's degree in any discipline from a recognized university. Minimum of 55% aggregate marks at the graduation level. 3+ years of relevant work experience."
-      }
-    ],
-    "faculty_members": [
-      {
-        "member_name": "Prof. Abhishek Mani",
-        "member_program": "NMIMS Online MBA",
-        "member_designation": "AVP & Head-Investor Relations, Reliance Infrastructure Ltd",
-        "member_qualification": "MBA in Finance from IIT Bombay, B. Tech in Mechanical Engg. from IIT Kharagpur"
-      },
-      {
-        "member_name": "Prof. Aishwarya Nagpal",
-        "member_program": "NMIMS Online MBA",
-        "member_designation": "Professor",
-        "member_qualification": "PhD (Submitted), M.Com, B.Com, UGC-NET"
-      },
-      {
-        "member_name": "Prof. Ajay Jamuar",
-        "member_program": "NMIMS Online MBA",
-        "member_designation": "Global Head - Deutsche Bank Group (India)",
-        "member_qualification": "ACA, CWA, MBA in Finance from Texas Christian University, U.S.A"
-      },
-      {
-        "member_name": "Prof. Aman Joshi",
-        "member_program": "NMIMS Online MBA",
-        "member_designation": "Professor",
-        "member_qualification": "MBA in Business Design, BE in IT"
-      },
-      {
-        "member_name": "Prof. Anisha Bose",
-        "member_program": "NMIMS Online MBA",
-        "member_designation": "Professor",
-        "member_qualification": "PGDMM with specialization in Digital Marketing and Social Media Management, B.Tech in Computer Science Engineering"
-      }
-    ],
+    "placement_content": "<h3>Online BBA Placement Partners</h3><p>The NMIMS online BBA does not offer any direct placement assistance to the students. However, it offers access to the alumni portal along with career services, which include targeted assessments, personalized coaching, and professional development tools.</p><p>Some of the major career services offered for the NMIMS online BBA program are:</p><ul><li>Access to job portal</li><li>One on one personalized guidance/coaching</li><li>Profile development</li><li>Practie interviews</li><li>Cognitive and behavioral skill assessment</li></ul><p>Simultaneously, 98% of students enrolled in NMIMS online BBA admit that they have witnessed a positive impact on their careers. The institution has also partnered with multiple MNCs, corporations, and start-ups that actively recruit skilled professionals. Some of the active recruiting partners are as follows:</p><ul><li>Mindteck</li><li>RBS</li><li>Vaya</li><li>Helix Tech</li><li>Milkbasket, etc</li></ul>",
     "faqs": [
       {
-        "question": "Is an NMIMS online degree valid?",
-        "answer": "Yes, every online degree course offered at NMIMS Online is UGC-recognized, making it completely valid."
+        "question": "What is the annual fee structure for the NMIMS online BBA in business analytics program?",
+        "answer": "The annual fee structure for the NMIMS online BBA in business analytics program is INR 1,45,000 /-."
       },
       {
-        "question": "What are the fees for NMIMS online courses?",
-        "answer": "The average fee structure for every online course at NMIMS is between INR 18,000 /- to INR 55,000 /- per semester, whereas for the executive courses it is approximately INR 4,00,000 /- for the complete course."
+        "question": "Is there any admission processing fee for the NMIMS online BBA in business analytics program?",
+        "answer": "Yes, there is an admission processing fee of INR 1,200 /- for the NMIMS online BBA in business analytics program."
       },
       {
-        "question": "Is the NMIMS online MBA good?",
-        "answer": "Yes, the NMIMS online MBA is one of the most prominent online MBA courses in India, and the majority of students enroll in the particular course every year."
+        "question": "What elective courses are covered in the NMIMS online BBA in business analytics program?",
+        "answer": "Some of the elective courses covered in the NMIMS online BBA in business analytics program are Machine Learning, Data Visualisation with Tableau, Multivariate Techniques, Time Series Forecasting, etc."
       },
       {
-        "question": "Who is eligible for the NMIMS online MBA?",
-        "answer": "Any candidate with a valid bachelor's degree with a minimum of 50% aggregate marks is eligible for the NMIMS online MBA."
-      },
-      {
-        "question": "Which is better, Manipal or NMIMS for online MBA?",
-        "answer": "Both universities are UGC-recognized, but there are different specialization options at each institution. The university with the specializations as per your requirement is considered to be better. However, it can NMIMS Online MBA or a Manipal Online MBA."
+        "question": "How to apply for the NMIMS online BBA in business analytics course?",
+        "answer": "Students are required to register themselves at the official website of NMIMS CDOE and submit an online application form to apply for the NMIMS online BBA in business analytics course."
       }
     ],
-    "placement_content": "<p>NMIMS Online courses are placement-assisted, and the placement cell remains active throughout the course duration to provide continuous guidance. NMIMS Online course graduates are entitled to a plethora of job opportunities with the 500+ hiring partners of the institution.</p><p>There are several career services available under the NMIMS Online Placement Cell, namely:</p><ul><li>Assessment of cognitive abilities and skills.</li><li>Resume and CV development with social media profiling.</li><li>Guidance from NMIMS Online career coaches.</li><li>Interview preparation.</li><li>Access to job opportunities with a dedicated job portal.</li></ul><p>NMIMS Online has collaborated with various MNCs, business organizations, and start-ups across several industries that actively recruit skilled professionals from the university. Some major recruiters of NMIMS Online graduates are:</p><ul><li>Indiamart</li><li>Wockhardt</li><li>Zalaris</li><li>Milkbasket</li><li>Tata</li><li>Shopx</li></ul>",
-    "facts": [
+    "fee_plans": [
       {
-        "fact_title": "Virtual Learning Environment",
-        "fact_description": "NMIMS online courses offer a rich and holistic learning experience with its virtual learning environment and on-campus immersion program & bootcamp."
+        "plan_name": "Finance",
+        "plan_amount": "INR 47,000",
+        "plan_total": "Per Year"
       },
       {
-        "fact_title": "1 Connect Support Tool",
-        "fact_description": "The institution provides access to 1 Connect, a tool designed to assist students with personalized guidance and support by providing a timely resolution to their queries."
+        "plan_name": "Marketing",
+        "plan_amount": "INR 47,000",
+        "plan_total": "Per Year"
       },
       {
-        "fact_title": "Career Services",
-        "fact_description": "The career services provide a 6 month access to job portals like IIMJobs, Updazz, and Hirist."
-      },
-      {
-        "fact_title": "Program Offerings",
-        "fact_description": "NMIMS Online provides an online MBA and an online MBA (WX), which is an executive program designed primarily for working professionals (mid-senior professionals)."
-      },
-      {
-        "fact_title": "Experiential Learning Approach",
-        "fact_description": "The NMIMS Online courses follow experimental learning with a plethora of specializations, real-world case studies, business simulation projects, and hands-on industry experiences."
-      },
-      {
-        "fact_title": "Flexible Learning Access",
-        "fact_description": "The \"Students Zone\" of NMIMS Online can be accessed through a phone or a laptop, allowing students to study anytime, anywhere."
+        "plan_name": "Business Analytics",
+        "plan_amount": "INR 56,400",
+        "plan_total": "Per Year"
       }
     ],
     "reviews": [
       {
-        "review_text": "I was literally very confused while looking for online MBA but my experience with NMIMS online MBA was seamless and i really enjoyed it and the best thing i found about them is their program validity extension.",
+        "review_text": "I had an amazing experience at NMIMS CDOE and my entire academic journey for online BBA was over in just a quick snap. It was really very flexible and convenient for me.",
         "reviewer_label": "Student"
       },
       {
-        "review_text": "My colleague suggested me about th NMIMS online and currently my second sem is going and so far I am satisfied with their academic deliverables.",
-        "reviewer_label": "MBA Student"
+        "review_text": "The NMIMS online BBA was quite good and far better than my expectations. However, I was looking for a flexible and less hectic online BBA program and NMIMS offered me exactly what I was looking for.",
+        "reviewer_label": "Student"
       },
       {
-        "review_text": "Its been a year since i completed my online BBA from NMIMS and with their placement assistance I am now an MNC with a decent job role. I will surely enroll for their online MBA this year for better opportunities.",
-        "reviewer_label": "BBA Graduate"
+        "review_text": "The faculty members of NMIMS online BBA are really very supportive and helpful. They assisted me in every way possible throughout my academic career.",
+        "reviewer_label": "Student"
       },
       {
-        "review_text": "I got placed with NMIMS online placement cell guidance and i really recommend it to everyone out there as their faculty members are really supportive.",
-        "reviewer_label": "Graduate"
+        "review_text": "The fee structure is quite decent for this academic rigor and student support services. I recommend it to others too.",
+        "reviewer_label": "Student"
       }
     ],
-    "university_full_name": "NMIMS Online",
-    "established_year": "1981",
+    "admission_fee_note": "Step 1. Visit the official website of NMIMS CDOE and complete the registration process by paying the admission processing fee.",
+    "highlights": [
+      {
+        "highlight_title": "3 Year Course with 6 Year Validity",
+        "highlight_description": "Accessible and flexible learning period for all students."
+      },
+      {
+        "highlight_title": "Comprehensive Learning Methodology",
+        "highlight_description": "E-books, journals, and lecture transcripts included in the program."
+      },
+      {
+        "highlight_title": "Dedicated Student Support",
+        "highlight_description": "Students can raise queries via ticketing system tool under the dedicated student success team."
+      },
+      {
+        "highlight_title": "800+ Hours of Live Interactive Lectures",
+        "highlight_description": "Conducted by industry veterans, experts, and academicians."
+      }
+    ],
+    "syllabus_content": "<p>The NMIMS online BBA in business analytics syllabus spans over 3 years, consisting of 6 semesters, and each semester includes 6 subjects, which totals to 144 program credits. The initial 3 semesters completely focus on the core management and business administration subjects, whereas the term-end semester includes the industry-oriented electives.</p><p>For your consideration, the entire course syllabus is listed below:</p><h3>Year I</h3><h4>Semester I</h4><ul><li>Principles of Management</li><li>Business Communication</li><li>Financial Accounting</li><li>Micro Economics</li><li>Organisation Behaviour &amp; HRM</li><li>Essentials of IT</li></ul><h4>Semester II</h4><ul><li>Cost and Management Accounting</li><li>Principles of Marketing</li><li>Operations Research</li><li>Macro Economics</li><li>Business Statistics for Decision Making</li><li>Introduction to Analytics</li></ul><h3>Year II</h3><h4>Semester III</h4><ul><li>Business and Allied Law</li><li>Digital Marketing</li><li>Financial Management</li><li>Consumer Behaviour</li><li>International Business &amp; Export Import Management</li><li>Sales Management</li></ul><h4>Semester IV</h4><ul><li>Production &amp; Total Quality Management</li><li>Research Methodology</li><li>Introduction to Python</li><li>Machine Learning –I</li><li>Data Visualisation with Tableau</li><li>Multivariate Techniques</li></ul><h3>Year III</h3><h4>Semester V</h4><ul><li>Entrepreneurship Management</li><li>Project</li><li>Customer Relationship Management</li><li>Analytics in Business domains</li><li>Data Management</li><li>Machine Learning -II</li></ul><h4>Semester VI</h4><ul><li>Business Ethics and Corporate Governance</li><li>Strategic Management</li><li>Operations and Supply Chain Management</li><li>Project Management</li><li>Introduction to Big Data Technologies</li><li>Time Series Forecasting</li></ul>",
+    "duration": "3 years",
     "naac_grade": "A",
-    "ugc_approved": "Entitled",
-    "starting_fee": "INR 1,31,000 /-",
-    "num_programs": "With NMIMS Online, students can customize their course with the specialization of their choice and pursue it at their own pace.",
-    "university_name": "NMIMS",
-    "stat_years": "1981",
-    "seo_title": "NMIMS Online Degree Programs | UGC Entitled",
-    "meta_description": "Explore NMIMS Online degree programs with 140+ faculty. UGC entitled, NAAC A-grade. Flexible learning from ₹1,31,000. Enroll now.",
-    "programs_intro": "Choose from customizable undergraduate and postgraduate programs designed for working professionals.",
-    "about_heading": "About NMIMS Online",
-    "why_choose_heading": "Pros of the NMIMS Online:",
-    "facts_heading": "NMIMS Online Facts",
-    "accreditations_heading": "NMIMS Online Detail",
-    "programs_heading": "NMIMS Online Courses",
-    "admission_heading": "NMIMS Online Admission Process",
-    "emi_heading": "NMIMS Online EMI details",
+    "ugc_status": "Entitled",
+    "total_fee": "INR 1,45,000 /-",
+    "num_programs": "NMIMS Online BBA",
+    "spec_name": "Nmims Online Bba In Business Analytics",
+    "course_name": "Nmims Online Bba In Business Analytics",
+    "program_name": "BBA",
+    "university_name": "Nmims",
+    "mode": "Online",
+    "num_specializations": "3+",
+    "starting_fee": "INR 1,45,000 /-",
+    "eligibility_summary": "To enroll in the NMIMS online BBA program, interested students are required to fulfil the following eligibility criteria...",
+    "seo_title": "NMIMS Online BBA in Business Analytics",
+    "meta_description": "NMIMS Online BBA in Business Analytics - 3-year UGC entitled degree. Flexible online learning, ₹1,45,000 fee, NAAC A-graded institution.",
+    "about_heading": "NMIMS Online BBA in Business Analytics Course Details",
+    "admission_heading": "NMIMS Online BBA Admission Process",
+    "emi_heading": "NMIMS Online BBA in Business Analytics EMI Details",
     "exam_heading": "NMIMS Online Examination Process",
-    "faculty_heading": "NMIMS Online Faculty Members",
-    "placement_heading": "NMIMS Online Placement Partners",
-    "reviews_heading": "NMIMS Online Student Reviews",
-    "faqs_heading": "NMIMS Online FAQs"
+    "placement_heading": "NMIMS Online BBA Placement Partners",
+    "reviews_heading": "NMIMS Online BBA Reviews",
+    "faqs_heading": "NMIMS Online BBA in Business Analytics FAQs",
+    "highlights_heading": "NMIMS Online BBA Course Facts",
+    "eligibility_heading": "NMIMS Online BBA Eligibility Criteria",
+    "syllabus_heading": "NMIMS Online BBA in Business Analytics Syllabus",
+    "jobs_heading": "NMIMS Online BBA in Business Analytics Job Opportunities",
+    "other_specs_heading": "NMIMS Online BBA Specializations"
   },
   "validation": {
     "summary": {
       "total_required": 38,
-      "mapped": 38,
-      "thin": 0,
-      "missing": 0,
-      "quality_score": 100
+      "mapped": 32,
+      "thin": 1,
+      "missing": 3,
+      "quality_score": 90.28
     },
     "field_report": [
+      {
+        "field_key": "spec_name",
+        "status": "thin",
+        "has_value": true,
+        "value_preview": "Nmims Online Bba In Business Analytics"
+      },
       {
         "field_key": "university_name",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS"
+        "value_preview": "Nmims"
       },
       {
-        "field_key": "university_full_name",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "NMIMS Online"
+        "field_key": "linked_university",
+        "status": "skipped",
+        "has_value": false,
+        "value_preview": null
       },
       {
-        "field_key": "hero_description",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "<p>NMIMS is a renowned private deemed university in India that offers fully valid online learning undergraduate and post…"
+        "field_key": "linked_course",
+        "status": "skipped",
+        "has_value": false,
+        "value_preview": null
       },
       {
-        "field_key": "established_year",
+        "field_key": "duration",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "1981"
+        "value_preview": "3 years"
+      },
+      {
+        "field_key": "mode",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Online"
       },
       {
         "field_key": "naac_grade",
@@ -224,70 +204,52 @@
         "value_preview": "A"
       },
       {
-        "field_key": "ugc_approved",
+        "field_key": "ugc_status",
         "status": "mapped",
         "has_value": true,
         "value_preview": "Entitled"
       },
       {
-        "field_key": "mode_of_learning",
+        "field_key": "total_fee",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Open, distance, and on-campus"
-      },
-      {
-        "field_key": "starting_fee",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "INR 1,31,000 /-"
-      },
-      {
-        "field_key": "num_programs",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "With NMIMS Online, students can customize their course with the specialization of their choice and pursue it at their ow…"
+        "value_preview": "INR 1,45,000 /-"
       },
       {
         "field_key": "about_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "About NMIMS Online"
+        "value_preview": "NMIMS Online BBA in Business Analytics Course Details"
       },
       {
-        "field_key": "why_choose_heading",
+        "field_key": "highlights_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Pros of the NMIMS Online:"
+        "value_preview": "NMIMS Online BBA Course Facts"
       },
       {
-        "field_key": "facts_heading",
+        "field_key": "eligibility_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Facts"
+        "value_preview": "NMIMS Online BBA Eligibility Criteria"
       },
       {
-        "field_key": "accreditations_heading",
+        "field_key": "fee_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Detail"
+        "value_preview": "NMIMS Online BBA in Business Analytics Fee"
       },
       {
-        "field_key": "programs_heading",
+        "field_key": "other_specs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Courses"
+        "value_preview": "NMIMS Online BBA Specializations"
       },
       {
-        "field_key": "admission_heading",
+        "field_key": "syllabus_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Admission Process"
-      },
-      {
-        "field_key": "emi_heading",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "NMIMS Online EMI details"
+        "value_preview": "NMIMS Online BBA in Business Analytics Syllabus"
       },
       {
         "field_key": "exam_heading",
@@ -296,58 +258,52 @@
         "value_preview": "NMIMS Online Examination Process"
       },
       {
-        "field_key": "faculty_heading",
+        "field_key": "admission_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Faculty Members"
+        "value_preview": "NMIMS Online BBA Admission Process"
       },
       {
         "field_key": "placement_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Placement Partners"
+        "value_preview": "NMIMS Online BBA Placement Partners"
       },
       {
-        "field_key": "reviews_heading",
+        "field_key": "jobs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Student Reviews"
+        "value_preview": "NMIMS Online BBA in Business Analytics Job Opportunities"
+      },
+      {
+        "field_key": "certificate_heading",
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
       },
       {
         "field_key": "faqs_heading",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online FAQs"
+        "value_preview": "NMIMS Online BBA in Business Analytics FAQs"
       },
       {
         "field_key": "about_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>The Narsee Monjee Institute for Management Studies, abbreviated as NMIMS, was established in 1981. Since then, NMIMS …"
+        "value_preview": "<h3>Course Details</h3><p>The NMIMS online BBA in business analytics is a 3 year undergraduate degree course that is del…"
       },
       {
-        "field_key": "why_choose_content",
+        "field_key": "eligibility_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<h3>Pros of the NMIMS Online</h3><ul><li><strong>Best University for online degree:</strong> NMIMS Online has received t…"
+        "value_preview": "<p>To enroll in the NMIMS online BBA program, interested students are required to fulfil the following eligibility crite…"
       },
       {
-        "field_key": "admission_steps",
+        "field_key": "syllabus_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<h4>NMIMS Online Admission Process</h4><p>Candidates who are interested in pursuing an online degree from NMIMS Online a…"
-      },
-      {
-        "field_key": "admission_fee_note",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "Step 3. Pay the mentioned NMIMS online application fee."
-      },
-      {
-        "field_key": "emi_content",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "<p>To lessen the financial burden on students and working professionals willing to acquire an online degree from NMIMS O…"
+        "value_preview": "<p>The NMIMS online BBA in business analytics syllabus spans over 3 years, consisting of 6 semesters, and each semester …"
       },
       {
         "field_key": "exam_content",
@@ -356,37 +312,49 @@
         "value_preview": "<p>The NMIMS online courses examination process is similar for both UG and PG programs. The exams are conducted through …"
       },
       {
-        "field_key": "faculty_intro",
+        "field_key": "admission_steps",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "To offer top-notch education assistance to students, the NMIMS Online has 140+ faculty members from IIMs/IITs and 90+ Ph…"
+        "value_preview": "<p>The entire NMIMS online BBA admission process is mentioned below to ensure a hassle-free enrolment process for intere…"
+      },
+      {
+        "field_key": "admission_fee_note",
+        "status": "mapped",
+        "has_value": true,
+        "value_preview": "Step 1. Visit the official website of NMIMS CDOE and complete the registration process by paying the admission processin…"
       },
       {
         "field_key": "placement_content",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "<p>NMIMS Online courses are placement-assisted, and the placement cell remains active throughout the course duration to …"
+        "value_preview": "<h3>Online BBA Placement Partners</h3><p>The NMIMS online BBA does not offer any direct placement assistance to the stud…"
       },
       {
-        "field_key": "facts",
-        "status": "mapped",
-        "has_value": true,
-        "value_preview": "[6 items]"
+        "field_key": "certificate_description",
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
       },
       {
-        "field_key": "accreditations",
+        "field_key": "emi_amount",
+        "status": "missing",
+        "has_value": false,
+        "value_preview": null
+      },
+      {
+        "field_key": "highlights",
         "status": "mapped",
         "has_value": true,
         "value_preview": "[4 items]"
       },
       {
-        "field_key": "programs_table",
+        "field_key": "other_specs",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[4 items]"
+        "value_preview": "[3 items]"
       },
       {
-        "field_key": "faculty_members",
+        "field_key": "job_profiles",
         "status": "mapped",
         "has_value": true,
         "value_preview": "[5 items]"
@@ -401,193 +369,165 @@
         "field_key": "faqs",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "[5 items]"
+        "value_preview": "[4 items]"
       },
       {
         "field_key": "seo_title",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "NMIMS Online Degree Programs | UGC Entitled"
+        "value_preview": "NMIMS Online BBA in Business Analytics"
       },
       {
         "field_key": "meta_description",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Explore NMIMS Online degree programs with 140+ faculty. UGC entitled, NAAC A-grade. Flexible learning from ₹1,31,000. En…"
+        "value_preview": "NMIMS Online BBA in Business Analytics - 3-year UGC entitled degree. Flexible online learning, ₹1,45,000 fee, NAAC A-gra…"
       },
       {
-        "field_key": "programs_intro",
+        "field_key": "eligibility_summary",
         "status": "mapped",
         "has_value": true,
-        "value_preview": "Choose from customizable undergraduate and postgraduate programs designed for working professionals."
+        "value_preview": "To enroll in the NMIMS online BBA program, interested students are required to fulfil the following eligibility criteria…"
       }
     ]
   },
   "field_mappings": [
     {
-      "field_key": "admission_fee_note",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] nmims online admission process",
+      "field_key": "fee_heading",
+      "heading_in_doc": "[fee_heading]   fee",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "mode_of_learning",
-      "heading_in_doc": "nmims online detail",
-      "confidence": 0.85,
-      "status": "mapped",
-      "source": "AI"
-    },
-    {
-      "field_key": "faculty_intro",
-      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members] nmims online faculty members",
+      "field_key": "other_specs",
+      "heading_in_doc": "[other_specs_heading,other_specs]  online bba specializations",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "why_choose_content",
-      "heading_in_doc": "[why_choose_content] pros of the nmims online",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "hero_description",
-      "heading_in_doc": "[hero_description] hero description",
+      "field_key": "eligibility_content",
+      "heading_in_doc": "[eligibility_heading,eligibility_content]  online bba eligibility criteria",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "exam_content",
-      "heading_in_doc": "[exam_content] nmims online examination process",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "about_content",
-      "heading_in_doc": "[about_heading,about_content] about nmims online",
+      "heading_in_doc": "[exam_heading,exam_content]   online examination process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "emi_content",
-      "heading_in_doc": "[emi_heading,emi_content] nmims online emi details",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "accreditations",
-      "heading_in_doc": "[accreditations_heading,accreditations] nmims online accreditations",
+      "heading_in_doc": "[emi_content]   emi details",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "admission_steps",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] nmims online admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online bba admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "programs_table",
-      "heading_in_doc": "[programs_heading,programs_table] nmims online courses",
+      "field_key": "about_content",
+      "heading_in_doc": "[about_heading,about_content]   course details",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "faculty_members",
-      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members] nmims online faculty members",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "TAGGED"
-    },
-    {
-      "field_key": "faqs",
-      "heading_in_doc": "[faqs_heading,faqs] nmims online faqs",
+      "field_key": "job_profiles",
+      "heading_in_doc": "[jobs_heading,job_profiles]   job opportunities",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "placement_content",
-      "heading_in_doc": "[placement_heading,placement_content] nmims online placement partners",
+      "heading_in_doc": "[placement_heading,placement_content]  online bba placement partners",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "facts",
-      "heading_in_doc": "[facts_heading,facts] nmims online facts",
+      "field_key": "faqs",
+      "heading_in_doc": "[faqs_heading,faqs]   faqs",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "fee_plans",
+      "heading_in_doc": "[fee_heading]   fee",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
       "field_key": "reviews",
-      "heading_in_doc": "[reviews_heading,reviews] nmims online student reviews",
+      "heading_in_doc": "[reviews_heading,reviews]  online bba reviews",
       "confidence": 1,
       "status": "mapped",
       "source": "TAGGED"
     },
     {
-      "field_key": "university_full_name",
-      "heading_in_doc": "quick facts",
-      "confidence": 0.9,
+      "field_key": "admission_fee_note",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online bba admission process",
+      "confidence": 1,
       "status": "mapped",
-      "source": "KV"
+      "source": "TAGGED"
     },
     {
-      "field_key": "established_year",
-      "heading_in_doc": "quick facts",
+      "field_key": "highlights",
+      "heading_in_doc": "[highlights_heading,highlights]  online bba course facts",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "syllabus_content",
+      "heading_in_doc": "[syllabus_heading,syllabus_content]   syllabus",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "TAGGED"
+    },
+    {
+      "field_key": "duration",
+      "heading_in_doc": "nmims in business analytics",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
       "field_key": "naac_grade",
-      "heading_in_doc": "quick facts",
+      "heading_in_doc": "nmims in business analytics",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "ugc_approved",
-      "heading_in_doc": "quick facts",
+      "field_key": "ugc_status",
+      "heading_in_doc": "nmims in business analytics",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
-      "field_key": "starting_fee",
-      "heading_in_doc": "quick facts",
-      "confidence": 0.9,
-      "status": "mapped",
-      "source": "KV"
-    },
-    {
-      "field_key": "accreditations",
-      "heading_in_doc": "nmims online detail",
-      "confidence": 0.9,
-      "status": "mapped",
-      "source": "KV"
-    },
-    {
-      "field_key": "mode_of_learning",
-      "heading_in_doc": "nmims online detail",
+      "field_key": "total_fee",
+      "heading_in_doc": "nmims in business analytics",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
     },
     {
       "field_key": "num_programs",
-      "heading_in_doc": "[why_choose_content] pros of the nmims online",
+      "heading_in_doc": "nmims in business analytics",
       "confidence": 0.9,
       "status": "mapped",
       "source": "KV"
@@ -607,110 +547,152 @@
       "source": "AI_GENERATED"
     },
     {
-      "field_key": "programs_intro",
-      "heading_in_doc": "[AI Generated]",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AI_GENERATED"
-    },
-    {
-      "field_key": "university_name",
-      "heading_in_doc": "[enriched from filename:Copy of NMIMS University Page.docx]",
+      "field_key": "spec_name",
+      "heading_in_doc": "[enriched from filename:Copy of NMIMS Online BBA in Business Analytics.docx]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
     },
     {
-      "field_key": "stat_years",
-      "heading_in_doc": "[enriched from derive:established_year]",
+      "field_key": "course_name",
+      "heading_in_doc": "[enriched from filename:Copy of NMIMS Online BBA in Business Analytics.docx]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "program_name",
+      "heading_in_doc": "[enriched from filename]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "university_name",
+      "heading_in_doc": "[enriched from filename]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "mode",
+      "heading_in_doc": "[enriched from derive:about_content]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "num_specializations",
+      "heading_in_doc": "[enriched from derive:fee_plans_count]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "starting_fee",
+      "heading_in_doc": "[enriched from derive:total_fee]",
+      "confidence": 0.95,
+      "status": "mapped",
+      "source": "ENRICHED"
+    },
+    {
+      "field_key": "eligibility_summary",
+      "heading_in_doc": "[enriched from derive:eligibility_content]",
       "confidence": 0.95,
       "status": "mapped",
       "source": "ENRICHED"
     },
     {
       "field_key": "about_heading",
-      "heading_in_doc": "[about_heading,about_content] about nmims online",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "why_choose_heading",
-      "heading_in_doc": "[why_choose_content] pros of the nmims online",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "facts_heading",
-      "heading_in_doc": "[facts_heading,facts] nmims online facts",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "accreditations_heading",
-      "heading_in_doc": "nmims online detail",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "programs_heading",
-      "heading_in_doc": "[programs_heading,programs_table] nmims online courses",
+      "heading_in_doc": "[about_heading,about_content]   course details",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "admission_heading",
-      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note] nmims online admission process",
+      "heading_in_doc": "[admission_heading,admission_steps,admission_fee_note]  online bba admission process",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "emi_heading",
-      "heading_in_doc": "[emi_heading,emi_content] nmims online emi details",
+      "heading_in_doc": "[emi_content]   emi details",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "exam_heading",
-      "heading_in_doc": "[exam_content] nmims online examination process",
-      "confidence": 1,
-      "status": "mapped",
-      "source": "AUTO"
-    },
-    {
-      "field_key": "faculty_heading",
-      "heading_in_doc": "[faculty_heading,faculty_intro,faculty_members] nmims online faculty members",
+      "heading_in_doc": "[exam_heading,exam_content]   online examination process",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "placement_heading",
-      "heading_in_doc": "[placement_heading,placement_content] nmims online placement partners",
+      "heading_in_doc": "[placement_heading,placement_content]  online bba placement partners",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "reviews_heading",
-      "heading_in_doc": "[reviews_heading,reviews] nmims online student reviews",
+      "heading_in_doc": "[reviews_heading,reviews]  online bba reviews",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     },
     {
       "field_key": "faqs_heading",
-      "heading_in_doc": "[faqs_heading,faqs] nmims online faqs",
+      "heading_in_doc": "[faqs_heading,faqs]   faqs",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "highlights_heading",
+      "heading_in_doc": "[highlights_heading,highlights]  online bba course facts",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "fee_heading",
+      "heading_in_doc": "[fee_heading]   fee",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "eligibility_heading",
+      "heading_in_doc": "[eligibility_heading,eligibility_content]  online bba eligibility criteria",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "syllabus_heading",
+      "heading_in_doc": "[syllabus_heading,syllabus_content]   syllabus",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "jobs_heading",
+      "heading_in_doc": "[jobs_heading,job_profiles]   job opportunities",
+      "confidence": 1,
+      "status": "mapped",
+      "source": "AUTO"
+    },
+    {
+      "field_key": "other_specs_heading",
+      "heading_in_doc": "[other_specs_heading,other_specs]  online bba specializations",
       "confidence": 1,
       "status": "mapped",
       "source": "AUTO"
     }
   ],
-  "processing_time_ms": 9314.1
+  "processing_time_ms": 7726.4
 }

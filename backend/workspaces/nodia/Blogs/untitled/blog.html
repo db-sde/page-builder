@@ -248,22 +248,7 @@
     </aside>
   </div>
 
-  <!-- ===== RELATED POSTS ===== -->
-  <div style="max-width:1080px;margin:0 auto;padding:36px 20px 0">
-    <div style="font-size:22px;font-weight:800;color:#1C1B22;margin-bottom:18px">Keep reading</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
-      <sc-for list="{{ related }}" as="p" hint-placeholder-count="3">
-        <a href="#" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;min-height:300px" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
-          <div style="height:150px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag }} image ]</span></div>
-          <div style="padding:18px;display:flex;flex-direction:column;flex:1">
-            <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ p.tag }}</span>
-            <div style="font-size:16px;font-weight:700;color:#1C1B22;margin-top:8px;line-height:1.32;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div>
-            <div style="font-size:12px;color:#9A93A8;font-weight:600;margin-top:auto;padding-top:14px">{{ p.meta }}</div>
-          </div>
-        </a>
-      </sc-for>
-    </div>
-  </div>
+
 
   <!-- ===== NEWSLETTER / CTA ===== -->
   <div style="max-width:1080px;margin:0 auto;padding:40px 20px 10px">

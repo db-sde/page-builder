@@ -9,7 +9,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       : ''
   );
   const [file, setFile] = useState(null);
-  const [autoDetect, setAutoDetect] = useState(true);
+  const [autoDetect, setAutoDetect] = useState(false);
   const [pageType, setPageType] = useState('course');
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +48,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
 
     let slug = data.slug;
     if (!slug) {
-      const name = data.spec_name || data.program_name || data.university_name || data.hero_title;
+      const name = data.spec_name || data.program_name || data.university_name || data.hero_title || data.title;
       if (name) {
         slug = name.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').trim();
         if ((page_type === 'course' || page_type === 'specialization') && !slug.startsWith(university_slug)) {

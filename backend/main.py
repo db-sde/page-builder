@@ -82,9 +82,13 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
 
     # If slug is not provided, derive it
     if not slug:
-        name = data.get("spec_name") or data.get("program_name") or data.get("university_name") or data.get("hero_title")
+        name = data.get("spec_name") or data.get("program_name") or data.get("university_name") or data.get("hero_title") or data.get("title")
         if name:
-            slug = name.lower().replace("'", "").replace(" ", "-").strip()
+            import re
+            clean_name = name.lower().replace(" ", "-").replace("_", "-")
+            clean_name = re.sub(r"[^a-z0-9\-]", "", clean_name)
+            clean_name = re.sub(r"-+", "-", clean_name)
+            slug = clean_name.strip("-")
             # If university prefix is missing for courses/specializations, prepend it
             if page_type in ("course", "specialization") and not slug.startswith(university_slug):
                 slug = f"{university_slug}-{slug}"
@@ -509,21 +513,73 @@ async def parse_docx_endpoint(
         # Determine/Detect page type
         detected_type = page_type
         if not detected_type:
+            filename_lower = file.filename.lower()
             headings = [b["text"].lower() for b in blocks if b["type"] in ("h1", "h2", "h3")]
-            scores = {"university": 0, "course": 0, "specialization": 0, "blog": 0}
-            for h in headings:
-                if any(w in h for w in ["about the university", "why choose nmims", "why choose university", "accreditation", "facts", "ugc approved"]):
-                    scores["university"] += 2
-                if any(w in h for w in ["about the course", "about the program", "course highlights", "specializations offered", "syllabus", "fee structure", "fee plans"]):
-                    scores["course"] += 2
-                if any(w in h for w in ["about the specialization", "specialization highlights", "job roles", "job profiles", "other specializations"]):
-                    scores["specialization"] += 2
-                if any(w in h for w in ["blog", "post", "article", "author", "published"]):
-                    scores["blog"] += 2
+            paragraphs = [b["text"].lower() for b in blocks if b["type"] in ("paragraph", "bold_para", "list_item")]
             
+            scores = {"university": 0, "course": 0, "specialization": 0, "blog": 0}
+            
+            # --- Specialization Specific Keywords ---
+            spec_keywords = [
+                "marketing", "finance", "human resource", "hr-", "hr ", "human-resource",
+                "operations", "banking", "insurance", "retail", "supply chain", "logistics", 
+                "analytics", "data science", "information technology", "digital marketing", 
+                "specialisation", "specialization"
+            ]
+            
+            # --- 1. Filename Indicators ---
+            if "university" in filename_lower or "uni_page" in filename_lower:
+                scores["university"] += 5
+            if any(w in filename_lower for w in ["course", "program", "mba", "mca", "bba", "bca"]):
+                scores["course"] += 3
+            if any(w in filename_lower for w in ["specialization", "spec"]) or any(w in filename_lower for w in spec_keywords):
+                scores["specialization"] += 4
+            if any(w in filename_lower for w in ["blog", "post", "article", "guide", "how-to", "read", "career-path", "salary-after"]):
+                scores["blog"] += 5
+                
+            # --- 2. Heading Indicators ---
+            for h in headings:
+                if any(w in h for w in ["about the university", "why choose", "accreditation", "facts", "ugc approved", "rankings"]):
+                    scores["university"] += 3
+                if any(w in h for w in ["about the course", "about the program", "course highlights", "specializations offered", "syllabus", "fee structure", "fee plans", "eligibility"]):
+                    if "specializations offered" in h or "list of specializations" in h or "available specializations" in h:
+                        scores["course"] += 3
+                    else:
+                        scores["course"] += 2
+                if any(w in h for w in ["about the specialization", "specialization highlights", "job roles", "job profiles", "career prospects", "curriculum electives"]):
+                    scores["specialization"] += 3
+                if any(w in h for w in spec_keywords):
+                    scores["specialization"] += 2
+                if any(w in h for w in ["blog", "post", "article", "author", "published", "conclusion", "verdict", "key takeaway"]):
+                    scores["blog"] += 2
+
+            # --- 3. Content Paragraph / Metadata Indicators ---
+            blog_metadata_words = ["author", "read time", "min read", "published on", "written by", "date:"]
+            for p in paragraphs[:15]:
+                if any(w in p for w in blog_metadata_words):
+                    scores["blog"] += 4
+                if "author:" in p or "by aditi" in p or "read time:" in p:
+                    scores["blog"] += 5
+                    
+            # Check other content indicators
+            all_text = " ".join(paragraphs)
+            if any(w in all_text for w in ["established in", "vice chancellor", "accreditations", "naac grade"]):
+                scores["university"] += 2
+            if any(w in all_text for w in ["semester 1", "semester 2", "syllabus", "fee details", "program duration"]):
+                scores["course"] += 2
+            if any(w in all_text for w in ["career paths", "specialization highlights", "job opportunities"]):
+                scores["specialization"] += 2
+            if any(w in all_text for w in spec_keywords):
+                scores["specialization"] += 1
+
             detected_type = max(scores, key=scores.get)
+            
+            # If it's a tie at 0, check if we can make a guess based on filename, otherwise fallback to course
             if scores[detected_type] == 0:
-                detected_type = "course"
+                if any(w in filename_lower for w in ["why-", "how-", "top-", "best-", "guide", "salary", "jobs"]):
+                    detected_type = "blog"
+                else:
+                    detected_type = "course"
 
         # Check if the page type is a blog/generic type
         is_blog_or_generic = detected_type in ("blog", "blog_post", "generic")
