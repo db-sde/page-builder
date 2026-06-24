@@ -679,6 +679,24 @@ async def parse_docx_endpoint(
         else:
             # Route to the micro-pipeline (passing the original file bytes)
             result = forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
+            
+            # Hybrid Fallback Stage:
+            if result and isinstance(result, dict) and "payload" in result:
+                payload = result["payload"]
+                if isinstance(payload, dict):
+                    from ingestion.extractor import extract_acf
+                    local_acf = extract_acf(blocks, detected_type, {})
+                    
+                    # Fill missing/empty keys from the local extraction layer
+                    for key, val in local_acf.items():
+                        curr_val = payload.get(key)
+                        is_empty = (
+                            curr_val is None or 
+                            curr_val == "" or 
+                            (isinstance(curr_val, str) and curr_val.strip().lower() in ("na", "n/a", "none", "null", "-", "—"))
+                        )
+                        if is_empty and val:
+                            payload[key] = val
 
         from core.router import normalize_value
         return normalize_value(result)
