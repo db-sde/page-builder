@@ -69,7 +69,7 @@ class SpecializationTransformer(BaseTransformer):
                 ]),
                 "badge": "Most Popular Specialization" if raw.get("spec_name") else None,
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
-                "cta_secondary": {"label": "Book a Counselling Call", "href": "/contact"},
+                "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {
                     "value": self.format_fee(raw.get("total_fee")),
                     "label": "Total program fee"

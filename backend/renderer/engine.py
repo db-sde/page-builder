@@ -575,7 +575,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     # Contact details
     ctx["details_json"] = json.dumps([
-        {"icon": "☏", "k": "Call us", "v": (ctx.get("site") or {}).get("phone") or "1800-1025-136 (toll-free)"},
         {"icon": "✉", "k": "Email", "v": (ctx.get("site") or {}).get("email") or "admissions@nmimsonline.edu"},
         {"icon": "⌖", "k": "Visit", "v": (ctx.get("site") or {}).get("address") or "V. L. Mehta Road, Vile Parle (W), Mumbai 400056"}
     ], ensure_ascii=False)

@@ -16,6 +16,7 @@
   ::selection{background:#FF5C35;color:#1C1B22}
   .prog-card{background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:26px;display:flex;flex-direction:column;min-height:420px;height:100%;transition:transform .18s,box-shadow .18s,border-color .18s}
   .prog-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px -20px rgba(46,26,107,.4);border-color:#FF5C35}
+  img{max-width:100%;height:auto}
 </style>
 </head>
 <body style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
@@ -101,15 +102,16 @@
     <div style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:18px;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#fff">
       <div>
         <div style="font-size:25px;font-weight:800">Not sure which program to choose?</div>
-        <div style="color:#D9D2F2;font-size:14.5px;margin-top:6px">Talk to a counsellor — get program details, fees and eligibility in one call.</div>
+        <div style="color:#D9D2F2;font-size:14.5px;margin-top:6px">Get program details, fees and eligibility online.</div>
       </div>
-      <a href="{{ lead_url }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Book a Free Counselling Call</a>
+      <a href="{{ lead_url }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Enquire Now</a>
     </div>
   </div>
 
   <!-- ===== FOOTER ===== -->
+  {% set show_contact = site.email or site.address %}
   <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
-    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1.2fr;gap:32px">
+    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
@@ -128,14 +130,19 @@
           <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
         </div>
       </div>
+      {% if show_contact %}
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Get in touch</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <span>Call: {{ site.phone | default('1800-1025-136') }}</span>
-          <span>Email: {{ site.email | default('admissions@nmimsonline.edu') }}</span>
-          <span>{{ site.address | default('V. L. Mehta Road, Vile Parle (W), Mumbai 400056') }}</span>
+          {% if site.email %}
+          <span>Email: {{ site.email }}</span>
+          {% endif %}
+          {% if site.address %}
+          <span>{{ site.address }}</span>
+          {% endif %}
         </div>
       </div>
+      {% endif %}
     </div>
     <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <span>{{ site.copyright | default('© 2026. All rights reserved.') }}</span>

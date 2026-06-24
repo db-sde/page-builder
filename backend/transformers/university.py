@@ -60,7 +60,7 @@ class UniversityTransformer(BaseTransformer):
                     else None
                 ),
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
-                "cta_secondary": {"label": "Book a Counselling Call", "href": "/contact"},
+                "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {
                     "value": raw.get("naac_grade"),
                     "label": "NAAC Accredited"

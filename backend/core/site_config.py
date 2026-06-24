@@ -1,8 +1,6 @@
 SITE_CONFIG = {
     "topbar_text": "Admissions open for the 2026 batch · Limited seats",
-    "phone": "1800-1025-136",
     "whatsapp": "911800102513",
-    "student_login_url": "#",
     "email": "admissions@nmimsonline.edu",
     "address": "V. L. Mehta Road, Vile Parle (W), Mumbai 400056",
     "nav_links": [
