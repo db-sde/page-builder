@@ -111,6 +111,8 @@ class BaseTransformer(ABC):
         clean = str(emi_amount).strip()
         if clean.upper() in ("NA", "N/A", "NIL", "-", "--", ""):
             return None
+        # Strip INR prefix (case-insensitive)
+        clean = re.sub(r'^INR\s*', '', clean, flags=re.IGNORECASE).strip()
         # Ensure ₹ prefix
         if not clean.startswith("₹"):
             clean = f"₹{clean}"

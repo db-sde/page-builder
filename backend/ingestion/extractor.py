@@ -7,9 +7,11 @@ HEADING_ANCHORS = {
         "highlights": ["highlights", "program highlights", "key features"],
         "eligibility": ["eligibility", "who can apply", "eligibility criteria"],
         "fees": ["fees", "fee structure", "fees and financing", "pricing"],
+        "emi": ["emi", "financing", "emi options", "emi details"],
         "admission": ["admission", "admission process", "how to apply", "admissions"],
         "syllabus": ["syllabus", "curriculum", "course structure"],
         "placement": ["placement", "career services", "placements"],
+        "certificate": ["certificate", "degree certification", "degree certificate", "certification"],
         "faqs": ["faq", "faqs", "frequently asked questions"],
         "reviews": ["reviews", "testimonials", "student reviews"],
     },
@@ -17,12 +19,14 @@ HEADING_ANCHORS = {
         "about": ["about", "overview", "about the specialization"],
         "highlights": ["highlights", "specialization highlights"],
         "eligibility": ["eligibility", "eligibility criteria"],
-        "fees": ["fees", "fee structure"],
-        "admission": ["admission", "admission process"],
-        "syllabus": ["syllabus", "curriculum", "year 1", "year 2"],
-        "placement": ["placement", "career services"],
-        "jobs": ["job profiles", "career profiles", "jobs after", "career outcomes"],
-        "faqs": ["faq", "faqs", "frequently asked questions"],
+        "fees": ["fees", "fee structure", "fee structure & installments"],
+        "emi": ["emi", "emi details", "financing", "fees and financing"],
+        "admission": ["admission", "admission process", "how to apply"],
+        "syllabus": ["syllabus", "curriculum", "year 1", "year 2", "syllabus curriculum"],
+        "placement": ["placement", "career services", "placement assistance"],
+        "certificate": ["certificate", "degree certification", "degree certificate", "certification"],
+        "jobs": ["job profiles", "career profiles", "jobs after", "career outcomes", "job profiles & salary ranges"],
+        "faqs": ["faq", "faqs", "frequently asked questions", "faq questions"],
         "reviews": ["reviews", "student reviews", "testimonials"],
     },
     "university": {
@@ -69,8 +73,24 @@ def blocks_to_sections(blocks: list[dict], page_type: str) -> dict:
         if block["type"] in ("h1", "h2", "h3"):
             flush()
             current_blocks = []
-            matched = normalize_heading(block["text"], list(reverse.keys()))
-            current_key = reverse.get(matched) if matched else None
+            
+            # Check for square bracket tags first
+            text_lower = block["text"].lower()
+            import re
+            tags_match = re.search(r'\[([^\]]+)\]', text_lower)
+            matched_key = None
+            if tags_match:
+                tag_content = tags_match.group(1)
+                for key in anchors_map.keys():
+                    if key in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                        matched_key = key
+                        break
+            
+            if matched_key:
+                current_key = matched_key
+            else:
+                matched = normalize_heading(block["text"], list(reverse.keys()))
+                current_key = reverse.get(matched) if matched else None
         elif current_key:
             current_blocks.append(block)
 
@@ -146,7 +166,51 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
     # Always carry meta fields through
     acf.update(meta)
 
+    # Extract KV fields from the top blocks (before any heading)
+    kv = {}
+    for b in blocks:
+        if b["type"] in ("h1", "h2", "h3"):
+            break
+        text = b.get("text", "")
+        if not text:
+            continue
+        parts = []
+        if ":" in text:
+            parts = text.split(":", 1)
+        elif "-" in text:
+            parts = text.split("-", 1)
+        if len(parts) == 2:
+            k = parts[0].strip().lower().replace(" ", "_")
+            v = parts[1].strip()
+            # Clean up trailing garbage or NA
+            if v.lower() in ("na", "n/a", "null", "none"):
+                v = None
+            kv[k] = v
+
     if page_type == "course":
+        # Extract metadata from KV if not already in acf/meta
+        for target_key, kv_keys in [
+            ("duration", ["duration"]),
+            ("mode", ["mode"]),
+            ("naac_grade", ["naac_grade"]),
+            ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status"]),
+            ("total_fee", ["total_fee"]),
+            ("emi_amount", ["emi", "emi_amount"]),
+        ]:
+            if not acf.get(target_key):
+                for k in kv_keys:
+                    if kv.get(k):
+                        acf[target_key] = kv[k]
+                        break
+
+        # hero_description from first paragraph of about section or top of doc
+        about_blocks = sections.get("about", [])
+        about_para = next((b["text"] for b in about_blocks if b["type"] in ("paragraph", "bold_para") and b.get("text")), "")
+        if about_para:
+            acf["hero_description"] = about_para
+        else:
+            acf["hero_description"] = next((b["text"] for b in blocks if b["type"] in ("paragraph", "bold_para") and b.get("text") and ":" not in b["text"] and "-" not in b["text"]), "")
+
         acf["about_content"] = blocks_to_html(sections.get("about", []))
         acf["highlights"] = [
             {"highlight_title": b["text"].split("—")[0].strip(),
@@ -167,6 +231,33 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["og_image_url"] = meta.get("og_image_url", None)
 
     elif page_type == "specialization":
+        # Extract metadata from KV if not already in acf/meta
+        for target_key, kv_keys in [
+            ("duration", ["duration"]),
+            ("mode", ["mode"]),
+            ("naac_grade", ["naac_grade"]),
+            ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status"]),
+            ("total_fee", ["total_fee"]),
+            ("emi_amount", ["emi", "emi_amount"]),
+        ]:
+            if not acf.get(target_key):
+                for k in kv_keys:
+                    if kv.get(k):
+                        acf[target_key] = kv[k]
+                        break
+
+        # hero_description from first paragraph of about section
+        about_blocks = sections.get("about", [])
+        about_para = next((b["text"] for b in about_blocks if b["type"] in ("paragraph", "bold_para") and b.get("text")), "")
+        if about_para:
+            acf["hero_description"] = about_para
+        else:
+            acf["hero_description"] = next((b["text"] for b in blocks if b["type"] in ("paragraph", "bold_para") and b.get("text") and ":" not in b["text"] and "-" not in b["text"]), "")
+
+        # certificate_description
+        cert_blocks = sections.get("certificate", [])
+        acf["certificate_description"] = next((b["text"] for b in cert_blocks if b["type"] in ("paragraph", "bold_para") and b.get("text")), "")
+
         acf["about_content"] = blocks_to_html(sections.get("about", []))
         acf["highlights"] = [
             {"highlight_title": b["text"].split("—")[0].strip(),

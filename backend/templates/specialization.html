@@ -252,11 +252,13 @@
       </section>
       {% endif %}
 
-      {% if placement %}
+      {% if placement or certificate %}
       <section id="placement" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Placement &amp; Certificate</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{% if placement and certificate %}Placement &amp; Certificate{% elif placement %}Placement Assistance{% else %}Degree Certification{% endif %}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
+        {% if placement %}
         <div style="font-size:14.5px;margin-bottom:12px">{{ placement | safe }}</div>
+        {% endif %}
         {% if certificate %}
           <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4><p style="font-size:13px;color:#6E6A78">{{ certificate }}</p></div>
         {% endif %}
