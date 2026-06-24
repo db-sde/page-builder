@@ -61,7 +61,7 @@
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ '{{' }} heroBadge {{ '}}' }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }} · {% endif %}NIRF #24</div>
         {% endif %}
         <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ '{{' }} heroH1 {{ '}}' }}">{{ hero.full_name | default("Online Degrees from " ~ hero.title) }}</h1>
-        <p style="font-size:16.5px;color:{{ '{{' }} heroSub {{ '}}' }};max-width:520px;margin-top:18px">{{ hero.description }}</p>
+        <div style="font-size:16.5px;color:{{ '{{' }} heroSub {{ '}}' }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
           <a href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
           <a href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>

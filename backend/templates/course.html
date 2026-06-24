@@ -70,7 +70,7 @@
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px;{{ '{{' }} heroBadge {{ '}}' }}">{{ hero.badge }}</div>
         {% endif %}
         <h1 style="font-size:40px;font-weight:800;line-height:1.16;letter-spacing:-.01em;color:{{ '{{' }} heroH1 {{ '}}' }}">{{ hero.title }}</h1>
-        <p style="font-size:16px;max-width:540px;margin-top:16px;color:{{ '{{' }} heroSub {{ '}}' }}">{{ hero.description }}</p>
+        <div style="font-size:16px;max-width:540px;margin-top:16px;color:{{ '{{' }} heroSub {{ '}}' }}">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
             <span style="border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;{{ '{{' }} heroChip {{ '}}' }}">{{ pill.label }}</span>
