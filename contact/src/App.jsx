@@ -241,10 +241,10 @@ function App() {
               {payload.logo_letter}
             </div>
             <div className="leading-[1.04]">
-              <div className="font-extrabold text-lg text-[#1C1B22]">
+              <div className="font-extrabold text-sm sm:text-lg text-[#1C1B22] whitespace-nowrap">
                 {payload.uni_name} <span className="text-[#FF5C35]">Admissions</span>
               </div>
-              <div className="text-[9px] tracking-widest text-[#9A93A8] font-bold uppercase">
+              <div className="hidden sm:block text-[9px] tracking-widest text-[#9A93A8] font-bold uppercase mt-0.5">
                 Distance &amp; Online Education
               </div>
             </div>
@@ -353,7 +353,7 @@ function App() {
                       onChange={handleInputChange}
                       placeholder="Your name"
                       required
-                      className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#FBFAFE]"
+                      className="w-full border border-[#E9E5F2] rounded-lg h-12 px-3.5 text-sm bg-[#FBFAFE]"
                     />
                   </div>
 
@@ -367,7 +367,7 @@ function App() {
                       onChange={handleInputChange}
                       placeholder="you@email.com"
                       required
-                      className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#FBFAFE]"
+                      className="w-full border border-[#E9E5F2] rounded-lg h-12 px-3.5 text-sm bg-[#FBFAFE]"
                     />
                   </div>
 
@@ -381,7 +381,7 @@ function App() {
                       onChange={handleInputChange}
                       placeholder="+91 00000 00000"
                       required
-                      className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#FBFAFE]"
+                      className="w-full border border-[#E9E5F2] rounded-lg h-12 px-3.5 text-sm bg-[#FBFAFE]"
                     />
                   </div>
 
@@ -394,7 +394,7 @@ function App() {
                       value={formValues.city}
                       onChange={handleInputChange}
                       placeholder="Your city"
-                      className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#FBFAFE]"
+                      className="w-full border border-[#E9E5F2] rounded-lg h-12 px-3.5 text-sm bg-[#FBFAFE]"
                     />
                   </div>
                 </div>
@@ -409,7 +409,7 @@ function App() {
                     value={payload.specialization_name 
                       ? `${payload.program_name} - ${payload.specialization_name}` 
                       : (payload.program_name || 'General Admission Enquiry')}
-                    className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#ECE7F5] text-[#1C1B22] font-semibold cursor-not-allowed outline-none select-none"
+                    className="w-full border border-[#E9E5F2] rounded-lg h-12 px-3.5 text-sm bg-[#ECE7F5] text-[#1C1B22] font-semibold cursor-not-allowed outline-none select-none"
                   />
                 </div>
 
@@ -422,7 +422,7 @@ function App() {
                     value={formValues.message}
                     onChange={handleInputChange}
                     placeholder="Tell us about your background or questions here"
-                    className="w-full border border-[#E9E5F2] rounded-lg p-3 text-sm bg-[#FBFAFE] resize-none"
+                    className="w-full border border-[#E9E5F2] rounded-lg p-3.5 text-sm bg-[#FBFAFE] resize-none"
                   />
                 </div>
 
@@ -513,7 +513,7 @@ function App() {
               {payload.phone && (
                 <a 
                   href={`tel:${payload.phone.replace(/[^0-9+]/g, '')}`}
-                  className="flex-1 text-center bg-[#6B4FC9] text-white hover:bg-[#5737C5] font-bold text-sm py-3 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="flex-1 text-center bg-[#6B4FC9] text-white hover:bg-[#5737C5] font-bold text-sm h-12 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   <Phone size={16} />
                   Call Now
@@ -523,7 +523,7 @@ function App() {
                 href="https://wa.me/911800102513" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex-1 text-center bg-[#25D366] text-[#06301a] hover:bg-[#20ba5a] font-bold text-sm py-3 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="flex-1 text-center bg-[#25D366] text-[#06301a] hover:bg-[#20ba5a] font-bold text-sm h-12 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <MessageSquare size={16} />
                 WhatsApp

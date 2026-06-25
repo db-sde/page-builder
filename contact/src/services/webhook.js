@@ -52,7 +52,8 @@ export async function submitLead(formData, payload) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': apiKey
+        'X-API-Key': apiKey,
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify(leadBody)
     });
