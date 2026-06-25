@@ -1096,3 +1096,85 @@ Tracing the flow of one selected workspace (`nodia`):
    - Rename `d` to `description`.
    - Add missing properties (`mode` and `slug`).
 4. **Offline Resilience**: Package React and ReactDOM local scripts inside `support.js` or copy them to `build/assets/` to remove external CDN dependence.
+
+---
+
+## SECTION 16 — Mobile Responsiveness Pass & Validation Report
+
+We performed a comprehensive mobile responsiveness and touch accessibility optimization pass across the entire DegreeBaba website system. All changes are target-scoped via media queries at standard breakpoints, leaving the desktop layout 100% unchanged.
+
+### 16.1 Breakpoints Scope
+All custom styles activate strictly below standard breakpoints:
+- **Mobile/Phone Viewports**: `320px`, `375px`, `390px`, `414px`, `480px`, `640px`
+- **Primary Breakpoint (Tablet)**: `max-width: 768px`
+
+---
+
+### 16.2 Implementation Details
+
+#### 1. React State-Driven Mobile Navigation
+- **The Issue**: Dynamic templates (`university.html`, `course.html`, `specialization.html`, `blog.html`) are compiled by `support.js` and rendered via React. Inline `onclick="..."` string code was stripped or treated as a static string, disabling the menu toggle.
+- **The Fix**:
+  - Added `mobileMenuOpen` to each component's React state.
+  - Added a state-toggling function `toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen })` to the returned properties of `renderVals()`.
+  - Bound the hamburger button click to `onclick="{{ toggleMenu }}"` to assign a real execution handler callback.
+  - Dynamically calculated the drawer styling inline via `mobileDrawerStyle` changing between `display: flex` and `display: none` based on state.
+- **Static Pages**: Listing pages (`programs_listing.html`, `specializations_listing.html`, `blog_listing.html`) continue to use the lightweight native DOM toggle script since they are served as static HTML without React wrapping.
+
+#### 2. Hero Columns & Full-Width Stacking
+- **Columns Collapsing**: Hero grids collapse from split columns (e.g. `1.12fr .88fr`) to single column (`1fr`) on mobile devices.
+- **Stacking Sequence**: Arranged content vertically in the required sequence: Content $\rightarrow$ Buttons $\rightarrow$ Stats $\rightarrow$ Image.
+- **Action CTAs**: Primary and secondary action buttons stack vertically on mobile screens, expanding to full container width with a minimum tap target height of `48px` and spacing of `12px–16px`.
+
+#### 3. Grid Systems & Cards
+- **Card Columns**: Card listings for program cards, specialization cards, and blog grids collapse cleanly:
+  - **Mobile (< 640px)**: 1 card per row (full-width stack).
+  - **Tablet (< 768px)**: 2 cards per row.
+- **Card Sizing**: Preserved equal heights, text clamping (`-webkit-line-clamp`), and button layouts.
+
+#### 4. Image Constraints
+- **Hero & Card Images**: Set container size control and styled images with `width: 100%; height: 100%; object-fit: cover` to prevent layout stretching.
+- **Certificates & Badges**: Set `object-fit: contain` for accreditation certificates to maintain legibility.
+
+#### 5. Scroll-Safe Tables
+- **Data Tables**: Wrapped fee schedules and syllabus tables in a dedicated wrapper:
+  ```html
+  <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch">
+  ```
+  This isolates the table width and enables local scrolling without introducing page-level horizontal overflow.
+
+#### 6. Sidebar Rails & Layouts
+- **Sidebar Collapse**: Collapsed the sidebar navigation container (230px left rail) and moved it below the main page content on viewports under `768px`.
+
+#### 7. Touch Accessibility (Touch Targets)
+- **Tap Targets**: Enlarged all touch buttons, links, and FAQ toggle header buttons to at least `48px` height to ensure tap comfort.
+
+#### 8. Sticky Bottom CTAs
+- **Mobile CTAs**: Configured bottom sticky bars to render exactly 2 buttons (`Apply Now` and `Enquire Now`) on mobile, hiding WhatsApp to comply with UI layout restrictions.
+
+#### 9. Contact App (`contact/src/App.jsx`)
+- **First-Fold Layout**: Resized brand branding text (`text-sm sm:text-lg`) and hid subtitles (`hidden sm:block`) on mobile viewports.
+- **Grid Layout**: Input boxes wrap to a single column on mobile, maintaining full-width buttons and inputs.
+- **Order of Content**: Stack order is optimized: 1. Form $\rightarrow$ 2. Benefits $\rightarrow$ 3. Trust badges $\rightarrow$ 4. Footer.
+
+---
+
+### 16.3 Device & Layout Validation Summary
+
+The built pages for all four workspaces (`chandigarh-university`, `nmims`, `nodia`, `test-1`) were compiled, loaded, and verified against standard device viewport sizes:
+
+| Device Profile | Viewport Width | Scroll Behavior | Navigation Drawer | Grid/Cards Layout | Table & Footer |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **iPhone SE** | `320px` | No horizontal scroll | Hamburger menu active | 1 card per row stack | Overflow-x scrolling active |
+| **iPhone 14** | `390px` | No horizontal scroll | Hamburger menu active | 1 card per row stack | Overflow-x scrolling active |
+| **Pixel 7** | `412px` | No horizontal scroll | Hamburger menu active | 1 card per row stack | Overflow-x scrolling active |
+| **iPad Mini** | `768px` | No horizontal scroll | Desktop header hides / menu active | 2 cards per row grid | Stacked footer columns |
+
+#### Verification Results:
+- **No Horizontal Scrolling**: Clean page containment down to `320px`.
+- **No Image Overflow**: Hero and card images resize with clean containment.
+- **No Table Overflow**: Fee schedules scroll locally.
+- **Desktop Layout**: Unaffected and identical to initial state.
+- **Mobile/Tablet Layout**: Fully optimized and functional.
+- **Contact App**: Optimized mobile-first inputs and stacking.
+

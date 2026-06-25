@@ -33,6 +33,72 @@
   .article-body th, .article-body td {padding:12px 16px;border:1px solid #E9E5F2;text-align:left}
   .article-body th {background:#F8FAFC;font-weight:700;color:#1C1B22}
   img{max-width:100%;height:auto}
+  /* Fluid type scale — no heading exceeds viewport on any screen */
+  h1{font-size:clamp(26px,7vw,38px);line-height:1.18}
+  h2{font-size:clamp(20px,5vw,30px);line-height:1.22}
+  .article-body h2{font-size:clamp(20px,5.5vw,25px)}
+  .hero-container h1{font-size:clamp(26px,8vw,38px)}
+  /* CTA/newsletter bands use fixed horizontal padding that overflows on small screens */
+  .cta-band{padding:clamp(20px,5vw,40px) !important}
+
+  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
+  html,body{overflow-x:hidden;max-width:100%}
+  @media (max-width: 768px) {
+    header nav, header > div > a:last-of-type {
+      display: none !important;
+    }
+    header #mobile-menu-btn {
+      display: flex !important;
+    }
+    .layout-grid {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+    }
+    .layout-grid aside {
+      order: 2 !important;
+      position: static !important;
+      width: 100% !important;
+      margin-top: 16px !important;
+    }
+    .layout-grid main {
+      order: 1 !important;
+      width: 100% !important;
+    }
+    .hero-container {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+      padding: 0 16px !important;
+    }
+    .hero-container h1 {
+      font-size: 28px !important;
+      line-height: 1.2 !important;
+    }
+    .hero-container img, .hero-container div[style*="height:340px"] {
+      height: 220px !important;
+      min-height: 220px !important;
+    }
+    .site-footer-grid {
+      grid-template-columns: 1fr !important;
+      gap: 28px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .newsletter-wrap {
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 12px !important;
+    }
+    .newsletter-wrap input, .newsletter-wrap a {
+      width: 100% !important;
+      text-align: center !important;
+      min-height: 48px !important;
+      min-width: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+  }
 </style>
 </helmet>
 
@@ -50,7 +116,7 @@
   <header style="background:#fff;border-bottom:1px solid #E9E5F2;position:sticky;top:0;z-index:50">
     <div style="max-width:1180px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between">
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
-        <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
+        <div style="width:40px;height:40px;border-radius:99px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
         <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -61,13 +127,30 @@
         <a href="{{ lead_url_enquiry }}" style="color:#434346">Contact</a>
       </nav>
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
+
+      <!-- Hamburger Button -->
+      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+      <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
+      <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
+      <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
+      <a href="{{ blog_listing_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Blog</a>
+      <a href="{{ lead_url_enquiry }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Contact</a>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px;border-radius:8px;text-align:center;margin-top:12px">Apply Now</a>
     </div>
   </header>
   {% endif %}
 
   <!-- ===== ARTICLE HEADER ===== -->
   <div style="background:linear-gradient(120deg,#6B4FC9 0%,#8A6BF0 72%);color:#fff;padding:44px 0 48px">
-    <div style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr .82fr;gap:48px;align-items:center">
+    <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr .82fr;gap:48px;align-items:center">
       <div>
         <div style="font-size:12.5px;color:#C9BEEC;margin-bottom:18px"><a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a> › <a href="{{ blog_href }}" style="color:#C9BEEC">Blog</a> › <span style="color:#D9D2F2">{{ tag }}</span></div>
         <span style="display:inline-block;background:#FF5C35;color:#1C1B22;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:6px;margin-bottom:18px">{{ tag }}</span>
@@ -89,7 +172,7 @@
   </div>
 
   <!-- ===== BODY ===== -->
-  <div style="max-width:1080px;margin:0 auto;padding:44px 20px 10px;display:grid;grid-template-columns:1fr 240px;gap:54px">
+  <div class="layout-grid" style="max-width:1080px;margin:0 auto;padding:44px 20px 10px;display:grid;grid-template-columns:1fr 240px;gap:54px">
 
     <!-- main column -->
     <article class="article-body">
@@ -135,7 +218,7 @@
         <div style="font-size:25px;font-weight:800">Get updates and career insights in your inbox</div>
         <div style="color:#D9D2F2;font-size:14.5px;margin-top:6px">One useful email a month on admissions, fees and careers. No spam.</div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="newsletter-wrap" style="display:flex;gap:10px;flex-wrap:wrap">
         <input placeholder="you@email.com" style="background:#fff;border-radius:9px;border:none;padding:13px 16px;font-size:14px;color:#1C1B22;min-width:240px;outline:none">
         <a href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Subscribe</a>
       </div>
@@ -146,7 +229,7 @@
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
   <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
-    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">N</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
@@ -190,10 +273,15 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
+  state = { mobileMenuOpen: false };
   renderVals() {
     const toc = {{ toc_json | safe }};
     const related = {{ related_json | safe }};
-    return { toc, related };
+    return {
+      toc, related,
+      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
+      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
+    };
   }
 }
 </script>

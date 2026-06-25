@@ -23,6 +23,77 @@
   h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
   ::selection{background:#FF5C35;color:#1C1B22}
   img{max-width:100%;height:auto}
+  /* Fluid type scale — no heading exceeds viewport on any screen */
+  h1{font-size:clamp(26px,7vw,46px);line-height:1.14}
+  h2{font-size:clamp(20px,5vw,34px);line-height:1.2}
+  .hero-container h1{font-size:clamp(26px,8vw,46px)}
+  /* CTA bands use fixed 40px horizontal padding that overflows on small screens */
+  .cta-band{padding:clamp(20px,5vw,40px) !important}
+
+  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
+  html,body{overflow-x:hidden;max-width:100%}
+  @media (max-width: 768px) {
+    header nav, header > div > a:last-of-type {
+      display: none !important;
+    }
+    header #mobile-menu-btn {
+      display: flex !important;
+    }
+    .hero-container {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+      padding: 0 16px !important;
+    }
+    .hero-container h1 {
+      font-size: 28px !important;
+      line-height: 1.2 !important;
+    }
+    .hero-container img, .hero-container div[style*="min-height:430px"] {
+      height: 240px !important;
+      min-height: 240px !important;
+    }
+    .hero-stats {
+      flex-wrap: wrap !important;
+      gap: 20px !important;
+      margin-top: 24px !important;
+    }
+    .hero-stats > div {
+      border-left: none !important;
+      padding-left: 0 !important;
+      min-width: 40% !important;
+    }
+    .hero-buttons {
+      flex-direction: column !important;
+      gap: 12px !important;
+      width: 100% !important;
+    }
+    .hero-buttons .btn-hero {
+      width: 100% !important;
+      text-align: center !important;
+      min-height: 48px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .card-grid-4, .card-grid-3 {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 16px !important;
+    }
+    .site-footer-grid {
+      grid-template-columns: 1fr !important;
+      gap: 28px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .card-grid-4, .card-grid-3 {
+      grid-template-columns: 1fr !important;
+    }
+    .why-us-grid {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+    }
+  }
 </style>
 </helmet>
 
@@ -50,23 +121,40 @@
         <a href="{{ lead_url_enquiry }}" style="color:#434346">Contact</a>
       </nav>
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
+
+      <!-- Hamburger Button -->
+      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+      <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
+      <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
+      <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
+      <a href="{{ blog_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Blog</a>
+      <a href="{{ lead_url_enquiry }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Contact</a>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px;border-radius:8px;text-align:center;margin-top:12px">Apply Now</a>
     </div>
   </header>
 
   <!-- ===== HERO : SPLIT ===== -->
   <div style="{{ '{{' }} heroWrap {{ '}}' }};padding:56px 0 72px">
-    <div style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
+    <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
       <div>
         {% if naac_grade or ugc_approved %}
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ '{{' }} heroBadge {{ '}}' }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }} · {% endif %}NIRF #24</div>
         {% endif %}
         <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ '{{' }} heroH1 {{ '}}' }}">{{ hero.full_name | default("Online Degrees from " ~ hero.title) }}</h1>
         <div style="font-size:16.5px;color:{{ '{{' }} heroSub {{ '}}' }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
-          <a href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
-          <a href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>
+        <div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
+          <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
+          <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>
         </div>
-        <div style="display:flex;gap:34px;margin-top:34px">
+        <div class="hero-stats" style="display:flex;gap:34px;margin-top:34px">
           <div><div style="font-size:28px;font-weight:800;color:#FF5C35">{{ established_year | default(stats[0].v if stats else '2010') }}</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">Established</div></div>
           {% if naac_grade %}
           <div style="border-left:1px solid {{ '{{' }} heroStatDivider {{ '}}' }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#FF5C35">{{ naac_grade }}</div><div style="font-size:13px;color:{{ '{{' }} heroStatLabel {{ '}}' }};font-weight:600">NAAC Grade</div></div>
@@ -105,10 +193,10 @@
     <div style="max-width:1180px;margin:0 auto;padding:66px 20px">
       <div style="text-align:center;margin-bottom:38px">
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Online Programs</div>
-        <h2 style="font-size:34px;font-weight:800;color:#1C1B22;margin-top:8px;letter-spacing:-.01em">UGC-entitled online degrees</h2>
-        <p style="color:#6E6A78;font-size:15.5px;margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto">Undergraduate, postgraduate and executive programs — 100% online, built to fit around your career.</p>
+        <h2 style="font-size:34px;font-weight:800;color:#1C1B22;margin-top:8px;letter-spacing:-.01em">Explore Our Online Programs</h2>
+        <p style="color:#6E6A78;font-size:15.5px;margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto">Discover industry-focused online programs designed to help you build the skills and knowledge needed for your career goals.</p>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <div class="card-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
         <sc-for list="{{ '{{' }} programs {{ '}}' }}" as="p" hint-placeholder-count="4">
           <a href="{{ '{{' }} p.href {{ '}}' }}" style="border-radius:16px;padding:24px;display:flex;flex-direction:column;height:100%;min-height:380px;{{ '{{' }} p.cardStyle {{ '}}' }}" style-hover="transform:translateY(-4px);box-shadow:0 18px 38px -20px rgba(46,26,107,.4)">
             <span style="align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;{{ '{{' }} p.badgeStyle {{ '}}' }}">{{ '{{' }} p.level {{ '}}' }}</span>
@@ -138,14 +226,14 @@
     </div>
   </div>
 
-  <!-- ===== MBA SPECIALIZATIONS ===== -->
+  <!-- ===== SPECIALIZATIONS ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:64px 20px 20px">
     <div style="text-align:center;margin-bottom:34px">
-      <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">MBA Specializations</div>
-      <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px">Tailor your Online MBA</h2>
-      <p style="color:#6E6A78;font-size:15px;margin-top:8px">Multiple industry-aligned tracks. One trusted degree. From ₹50,000 per semester.</p>
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Specializations</div>
+      <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px">Explore Our Specializations</h2>
+      <p style="color:#6E6A78;font-size:15px;margin-top:8px">Choose from industry-focused specializations designed to match your career goals and interests.</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+    <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <sc-for list="{{ '{{' }} specs {{ '}}' }}" as="sp" hint-placeholder-count="6">
         <a href="{{ '{{' }} sp.href {{ '}}' }}" style="border:1px solid #E9E5F2;border-radius:14px;padding:22px;background:#fff;display:flex;flex-direction:column;height:100%;min-height:250px" style-hover="border-color:#FF5C35;box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
           <div style="width:44px;height:44px;border-radius:11px;background:#FFE7E0;color:#E0431F;display:flex;align-items:center;justify-content:center;font-size:20px">{{ '{{' }} sp.icon {{ '}}' }}</div>
@@ -159,14 +247,14 @@
 
   <!-- ===== WHY US ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 20px">
-    <div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;align-items:center">
+    <div class="why-us-grid" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;align-items:center">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Why {{ university_name }} Online</div>
         <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.15">A legacy of excellence, reimagined for the way you learn today</h2>
         <p style="color:#6E6A78;font-size:15px;margin-top:14px">Live weekend classes, lifetime recordings, real business cases and a career-services team that gets you hired — all backed by one of India's most respected management institutions.</p>
         <a href="{{ course_href }}" style="display:inline-block;margin-top:20px;background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14.5px;padding:13px 24px;border-radius:9px">Explore the Online MBA</a>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <sc-for list="{{ '{{' }} features {{ '}}' }}" as="f" hint-placeholder-count="4">
           <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:20px">
             <div style="font-size:22px;font-weight:800;color:#FF5C35">{{ '{{' }} f.stat {{ '}}' }}</div>
@@ -185,7 +273,7 @@
       <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px">A simple step-by-step admission process</h2>
       <p style="color:#6E6A78;font-size:15px;margin-top:8px">Application processing · Documents: academic records, photo ID &amp; passport photos.</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+    <div class="card-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
       <sc-for list="{{ '{{' }} admission {{ '}}' }}" as="s" hint-placeholder-count="4">
         <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:24px;position:relative">
           <div style="font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#EFEBF8">{{ '{{' }} s.n {{ '}}' }}</div>
@@ -198,7 +286,7 @@
 
   <!-- ===== FEES & FINANCING ===== -->
   <div id="fees" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
-    <div style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:38px 36px;display:grid;grid-template-columns:.95fr 1.05fr;gap:40px;align-items:center">
+    <div class="why-us-grid" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:38px 36px;display:grid;grid-template-columns:.95fr 1.05fr;gap:40px;align-items:center">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Fees &amp; Financing</div>
         <h2 style="font-size:30px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.18">Learn now, pay your way</h2>
@@ -209,7 +297,7 @@
           </sc-for>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <sc-for list="{{ '{{' }} financing {{ '}}' }}" as="f" hint-placeholder-count="3">
           <div style="background:#F6F4FB;border:1px solid #ECE8F6;border-radius:12px;padding:18px">
             <div style="font-size:22px;font-weight:800;color:#FF5C35">{{ '{{' }} f.stat {{ '}}' }}</div>
@@ -243,7 +331,7 @@
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Student Voices</div>
       <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px">Careers, accelerated</h2>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+    <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <sc-for list="{{ '{{' }} testimonials {{ '}}' }}" as="t" hint-placeholder-count="3">
         <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:22px">
           <div style="color:#FF5C35;font-size:18px;letter-spacing:2px">★★★★★</div>
@@ -265,7 +353,7 @@
       <div style="display:flex;flex-direction:column;gap:12px">
         <sc-for list="{{ '{{' }} faqs {{ '}}' }}" as="f" hint-placeholder-count="4">
           <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;overflow:hidden">
-            <button onClick="{{ '{{' }} f.toggle {{ '}}' }}" style="width:100%;border:none;background:none;cursor:pointer;font:inherit;text-align:left;padding:17px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <button class="faq-btn" onClick="{{ '{{' }} f.toggle {{ '}}' }}" style="width:100%;border:none;background:none;cursor:pointer;font:inherit;text-align:left;padding:17px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px">
               <span style="font-size:15px;font-weight:700;color:{{ '{{' }} f.qColor {{ '}}' }}">{{ '{{' }} f.q {{ '}}' }}</span>
               <span style="font-size:22px;font-weight:700;color:#FF5C35;line-height:1;flex-shrink:0">{{ '{{' }} f.sign {{ '}}' }}</span>
             </button>
@@ -303,7 +391,7 @@
       </div>
       <a href="{{ blog_listing_href }}" style="font-size:14px;color:#FF5C35;font-weight:800">View all articles →</a>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+    <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <sc-for list="{{ '{{' }} posts {{ '}}' }}" as="p" hint-placeholder-count="3">
         <a href="{{ '{{' }} p.href {{ '}}' }}" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;min-height:360px" style-hover="box-shadow:0 14px 30px -16px rgba(46,26,107,.25)">
           <sc-if value="{{ '{{' }} !!p.image {{ '}}' }}">
@@ -326,7 +414,7 @@
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
   <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:30px">
-    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs from {{ university_name }} Online, built for working professionals who want to grow without pausing their careers.</p>
@@ -371,7 +459,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { openFaq: 0, whiteHero: true };
+  state = { openFaq: 0, whiteHero: true, mobileMenuOpen: false };
 
   renderVals() {
     const specIcons = ['◑', '◧', '◴', '◐', '◓', '◒', '◔'];
@@ -446,7 +534,9 @@ class Component extends DCLogic {
       setHeroPurple: () => this.setState({ whiteHero: true }),
       setHeroWhite: () => this.setState({ whiteHero: true }),
       purpleTabBg: wh ? 'transparent' : '#6B4FC9', purpleTabColor: wh ? '#6E6A78' : '#ffffff',
-      whiteTabBg: wh ? '#6B4FC9' : 'transparent', whiteTabColor: wh ? '#ffffff' : '#6E6A78'
+      whiteTabBg: wh ? '#6B4FC9' : 'transparent', whiteTabColor: wh ? '#ffffff' : '#6E6A78',
+      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
+      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
     };
   }
 }

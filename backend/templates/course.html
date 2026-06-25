@@ -27,6 +27,118 @@
   ol { list-style-type: decimal; }
   li { margin-bottom: 6px; display: list-item; }
   img{max-width:100%;height:auto}
+
+  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
+  .sticky-apply {
+    display: none !important;
+  }
+  @media (max-width: 768px) {
+    header nav, header > div > a:last-of-type {
+      display: none !important;
+    }
+    header #mobile-menu-btn {
+      display: flex !important;
+    }
+    .layout-grid {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+    }
+    .layout-grid aside {
+      order: 2 !important;
+      position: static !important;
+      width: 100% !important;
+      margin-top: 16px !important;
+    }
+    .layout-grid main {
+      order: 1 !important;
+      width: 100% !important;
+    }
+    .hero-container {
+      grid-template-columns: 1fr !important;
+      gap: 32px !important;
+      padding: 0 16px !important;
+    }
+    .hero-container h1 {
+      font-size: 28px !important;
+      line-height: 1.2 !important;
+    }
+    .hero-container img, .hero-container div[style*="min-height:410px"] {
+      height: 260px !important;
+      min-height: 260px !important;
+    }
+    .stats-grid-6 {
+      grid-template-columns: repeat(3, 1fr) !important;
+      margin-top: -30px !important;
+    }
+    .hero-buttons {
+      flex-direction: column !important;
+      gap: 12px !important;
+      width: 100% !important;
+    }
+    .hero-buttons .btn-hero {
+      width: 100% !important;
+      text-align: center !important;
+      min-height: 48px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center;
+    }
+    .card-grid-3 {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 16px !important;
+    }
+    .site-footer-grid {
+      grid-template-columns: 1fr !important;
+      gap: 28px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .card-grid-3, .placement-cert-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .stats-grid-6 {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .sticky-bottom-bar {
+      height: auto !important;
+    }
+    .sticky-bar-container {
+      flex-direction: row !important;
+      height: auto !important;
+      padding: 10px 16px !important;
+    }
+    .sticky-text-info {
+      display: none !important;
+    }
+    .sticky-whatsapp {
+      display: none !important;
+    }
+    .sticky-apply {
+      display: inline-flex !important;
+    }
+    .sticky-button-wrap {
+      width: 100% !important;
+      justify-content: stretch !important;
+      gap: 8px !important;
+    }
+    .sticky-button-wrap a {
+      flex: 1 !important;
+      text-align: center !important;
+      font-size: 13px !important;
+      padding: 10px 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 44px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid-6 {
+      grid-template-columns: 1fr !important;
+    }
+  }
 </style>
 </helmet>
 
@@ -55,16 +167,33 @@
         <a href="{{ lead_url_enquiry }}" style="color:#434346">Contact</a>
       </nav>
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
+
+      <!-- Hamburger Button -->
+      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+      <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
+      <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
+      <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
+      <a href="{{ blog_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Blog</a>
+      <a href="{{ lead_url_enquiry }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Contact</a>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px;border-radius:8px;text-align:center;margin-top:12px">Apply Now</a>
     </div>
   </header>
   {% endif %}
 
   <!-- ===== HERO ===== -->
   <div id="top" style="padding:46px 0 92px;{{ '{{' }} heroWrap {{ '}}' }}">
-    <div style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
+    <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
       <div>
         <div style="font-size:12.5px;margin-bottom:14px;color:{{ '{{' }} heroCrumb {{ '}}' }}">
-          <a href="{{ homepage_href }}" style="color:inherit">Home</a> › <a href="{{ course_href }}" style="color:inherit">{{ university_name }}</a> › {{ hero.title }}
+          <a href="{{ homepage_href }}" style="color:inherit">Home</a> › <a href="{{ homepage_href }}" style="color:inherit">{{ university_name }}</a> › {{ hero.title }}
         </div>
         {% if hero.badge %}
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px;{{ '{{' }} heroBadge {{ '}}' }}">{{ hero.badge }}</div>
@@ -76,9 +205,9 @@
             <span style="border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;{{ '{{' }} heroChip {{ '}}' }}">{{ pill.label }}</span>
           {% endfor %}
         </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
-          <a href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 24px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
-          <a href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 24px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>
+        <div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
+          <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 24px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
+          <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 24px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>
         </div>
       </div>
       <!-- university image placeholder -->
@@ -102,7 +231,7 @@
 
   <!-- ===== STATS STRIP ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(46,26,107,.10);display:grid;grid-template-columns:repeat(6,1fr);margin-top:-56px;position:relative;z-index:5">
+    <div class="stats-grid-6" style="background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(46,26,107,.10);display:grid;grid-template-columns:repeat(6,1fr);margin-top:-56px;position:relative;z-index:5">
       <sc-for list="{{ '{{' }} stats {{ '}}' }}" as="s" hint-placeholder-count="6">
         <div style="padding:18px 14px;text-align:center;border-right:1px solid #E9E5F2">
           <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ '{{' }} s.v {{ '}}' }}</span>
@@ -113,7 +242,7 @@
   </div>
 
   <!-- ===== LAYOUT ===== -->
-  <div style="max-width:1180px;margin:0 auto;padding:40px 20px 70px;display:grid;grid-template-columns:230px 1fr;gap:32px">
+  <div class="layout-grid" style="max-width:1180px;margin:0 auto;padding:40px 20px 70px;display:grid;grid-template-columns:230px 1fr;gap:32px">
 
     <!-- sidebar rail -->
     <aside style="position:sticky;top:84px;align-self:start;background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:10px">
@@ -153,7 +282,7 @@
       <section id="accreditations" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Approvals &amp; Accreditations</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+        <div class="placement-cert-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
           {% for acc in accreditations %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ acc.title }}</h4>
@@ -168,7 +297,7 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Specializations</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <p style="font-size:14.5px;margin-bottom:16px">Choose your specialization at the start of year two. Each track replaces semester 3 and 4 electives with domain-focused courses and a specialization capstone.</p>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
           <sc-for list="{{ '{{' }} specs {{ '}}' }}" as="sp" hint-placeholder-count="7">
             <a href="{{ '{{' }} sp.href {{ '}}' }}" style="display:flex;flex-direction:column;height:100%;min-height:120px;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px;font-weight:700;color:#1C1B22" style-hover="border-color:#FF5C35;box-shadow:0 4px 14px rgba(46,26,107,.12)">{{ '{{' }} sp.t {{ '}}' }}<small style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#6E6A78;margin-top:4px">{{ '{{' }} sp.d {{ '}}' }}</small></a>
           </sc-for>
@@ -193,12 +322,14 @@
       <section id="fees" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Fee Structure</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <table style="width:100%;border-collapse:collapse;font-size:13.5px">
-          <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700">Amount</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th></tr>
-          <sc-for list="{{ '{{' }} fees {{ '}}' }}" as="f" hint-placeholder-count="3">
-            <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.plan {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.amt {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }};font-weight:700;color:#1C1B22">{{ '{{' }} f.total {{ '}}' }}</td></tr>
-          </sc-for>
-        </table>
+        <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
+            <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700">Amount</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th></tr>
+            <sc-for list="{{ '{{' }} fees {{ '}}' }}" as="f" hint-placeholder-count="3">
+              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.plan {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.amt {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }};font-weight:700;color:#1C1B22">{{ '{{' }} f.total {{ '}}' }}</td></tr>
+            </sc-for>
+          </table>
+        </div>
         {% if fees.note %}
         <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:14px">{{ fees.note }}</div>
         {% endif %}
@@ -238,7 +369,7 @@
           <button onClick="{{ '{{' }} showY1 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y1bg {{ '}}' }};color:{{ '{{' }} y1color {{ '}}' }};border-color:{{ '{{' }} y1border {{ '}}' }}">Year 1</button>
           <button onClick="{{ '{{' }} showY2 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y2bg {{ '}}' }};color:{{ '{{' }} y2color {{ '}}' }};border-color:{{ '{{' }} y2border {{ '}}' }}">Year 2</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="placement-cert-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <sc-for list="{{ '{{' }} sems {{ '}}' }}" as="sem" hint-placeholder-count="2">
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ '{{' }} sem.title {{ '}}' }}</h4>
@@ -260,7 +391,7 @@
         <div style="font-size:14.5px;margin-bottom:12px">{{ placement.content | safe }}</div>
         {% endif %}
         {% if placement.certificate %}
-        <div style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:stretch">
+        <div class="placement-cert-grid" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:stretch">
           {% if certificate_image_url %}
           <div style="border-radius:10px;border:1px solid #E9E5F2;overflow:hidden;min-height:210px;display:flex;align-items:center;justify-content:center">
             <img src="{{ certificate_image_url }}" alt="Sample Degree Certificate" style="max-width:100%;max-height:240px;display:block;object-fit:contain">
@@ -281,7 +412,7 @@
       <section id="jobs" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Job Profiles After Graduation</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
           <sc-for list="{{ '{{' }} jobs {{ '}}' }}" as="j" hint-placeholder-count="6">
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ '{{' }} j.t {{ '}}' }}</h4>
@@ -320,7 +451,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <sc-for list="{{ '{{' }} faqs {{ '}}' }}" as="fq" hint-placeholder-count="5">
           <div style="border-bottom:1px solid #E9E5F2">
-            <button onClick="{{ '{{' }} fq.toggle {{ '}}' }}" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+            <button class="faq-btn" onClick="{{ '{{' }} fq.toggle {{ '}}' }}" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
               <span>{{ '{{' }} fq.q {{ '}}' }}</span>
               <span style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ '{{' }} fq.sign {{ '}}' }}</span>
             </button>
@@ -336,7 +467,7 @@
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
   <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px">
-    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
@@ -376,14 +507,15 @@
   </footer>
 
   <!-- ===== STICKY BOTTOM BAR ===== -->
-  <div style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
-    <div style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#C9BEEC;display:block;font-size:11px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
-      <div style="display:flex;gap:10px">
+  <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
+    <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#C9BEEC;display:block;font-size:11px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
-        <a href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>
+        <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>
         {% endif %}
-        <a href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:10px 26px;border-radius:8px">Enquire Now</a>
+        <a class="sticky-apply" href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">Apply Now</a>
+        <a class="sticky-enquire" href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:10px 26px;border-radius:8px">Enquire Now</a>
       </div>
     </div>
   </div>
@@ -393,7 +525,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { year: 'y1', open: { 0: true }, whiteHero: true };
+  state = { year: 'y1', open: { 0: true }, whiteHero: true, mobileMenuOpen: false };
 
   toggleFaq(i) {
     this.setState(s => { const o = { ...s.open }; o[i] = !o[i]; return { open: o }; });
@@ -446,7 +578,9 @@ class Component extends DCLogic {
       showY1: () => this.setState({ year: 'y1' }),
       showY2: () => this.setState({ year: 'y2' }),
       y1bg: isY1 ? NAVY : '#fff', y1color: isY1 ? '#fff' : MUT, y1border: isY1 ? NAVY : '#E9E5F2',
-      y2bg: !isY1 ? NAVY : '#fff', y2color: !isY1 ? '#fff' : MUT, y2border: !isY1 ? NAVY : '#E9E5F2'
+      y2bg: !isY1 ? NAVY : '#fff', y2color: !isY1 ? '#fff' : MUT, y2border: !isY1 ? NAVY : '#E9E5F2',
+      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
+      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
     };
   }
 }

@@ -8,7 +8,7 @@ sys.path.insert(0, str(backend_dir))
 from workspace.compiler import compile_workspace
 from workspace.builder import build_website
 
-workspaces = ["chandigarh-university", "nodia", "test-1"]
+workspaces = ["chandigarh-university", "nmims", "nodia", "test-1"]
 
 # Compile and Build all workspaces
 print("🔄 Compiling and building all workspaces...")
