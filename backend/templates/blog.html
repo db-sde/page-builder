@@ -99,6 +99,171 @@
       justify-content: center !important;
     }
   }
+
+  /* ============================================================
+     RESPONSIVE ADDITIONS — overflow, type scale, show-more
+     ============================================================ */
+
+  /* 1 ── Global overflow guards */
+  img, video, iframe, object { max-width: 100%; height: auto; }
+
+  /* ─────────────────────────────────────────────────────────────
+     ROOT-CAUSE FIX: CSS Grid tracks default to min-width:auto,
+     which sizes every grid child to its *content's* min-content
+     width.  If any child contains a long word, a wide image, or
+     a table, it blows past the track width and the entire page
+     becomes wider than the viewport — the excess is simply cut
+     off on the right.  Setting min-width:0 lets each child
+     shrink to the track width so content wraps inside the
+     visible area instead of overflowing it.
+  ──────────────────────────────────────────────────────────── */
+  .hero-container > div,
+  .layout-grid > article,
+  .layout-grid > aside,
+  .site-footer-grid > div {
+    min-width: 0;
+  }
+
+  /* The article container itself must also be constrained */
+  .article-body {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* 2 ── Word-break safety for long words / URLs in article body */
+  .article-body p,
+  .article-body li,
+  .article-body td,
+  .article-body th,
+  .article-body blockquote,
+  .article-body h2,
+  .article-body h3 { word-break: break-word; overflow-wrap: break-word; }
+
+  /* 3 ── Tables: JS wraps each table in a scroll div (see script).
+     These styles are for the table INSIDE that wrapper. */
+  .table-scroll-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* subtle scroll shadow hints */
+    background:
+      linear-gradient(to right, #fff 30%, rgba(255,255,255,0)),
+      linear-gradient(to left,  #fff 30%, rgba(255,255,255,0)) 100% 0,
+      radial-gradient(farthest-side at 0   50%, rgba(0,0,0,.08), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.08), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+    margin: 24px 0;
+    border-radius: 10px;
+  }
+  /* Remove the original margin now that the wrapper provides it */
+  .table-scroll-wrap .article-body table,
+  .table-scroll-wrap table {
+    margin: 0 !important;
+    width: 100%;
+    /* min-width keeps columns readable on very small screens */
+    min-width: 480px;
+  }
+
+  /* 4 ── Pre / code blocks */
+  .article-body pre {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .article-body code { word-break: break-all; }
+
+  /* 5 ── Hero excerpt "Show more" — class injected by JS on mobile only */
+  .hero-excerpt-clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: none;
+  }
+  .hero-excerpt-clamped.expanded {
+    display: block;
+    overflow: visible;
+  }
+  /* The toggle button */
+  .excerpt-toggle {
+    background: none;
+    border: none;
+    color: #F3C77C;
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: .02em;
+  }
+  .excerpt-toggle svg {
+    transition: transform 0.22s ease;
+    flex-shrink: 0;
+  }
+  .excerpt-toggle.expanded svg { transform: rotate(180deg); }
+
+  /* Hide toggle on desktop — no clamp needed there */
+  @media (min-width: 769px) {
+    .excerpt-toggle { display: none !important; }
+    .hero-excerpt-clamped { display: block; overflow: visible; }
+  }
+
+  /* 6 ── Newsletter / CTA outer band: reduce padding on small screens */
+  .cta-newsletter-band {
+    padding: clamp(20px, 5vw, 40px) !important;
+    flex-direction: row;
+  }
+  @media (max-width: 860px) {
+    .cta-newsletter-band {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+    }
+  }
+  .cta-newsletter-band .cta-heading {
+    font-size: clamp(18px, 5vw, 25px) !important;
+  }
+
+  /* 7 ── Article body type scale on mobile */
+  @media (max-width: 768px) {
+    .article-body p          { font-size: 15px;   line-height: 1.72; margin-bottom: 14px; }
+    .article-body h2         { font-size: clamp(16px, 4.8vw, 21px); margin: 20px 0 10px; }
+    .article-body h3         { font-size: clamp(14px, 4.2vw, 17px); margin: 16px 0 8px; }
+    .article-body blockquote { font-size: 15px; padding: 14px 16px; margin: 16px 0; }
+    .article-body ul li      { font-size: 15px; }
+
+    /* Tighter layout padding on mobile */
+    .layout-grid { padding: 24px 14px 10px !important; }
+
+    /* Author bio compact */
+    .article-body > div[style*="border-radius:14px"] {
+      gap: 12px !important;
+      padding: 18px !important;
+    }
+  }
+
+  /* 8 ── Extra-small screens (≤ 420 px) */
+  @media (max-width: 420px) {
+    .article-body p { font-size: 14.5px; line-height: 1.7; }
+
+    /* Hero meta row (author + date) wraps gracefully */
+    .hero-meta { flex-wrap: wrap; }
+
+    /* Sidebar TOC links smaller */
+    div[style*="In this article"] + div a { font-size: 12.5px !important; }
+  }
+
+  /* 9 ── Sidebar sticky CTA on mobile — no sticky needed, let it flow */
+  @media (max-width: 768px) {
+    .layout-grid aside > div { position: static !important; top: auto !important; }
+  }
 </style>
 </helmet>
 
@@ -155,9 +320,9 @@
         <div style="font-size:12.5px;color:#C9BEEC;margin-bottom:18px"><a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a> › <a href="{{ blog_href }}" style="color:#C9BEEC">Blog</a> › <span style="color:#D9D2F2">{{ tag }}</span></div>
         <span style="display:inline-block;background:#FF5C35;color:#1C1B22;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:6px;margin-bottom:18px">{{ tag }}</span>
         <h1 style="font-size:38px;font-weight:800;letter-spacing:-.015em;line-height:1.16">{{ title }}</h1>
-        <p style="font-size:16.5px;color:#D9D2F2;margin-top:18px;line-height:1.6">{{ excerpt }}</p>
-        <div style="display:flex;align-items:center;gap:13px;margin-top:26px">
-          <div style="width:46px;height:46px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">{{ author_initials }}</div>
+        <p id="hero-excerpt" style="font-size:16.5px;color:#D9D2F2;margin-top:18px;line-height:1.6">{{ excerpt }}</p>
+        <div class="hero-meta" style="display:flex;align-items:center;gap:13px;margin-top:26px">
+          <div style="width:46px;height:46px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">{{ author_initials }}</div>
           <div><div style="font-size:14.5px;font-weight:700;color:#fff">{{ author }}</div><div style="font-size:12.5px;color:#C9BEEC">{{ author_role }} · {{ read_time }} · {{ date }}</div></div>
         </div>
       </div>
@@ -213,9 +378,9 @@
 
   <!-- ===== NEWSLETTER / CTA ===== -->
   <div style="max-width:1080px;margin:0 auto;padding:40px 20px 10px">
-    <div style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:18px;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#fff">
+    <div class="cta-newsletter-band" style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:18px;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#fff">
       <div>
-        <div style="font-size:25px;font-weight:800">Get updates and career insights in your inbox</div>
+        <div class="cta-heading" style="font-size:25px;font-weight:800">Get updates and career insights in your inbox</div>
         <div style="color:#D9D2F2;font-size:14.5px;margin-top:6px">One useful email a month on admissions, fees and careers. No spam.</div>
       </div>
       <div class="newsletter-wrap" style="display:flex;gap:10px;flex-wrap:wrap">
@@ -271,6 +436,72 @@
 
 </div>
 </x-dc>
+
+<!-- ===== RESPONSIVE BEHAVIOUR SCRIPT =====
+     Two jobs:
+       1. Wrap every CMS-supplied <table> inside .article-body in a
+          scroll div so tables never overflow the viewport.
+       2. Hero excerpt "Show more" on mobile.
+     No template variables, DC component state, or Jinja logic touched.
+  -->
+<script>
+(function () {
+  'use strict';
+
+  /* 1 ── Wrap tables in horizontal-scroll containers ──────────
+     We inject a wrapper div around each table rather than using
+     display:block on the table itself, which breaks table rendering
+     in some browsers. The .table-scroll-wrap div handles the scroll. */
+  function wrapTables() {
+    var tables = document.querySelectorAll('.article-body table');
+    tables.forEach(function (tbl) {
+      if (tbl.parentNode && tbl.parentNode.classList.contains('table-scroll-wrap')) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'table-scroll-wrap';
+      tbl.parentNode.insertBefore(wrap, tbl);
+      wrap.appendChild(tbl);
+    });
+  }
+
+  /* 2 ── Hero excerpt show-more (mobile only) ─────────────── */
+  function setupExcerptToggle() {
+    if (window.innerWidth > 768) return;
+    var excerpt = document.getElementById('hero-excerpt');
+    if (!excerpt) return;
+    excerpt.classList.add('hero-excerpt-clamped');
+    if (excerpt.scrollHeight <= excerpt.clientHeight + 2) return;
+
+    var btn = document.createElement('button');
+    btn.className = 'excerpt-toggle';
+    btn.innerHTML =
+      'Show more' +
+      '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M2.5 5L7 9.5L11.5 5" stroke="#F3C77C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>';
+
+    var expanded = false;
+    btn.addEventListener('click', function () {
+      expanded = !expanded;
+      excerpt.classList.toggle('expanded', expanded);
+      btn.classList.toggle('expanded', expanded);
+      btn.childNodes[0].nodeValue = expanded ? 'Show less' : 'Show more';
+    });
+    excerpt.insertAdjacentElement('afterend', btn);
+  }
+
+  function init() {
+    wrapTables();
+    setupExcerptToggle();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { mobileMenuOpen: false };
