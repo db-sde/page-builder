@@ -37,6 +37,71 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _heuristic_detect_parent(spec_slug: str, university_slug: str, candidate_courses: list[str]) -> str | None:
+    """
+    Given a specialization slug and a list of known course slugs in the workspace,
+    return the best-matching parent course slug using token overlap scoring.
+
+    Strategy:
+    1. Strip the university_slug prefix from the spec slug to get the "bare" spec tokens.
+    2. For each candidate course, strip the university_slug prefix → "bare" course tokens.
+    3. Score = number of shared tokens (longest prefix match weighted higher).
+    4. Return the course with the highest score. If tied or no candidates, return None.
+    """
+    if not candidate_courses:
+        return None
+
+    import re
+
+    def tokenize(slug: str, prefix: str) -> list[str]:
+        bare = slug
+        if bare.startswith(prefix + "-"):
+            bare = bare[len(prefix) + 1:]
+        return [t for t in re.split(r"[-_]+", bare) if t]
+
+    spec_tokens = tokenize(spec_slug, university_slug)
+    if not spec_tokens:
+        return None
+
+    best_course = None
+    best_score = -1
+
+    for course_slug in candidate_courses:
+        course_tokens = tokenize(course_slug, university_slug)
+        # Count overlapping tokens (ordered prefix match counts double)
+        shared = 0
+        for i, ct in enumerate(course_tokens):
+            if ct in spec_tokens:
+                shared += 2 if i < len(spec_tokens) and spec_tokens[i] == ct else 1
+
+        if shared > best_score:
+            best_score = shared
+            best_course = course_slug
+
+    # Only accept the match if there is at least 1 shared token
+    return best_course if best_score > 0 else None
+
+
+def _get_workspace_course_slugs(university_slug: str) -> list[str]:
+    """Return the list of course slugs already saved in the workspace (for heuristic detection)."""
+    courses_dir = WORKSPACES_ROOT / university_slug / "Courses"
+    if not courses_dir.exists():
+        return []
+    slugs = []
+    for p in courses_dir.iterdir():
+        if p.is_dir():
+            src = p / "source.json"
+            if src.exists():
+                try:
+                    import json as _json
+                    record = _json.loads(src.read_text(encoding="utf-8"))
+                    if record.get("page_type") == "course":
+                        slugs.append(record.get("slug") or p.name)
+                except Exception:
+                    slugs.append(p.name)
+    return slugs
+
+
 def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None, dict]:
     # Check if this is a wrapped record (has a "payload" or "data" field)
     if "payload" in payload and isinstance(payload["payload"], dict):
@@ -95,10 +160,17 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
         else:
             slug = "untitled"
 
-    # Clean up parent_slug if specialization
-    if not parent_slug and page_type == "specialization":
-        # Check if parent_slug is inside data
-        parent_slug = data.get("parent_slug") or "nmims-online-mba" # fallback default
+    # Resolve parent_slug for specializations — NO hardcoded fallback
+    if page_type == "specialization" and not parent_slug:
+        # 1. Check if it was embedded in the data block
+        parent_slug = data.get("parent_slug")
+
+        # 2. If still missing, use heuristic detection against workspace course slugs
+        if not parent_slug and university_slug and slug:
+            known_courses = _get_workspace_course_slugs(university_slug)
+            parent_slug = _heuristic_detect_parent(slug, university_slug, known_courses)
+            # parent_slug may still be None — that is valid and expected
+            # The frontend will prompt the user to assign it manually
 
     return slug, page_type, university_slug, parent_slug, data
 
@@ -708,6 +780,108 @@ async def parse_docx_endpoint(
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hybrid Parent Mapping endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+class DetectParentRequest(BaseModel):
+    spec_slug: str
+    university_slug: str
+    current_parent_slug: Optional[str] = None
+
+
+@app.post("/detect-parent")
+async def detect_parent_endpoint(req: DetectParentRequest):
+    """
+    Return the heuristic-detected parent course and a list of all available
+    course slugs in the workspace so the frontend can offer a dropdown.
+
+    Response:
+    {
+      "detected_parent_slug": str | null,
+      "confidence": "auto" | "heuristic" | "none",
+      "available_courses": [ { "slug": str, "name": str } ]
+    }
+    """
+    try:
+        known_courses = _get_workspace_course_slugs(req.university_slug)
+
+        # If an explicit parent_slug is already set and it exists in the workspace, trust it
+        if req.current_parent_slug and req.current_parent_slug in known_courses:
+            confidence = "auto"
+            detected = req.current_parent_slug
+        else:
+            detected = _heuristic_detect_parent(req.spec_slug, req.university_slug, known_courses)
+            confidence = "heuristic" if detected else "none"
+
+        # Build human-readable labels from source.json (use program_name or fall back to slug)
+        courses_dir = WORKSPACES_ROOT / req.university_slug / "Courses"
+        available = []
+        for course_slug in known_courses:
+            label = course_slug
+            src = courses_dir / course_slug / "source.json"
+            if src.exists():
+                try:
+                    rec = json.loads(src.read_text(encoding="utf-8"))
+                    name = (rec.get("data") or {}).get("program_name") or course_slug
+                    label = name
+                except Exception:
+                    pass
+            available.append({"slug": course_slug, "name": label})
+
+        return {
+            "detected_parent_slug": detected,
+            "confidence": confidence,
+            "available_courses": available,
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class RemapParentRequest(BaseModel):
+    university_slug: str
+    spec_slug: str
+    new_parent_slug: str
+
+
+@app.post("/remap-parent")
+async def remap_parent_endpoint(req: RemapParentRequest):
+    """
+    Update the parent_slug stored in an existing specialization source.json
+    without requiring a full re-upload.  Returns the updated record summary.
+
+    Use-case:
+      - Fix historically saved specs that have the wrong parent_slug.
+      - User picks a different parent from the dropdown in the Review screen.
+    """
+    try:
+        spec_dir = WORKSPACES_ROOT / req.university_slug / "Specializations" / req.spec_slug
+        src_path = spec_dir / "source.json"
+        if not src_path.exists():
+            raise HTTPException(status_code=404, detail=f"Specialization '{req.spec_slug}' not found in workspace '{req.university_slug}'")
+
+        record = json.loads(src_path.read_text(encoding="utf-8"))
+        old_parent = record.get("parent_slug")
+        record["parent_slug"] = req.new_parent_slug
+        src_path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        return {
+            "status": "remapped",
+            "spec_slug": req.spec_slug,
+            "university_slug": req.university_slug,
+            "old_parent_slug": old_parent,
+            "new_parent_slug": req.new_parent_slug,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Workspace endpoints

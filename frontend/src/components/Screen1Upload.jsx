@@ -59,7 +59,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       }
     }
 
-    let parent_slug = data.parent_slug || (page_type === 'specialization' ? `${university_slug}-online-mba` : null);
+    let parent_slug = data.parent_slug || null; // Backend heuristic resolves the correct parent for specializations
 
     // Clean metadata keys from data block to prevent duplicate editing fields in Step 2
     delete data.slug;

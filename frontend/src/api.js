@@ -153,3 +153,30 @@ export function downloadBuild(universitySlug) {
 export function buildFileUrl(universitySlug, path = 'index.html') {
   return `${BASE}/build-file?university_slug=${encodeURIComponent(universitySlug)}&path=${encodeURIComponent(path)}`;
 }
+
+// ── Hybrid Parent Mapping API ─────────────────────────────────────────────────
+
+/**
+ * Detect the best-matching parent course for a specialization.
+ * Returns { detected_parent_slug, confidence, available_courses }
+ */
+export async function detectParent(specSlug, universitySlug, currentParentSlug = null) {
+  const payload = { spec_slug: specSlug, university_slug: universitySlug };
+  if (currentParentSlug) payload.current_parent_slug = currentParentSlug;
+  const res = await axios.post(`${BASE}/detect-parent`, payload);
+  return res.data;
+}
+
+/**
+ * Update the parent_slug of an already-saved specialization in the workspace.
+ * Returns { status, spec_slug, old_parent_slug, new_parent_slug }
+ */
+export async function remapParent(universitySlug, specSlug, newParentSlug) {
+  const res = await axios.post(`${BASE}/remap-parent`, {
+    university_slug: universitySlug,
+    spec_slug: specSlug,
+    new_parent_slug: newParentSlug,
+  });
+  return res.data;
+}
+

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ingestAcf, previewHtml } from '../api';
+import { useState, useEffect } from 'react';
+import { ingestAcf, previewHtml, detectParent, remapParent } from '../api';
 import FieldHealthPanel from './FieldHealthPanel';
 import AddFieldModal from './AddFieldModal';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
@@ -81,6 +81,42 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [modalField, setModalField] = useState(null);   // field object or null
+
+  // ── Parent Mapping state (specialization only) ────────────────────────────
+  const [parentInfo, setParentInfo]     = useState(null);   // { detected_parent_slug, confidence, available_courses }
+  const [parentLoading, setParentLoading] = useState(false);
+  const [showParentDropdown, setShowParentDropdown] = useState(false);
+  const [parentRemapping, setParentRemapping] = useState(false);
+  const [parentError, setParentError] = useState('');
+
+  useEffect(() => {
+    if (session.page_type !== 'specialization') return;
+    if (!session.slug || !session.university_slug) return;
+    setParentLoading(true);
+    detectParent(session.slug, session.university_slug, session.parent_slug)
+      .then(info => setParentInfo(info))
+      .catch(err => console.warn('Parent detection failed:', err))
+      .finally(() => setParentLoading(false));
+  }, [session.page_type, session.slug, session.university_slug, session.parent_slug]);
+
+  const handleParentChange = async (newParentSlug) => {
+    setParentError('');
+    setParentRemapping(true);
+    try {
+      // Update in session immediately (affects the preview + save flow)
+      updateSession({ parent_slug: newParentSlug });
+      // If this spec is already saved in workspace, persist the remap on disk too
+      if (session.workspace && session.slug) {
+        await remapParent(session.university_slug, session.slug, newParentSlug);
+      }
+      setParentInfo(prev => ({ ...prev, detected_parent_slug: newParentSlug, confidence: 'manual' }));
+      setShowParentDropdown(false);
+    } catch (err) {
+      setParentError('Failed to update parent assignment. You can still proceed.');
+    } finally {
+      setParentRemapping(false);
+    }
+  };
 
   const slots = IMAGE_SLOTS[session.page_type] || [];
 
@@ -229,8 +265,115 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         onAddField={handleAddField}
       />
 
+      {/* ── Parent Course Mapping Panel (specialization only) ── */}
+      {session.page_type === 'specialization' && (
+        <div className="card" style={{ marginBottom: 20, borderLeft: '4px solid #4f46e5' }}>
+          <div className="card-body" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                🔗 Parent Course Assignment
+              </div>
+              {parentInfo && (
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 9px',
+                  borderRadius: 99,
+                  background: parentInfo.confidence === 'auto' ? '#dcfce7' :
+                              parentInfo.confidence === 'manual' ? '#dbeafe' :
+                              parentInfo.confidence === 'heuristic' ? '#fef9c3' : '#fee2e2',
+                  color: parentInfo.confidence === 'auto' ? '#166534' :
+                         parentInfo.confidence === 'manual' ? '#1d4ed8' :
+                         parentInfo.confidence === 'heuristic' ? '#92400e' : '#991b1b',
+                }}>
+                  {parentInfo.confidence === 'auto' ? '✓ Confirmed' :
+                   parentInfo.confidence === 'manual' ? '✎ Manual' :
+                   parentInfo.confidence === 'heuristic' ? '~ Auto-detected' : '⚠ Not assigned'}
+                </span>
+              )}
+            </div>
+
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+              This specialization will only appear under its assigned parent course. Verify the assignment is correct before generating.
+            </div>
+
+            {parentLoading && (
+              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Detecting parent course…</div>
+            )}
+
+            {!parentLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{
+                  background: '#f1f5f9',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  fontFamily: 'var(--font-code)',
+                  fontSize: 13,
+                  color: parentInfo?.detected_parent_slug ? 'var(--color-text-primary)' : '#9ca3af',
+                  fontWeight: 600,
+                  minWidth: 200,
+                }}>
+                  {parentInfo?.detected_parent_slug || '(none — please assign)'}
+                </div>
+
+                {!showParentDropdown && (
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: 13 }}
+                    onClick={() => setShowParentDropdown(true)}
+                  >
+                    ✎ Change
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showParentDropdown && !parentLoading && (
+              <div style={{ marginTop: 14 }}>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>
+                  Select Parent Course
+                </label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <select
+                    className="input"
+                    defaultValue={parentInfo?.detected_parent_slug || ''}
+                    onChange={e => e.target.value && handleParentChange(e.target.value)}
+                    style={{ flex: 1, fontFamily: 'var(--font-code)', fontSize: 13 }}
+                    disabled={parentRemapping}
+                  >
+                    <option value="">— select a course —</option>
+                    {(parentInfo?.available_courses || []).map(c => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.name} ({c.slug})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 14px', fontSize: 13 }}
+                    onClick={() => setShowParentDropdown(false)}
+                    disabled={parentRemapping}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {parentRemapping && (
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>Saving assignment…</div>
+                )}
+              </div>
+            )}
+
+            {parentError && (
+              <div style={{ marginTop: 10, fontSize: 13, color: 'var(--color-error)', fontWeight: 600 }}>⚠ {parentError}</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Simple text fields ── */}
       {simpleFields.length > 0 && (
+
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-body" style={{ padding: 28 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Page Fields</div>

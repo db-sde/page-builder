@@ -30,6 +30,21 @@
   img{max-width:100%;height:auto}
   table{max-width:100%}
 
+  /* ===== OVERFLOW HARDENING =====
+     CSS Grid tracks default to min-width:auto, which sizes them to fit their
+     content's min-content width. If any grid child (sidebar, hero column,
+     card, footer column) has content that can't shrink, the whole grid -
+     and the page - gets pushed wider than the viewport and the excess is
+     clipped off-screen on the right. Forcing min-width:0 on every grid
+     child lets them shrink to the track width instead, so text wraps
+     inside the visible area instead of overflowing it. */
+  .layout-grid > aside, .layout-grid > main,
+  .hero-container > div,
+  .card-grid-3 > div, .placement-cert-grid > div,
+  .stats-grid-5 > div, .site-footer-grid > div {
+    min-width: 0;
+  }
+
   /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
   .sticky-apply {
     display: none !important;
@@ -143,7 +158,7 @@
   }
 
   /* ===== ADDITIONAL RESPONSIVENESS: TABLET RANGE ===== */
-  @media (max-width: 1024px) {
+  @media (min-width: 769px) and (max-width: 1024px) {
     .hero-container {
       gap: 32px !important;
     }
@@ -211,6 +226,81 @@
       font-size: 17px !important;
     }
   }
+
+  /* ===== FIX: PREVENT CMS-SUPPLIED RICH TEXT FROM OVERFLOWING THE VIEWPORT ===== */
+  .rich-content {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .rich-content img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .rich-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rich-content iframe, .rich-content video {
+    max-width: 100%;
+  }
+  .rich-content * {
+    max-width: 100%;
+  }
+  .rich-content pre, .rich-content code {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ===== SHOW MORE / SHOW LESS (pure CSS, no JS, mobile only) ===== */
+  .readmore-toggle {
+    display: none;
+  }
+  .readmore-label {
+    display: none;
+    cursor: pointer;
+    color: #FF5C35;
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-top: 10px;
+  }
+  .readmore-label .rm-less {
+    display: none;
+  }
+  .readmore-toggle:checked ~ .readmore-label .rm-more {
+    display: none;
+  }
+  .readmore-toggle:checked ~ .readmore-label .rm-less {
+    display: inline;
+  }
+  @media (max-width: 768px) {
+    .readmore-body {
+      max-height: 190px;
+      overflow: hidden;
+      position: relative;
+    }
+    .readmore-body::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
+      pointer-events: none;
+    }
+    .readmore-toggle:checked ~ .readmore-body {
+      max-height: none;
+    }
+    .readmore-toggle:checked ~ .readmore-body::after {
+      display: none;
+    }
+    .readmore-label {
+      display: inline-block;
+    }
+  }
 </style>
 </helmet>
 
@@ -269,7 +359,7 @@
         </div>
         <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#FF5C35;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge | default('Most Popular Specialization') }}</div>
         <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ university_name }} Online MBA in<br>{{ hero.title }}</h1>
-        <div style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
+        <div class="rich-content" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
             <span style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600">{{ pill.label }}</span>
@@ -329,7 +419,11 @@
       <section id="about" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">About {{ hero.title }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="font-size:14.5px">{{ about | safe }}</div>
+        <div class="rich-content readmore-wrap">
+          <input type="checkbox" id="rm-about" class="readmore-toggle">
+          <div class="readmore-body" style="font-size:14.5px">{{ about | safe }}</div>
+          <label for="rm-about" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        </div>
       </section>
       {% endif %}
 
@@ -352,7 +446,11 @@
       <section id="eligibility" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Eligibility</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="font-size:14.5px">{{ eligibility | safe }}</div>
+        <div class="rich-content readmore-wrap">
+          <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
+          <div class="readmore-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
+          <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        </div>
       </section>
       {% endif %}
 
@@ -453,7 +551,11 @@
       <section id="exams" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Examination Process</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <p style="font-size:14.5px">{{ exam | safe }}</p>
+        <div class="rich-content readmore-wrap">
+          <input type="checkbox" id="rm-exam" class="readmore-toggle">
+          <div class="readmore-body" style="font-size:14.5px">{{ exam | safe }}</div>
+          <label for="rm-exam" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        </div>
       </section>
       {% endif %}
 
@@ -462,7 +564,11 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{% if placement and certificate %}Placement &amp; Certificate{% elif placement %}Placement Assistance{% else %}Degree Certification{% endif %}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% if placement %}
-        <div style="font-size:14.5px;margin-bottom:12px">{{ placement | safe }}</div>
+        <div class="rich-content readmore-wrap" style="margin-bottom:12px">
+          <input type="checkbox" id="rm-placement" class="readmore-toggle">
+          <div class="readmore-body" style="font-size:14.5px">{{ placement | safe }}</div>
+          <label for="rm-placement" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        </div>
         {% endif %}
         {% if certificate %}
           <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4><p style="font-size:13px;color:#6E6A78">{{ certificate }}</p></div>
