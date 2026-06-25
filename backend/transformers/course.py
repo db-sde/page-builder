@@ -88,23 +88,7 @@ class CourseTransformer(BaseTransformer):
                     "fee": self.format_fee(s["data"].get("total_fee", "")),
                     "href": f"/{s['slug']}"
                 })
-        elif raw.get("fee_plans"):
-            for fp in raw.get("fee_plans", []):
-                name = fp.get("plan_name", "")
-                if not name or name.lower() in ("full program", "regular", "default", "standard"):
-                    continue
-                name_clean = name.lower().strip()
-                desc = spec_desc_map.get(name_clean)
-                if not desc:
-                    desc = f"Specialized training in {name}."
-                if any(x["name"] == name for x in spec_items):
-                    continue
-                spec_items.append({
-                    "name": name,
-                    "description": desc,
-                    "fee": self.format_fee(fp.get("plan_amount", "")),
-                    "href": "#fees"
-                })
+
 
         return {
             "hero_image_url": raw.get("hero_image_url"),
@@ -164,7 +148,7 @@ class CourseTransformer(BaseTransformer):
                 ("about", "About", raw.get("about_content")),
                 ("highlights", "Highlights", raw.get("highlights")),
                 ("accreditations", "Accreditations", raw.get("naac_grade") or raw.get("ugc_status")),
-                ("specializations", "Specializations", my_specs or raw.get("num_specializations")),
+                ("specializations", "Specializations", my_specs),
                 ("fees", "Fee Structure", raw.get("fee_plans")),
                 ("eligibility", "Eligibility", raw.get("eligibility_content")),
                 ("admission", "Admission", raw.get("admission_steps")),
@@ -193,11 +177,11 @@ class CourseTransformer(BaseTransformer):
                 ] if card is not None
             ] or None,
 
-            # Specializations grid — from DB if available, fallback to count or synthesized plans
+            # Specializations grid — from DB if available
             "specializations": {
                 "intro": raw.get("specializations_intro", "Choose your specialization at the start of year two."),
                 "items": spec_items
-            } if (spec_items or raw.get("num_specializations")) else None,
+            } if spec_items else None,
 
             "eligibility": self.section_or_none("eligibility_content"),
 
@@ -234,4 +218,8 @@ class CourseTransformer(BaseTransformer):
 
             # FAQs
             "faqs": raw.get("faqs") or None,
+
+            # Workspace-driven dynamic sections (forward to engine.py)
+            "_workspace_specs": raw.get("_workspace_specs") or [],
+            "_workspace_blogs": raw.get("_workspace_blogs") or [],
         }

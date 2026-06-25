@@ -180,3 +180,12 @@ export async function remapParent(universitySlug, specSlug, newParentSlug) {
   return res.data;
 }
 
+export async function generateSpecializationStub(universitySlug, specName, parentCourseSlug) {
+  const res = await axios.post(`${BASE}/generate-specialization-stub`, {
+    university_slug: universitySlug,
+    spec_name: specName,
+    parent_course_slug: parentCourseSlug,
+  });
+  return res.data;
+}
+

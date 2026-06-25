@@ -324,6 +324,21 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
           <div>
             <div style={{ borderTop: '1px solid var(--color-border)', margin: '24px 0' }} />
             
+            <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                onClick={onNext}
+                disabled={!selectedSlug}
+                className="btn btn-primary btn-lg"
+                style={{
+                  padding: '12px 32px',
+                  background: selectedSlug ? 'var(--color-orange)' : '#ccc',
+                  boxShadow: selectedSlug ? '0 4px 12px rgba(232, 64, 16, 0.2)' : 'none',
+                }}
+              >
+                Continue to Document Upload →
+              </button>
+            </div>
+
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>
                 Selected Workspace
@@ -630,21 +645,7 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
 
       </div>
 
-      {/* Navigation Footer */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 28, borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
-        <button
-          onClick={onNext}
-          disabled={!selectedSlug}
-          className="btn btn-primary btn-lg"
-          style={{
-            padding: '12px 32px',
-            background: selectedSlug ? 'var(--color-orange)' : '#ccc',
-            boxShadow: selectedSlug ? '0 4px 12px rgba(232, 64, 16, 0.2)' : 'none',
-          }}
-        >
-          Continue to Document Upload →
-        </button>
-      </div>
+
     </div>
   );
 }

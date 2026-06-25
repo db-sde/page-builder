@@ -246,7 +246,9 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["admission_steps"] = blocks_to_html(sections.get("admission", []))
         acf["syllabus_content"] = blocks_to_html(sections.get("syllabus", []))
         acf["placement_content"] = blocks_to_html(sections.get("placement", []))
-        acf["fee_plans"] = _extract_fee_plans(sections.get("fees", []))
+        fee_plans, detected_specializations = _classify_fee_table(sections.get("fees", []))
+        acf["fee_plans"] = fee_plans
+        acf["detected_specializations"] = detected_specializations
         acf["faqs"] = _extract_faqs(sections.get("faqs", []))
         acf["reviews"] = _extract_reviews(sections.get("reviews", []))
         # Image fields — populated by upload pipeline, not docx extraction
@@ -331,16 +333,107 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
 
 # --- Private extraction helpers ---
 
+def classify_fee_plans(plans: list[dict]) -> tuple[list[dict], list[str]]:
+    """
+    Classify a list of fee plan dicts.
+    Returns: (classified_fee_plans, detected_specializations)
+    """
+    if not plans:
+        return [], []
+
+    payment_keywords = [
+        "semester", "annual", "one-time", "one time", "emi", "installment", 
+        "year 1", "year 2", "admission", "registration", "exam", "full program", 
+        "regular", "default", "standard", "installment 1", "installment 2", 
+        "term", "lump sum", "lumpsum", "yearly", "monthly", "admission fee", 
+        "caution deposit", "exam fee", "tuition fee"
+    ]
+
+    academic_keywords = [
+        "marketing", "finance", "hr", "human resource", "operations", 
+        "analytics", "banking", "insurance", "retail", "supply chain", 
+        "logistics", "international business", "entrepreneurship", 
+        "hospitality", "tourism", "digital marketing", "data science", 
+        "artificial intelligence", "fintech", "media", "brand", 
+        "healthcare", "it ", "information technology", "ib ", "system",
+        "general management", "airlines", "airport", "disaster"
+    ]
+
+    # Clean amount helper
+    import re
+    def get_numeric_amount(val_str):
+        if not val_str:
+            return None
+        digits = re.sub(r"[^\d]", "", str(val_str))
+        return int(digits) if digits else None
+
+    # Analyze rows
+    num_payment = 0
+    num_academic = 0
+    amounts = []
+
+    for p in plans:
+        name = p.get("plan_name", "").lower().strip()
+        
+        # Count keyword occurrences
+        has_payment = any(kw in name for kw in payment_keywords)
+        has_academic = any(kw in name for kw in academic_keywords)
+        
+        if has_payment:
+            num_payment += 1
+        if has_academic:
+            num_academic += 1
+
+        amt = get_numeric_amount(p.get("plan_amount"))
+        if amt is not None:
+            amounts.append(amt)
+
+    # Check uniformity of amounts (if we have amounts)
+    amounts_are_uniform = len(set(amounts)) <= 1 if amounts else False
+
+    # Decide classification
+    is_spec = False
+    if num_academic > num_payment:
+        is_spec = True
+    elif amounts_are_uniform and num_academic > 0:
+        is_spec = True
+    elif num_academic > 0 and num_payment == 0:
+        is_spec = True
+
+    if is_spec:
+        detected_specs = []
+        for p in plans:
+            name = p.get("plan_name", "").strip()
+            if name and name.lower() not in ("full program", "regular", "default", "standard"):
+                detected_specs.append(name)
+        return [], detected_specs
+    else:
+        return plans, []
+
+def _classify_fee_table(blocks):
+    raw_plans = []
+    for b in blocks:
+        if b["type"] == "table":
+            for row in b["rows"][1:]:  # skip header row
+                if len(row) >= 2:
+                    raw_plans.append({
+                        "plan_name": row[0],
+                        "plan_amount": row[1],
+                        "plan_total": row[2] if len(row) >= 3 else row[1]
+                    })
+    
+    return classify_fee_plans(raw_plans)
+
 def _extract_fee_plans(blocks):
     plans = []
     for b in blocks:
         if b["type"] == "table":
             for row in b["rows"][1:]:  # skip header row
-                if len(row) >= 3:
+                if len(row) >= 2:
                     plans.append({
                         "plan_name": row[0],
                         "plan_amount": row[1],
-                        "plan_total": row[2]
+                        "plan_total": row[2] if len(row) >= 3 else row[1]
                     })
     return plans
 

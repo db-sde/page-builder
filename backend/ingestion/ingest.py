@@ -21,6 +21,38 @@ def ingest(filepath: str, page_type: str, slug: str, university_slug: str, paren
     acf = extract_acf(blocks, page_type, meta)
     print(f"  → {len(acf)} fields extracted")
 
+    if page_type == "specialization":
+        parent_program_name = None
+        uni_name = university_slug.upper() if university_slug else ""
+        if parent_slug and university_slug:
+            try:
+                from workspace.manager import resolve_page_dir
+                course_dir = resolve_page_dir(university_slug, "course", parent_slug)
+                course_json_path = course_dir / "source.json"
+                if course_json_path.exists():
+                    import json
+                    course_data = json.loads(course_json_path.read_text(encoding="utf-8"))
+                    c_raw = course_data.get("data", {})
+                    uni_name = c_raw.get("university_name") or uni_name
+                    names = [c_raw.get("program_name"), c_raw.get("course_name"), c_raw.get("title")]
+                    parent_program_name = " ".join(filter(None, names))
+            except Exception:
+                pass
+
+        
+        if not parent_program_name:
+            parent_program_name = parent_slug.replace("-", " ").title() if parent_slug else ""
+            
+        from core.utils import normalize_specialization_name
+        for field in ["spec_name", "specialization_name", "title", "course_name", "hero_title", "hero_heading"]:
+            if field in acf and isinstance(acf[field], str) and acf[field].strip():
+                acf[field] = normalize_specialization_name(acf[field], parent_program_name, uni_name)
+                
+        if "hero" in acf and isinstance(acf["hero"], dict):
+            if "title" in acf["hero"] and isinstance(acf["hero"]["title"], str) and acf["hero"]["title"].strip():
+                acf["hero"]["title"] = normalize_specialization_name(acf["hero"]["title"], parent_program_name, uni_name)
+
+
     record = {
         "slug": slug,
         "page_type": page_type,

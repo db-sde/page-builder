@@ -358,7 +358,7 @@
           <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a> › <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a> › {{ hero.title }}
         </div>
         <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#FF5C35;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge | default('Most Popular Specialization') }}</div>
-        <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ university_name }} Online MBA in<br>{{ hero.title }}</h1>
+        <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ parent_program_name }} in<br>{{ hero.title }}</h1>
         <div class="rich-content" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}

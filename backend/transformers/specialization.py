@@ -2,27 +2,25 @@ from transformers.base import BaseTransformer
 import re
 
 class SpecializationTransformer(BaseTransformer):
-    def clean_spec_name(self, name: str, university_name: str) -> str:
-        if not name:
-            return ""
-        cleaned = name
-        if university_name:
-            cleaned = re.sub(rf"\b{re.escape(university_name)}\b", "", cleaned, flags=re.IGNORECASE)
-        # Remove "Online", "MBA", "Mba", "in", "In", "program", "course", "specialization"
-        cleaned = re.sub(r"\b(online|mba|in|program|course|specialization)\b", "", cleaned, flags=re.IGNORECASE)
-        # Clean up whitespace
-        cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        return cleaned.title()
-
     def transform(self) -> dict:
         raw = self.raw
         siblings = raw.get("_workspace_sibling_specs") or []
 
-        # Clean specialization name if it's mixed with program/university
-        university_name = raw.get("university_name", "")
-        raw_spec_name = raw.get("spec_name", "")
-        if raw_spec_name:
-            raw["spec_name"] = self.clean_spec_name(raw_spec_name, university_name)
+        parent_course = raw.get("_workspace_parent") or {}
+        parent_data = parent_course.get("data") or parent_course.get("raw") or {}
+        parent_program_name = None
+        if parent_data:
+            parent_program_name = (
+                parent_data.get("program_name") or
+                parent_data.get("course_name") or
+                parent_data.get("title")
+            )
+        if not parent_program_name:
+            parent_program_name = (
+                raw.get("program_name") or
+                raw.get("course_name") or
+                f"{raw.get('university_name') or 'University'} Online MBA"
+            )
 
 
         # ── Fallback: mode ──────────────────────────────────────────────────────────
@@ -80,9 +78,12 @@ class SpecializationTransformer(BaseTransformer):
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
                 ([{"label": raw.get("university_name"), "href": f"/{self.university_slug}"}] if raw.get("university_name") else []) +
-                ([{"label": "Online MBA", "href": f"/{self.parent_slug}"}] if self.parent_slug else []) +
+                ([{"label": parent_program_name, "href": f"/{self.parent_slug}"}] if self.parent_slug else []) +
                 ([{"label": raw.get("spec_name"), "href": None}] if raw.get("spec_name") else [])
             ),
+
+            "parent_program_name": parent_program_name,
+            "parent_course_name": parent_program_name,
 
             # --- Stats strip ---
             "stats": self.build_stats([

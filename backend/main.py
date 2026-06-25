@@ -172,7 +172,41 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
             # parent_slug may still be None — that is valid and expected
             # The frontend will prompt the user to assign it manually
 
+    # Normalize specialization name fields in data if page_type is specialization
+    if page_type == "specialization":
+        parent_program_name = None
+        uni_name = university_slug.upper() if university_slug else ""
+        if parent_slug and university_slug:
+            try:
+                from workspace.manager import resolve_page_dir
+                course_dir = resolve_page_dir(university_slug, "course", parent_slug)
+                course_json_path = course_dir / "source.json"
+                if course_json_path.exists():
+                    import json
+                    course_data = json.loads(course_json_path.read_text(encoding="utf-8"))
+                    c_raw = course_data.get("data", {})
+                    uni_name = c_raw.get("university_name") or uni_name
+                    # Combine all title variations to ensure we strip both "EMBA" and "Executive MBA"
+                    names = [c_raw.get("program_name"), c_raw.get("course_name"), c_raw.get("title")]
+                    parent_program_name = " ".join(filter(None, names))
+            except Exception:
+                pass
+        
+        if not parent_program_name:
+            parent_program_name = parent_slug.replace("-", " ").title() if parent_slug else ""
+            
+        from core.utils import normalize_specialization_name
+        for field in ["spec_name", "specialization_name", "title", "course_name", "hero_title", "hero_heading"]:
+            if field in data and isinstance(data[field], str) and data[field].strip():
+                data[field] = normalize_specialization_name(data[field], parent_program_name, uni_name)
+                
+        if "hero" in data and isinstance(data["hero"], dict):
+            if "title" in data["hero"] and isinstance(data["hero"]["title"], str) and data["hero"]["title"].strip():
+                data["hero"]["title"] = normalize_specialization_name(data["hero"]["title"], parent_program_name, uni_name)
+
+
     return slug, page_type, university_slug, parent_slug, data
+
 
 def save_base64_image(base64_str: str, dest_dir: Path, filename_prefix: str) -> str | None:
     import base64
@@ -756,11 +790,33 @@ async def parse_docx_endpoint(
             if result and isinstance(result, dict) and "payload" in result:
                 payload = result["payload"]
                 if isinstance(payload, dict):
-                    from ingestion.extractor import extract_acf
+                    from ingestion.extractor import extract_acf, classify_fee_plans
                     local_acf = extract_acf(blocks, detected_type, {})
                     
+                    # Run classifier on micro-pipeline's fee_plans if it is a course
+                    if detected_type == "course":
+                        micro_fee_plans = payload.get("fee_plans")
+                        if isinstance(micro_fee_plans, list) and micro_fee_plans:
+                            classified_plans, detected_specs = classify_fee_plans(micro_fee_plans)
+                            payload["fee_plans"] = classified_plans
+                            if detected_specs:
+                                existing_specs = payload.get("detected_specializations") or []
+                                for spec in detected_specs:
+                                    if spec not in existing_specs:
+                                        existing_specs.append(spec)
+                                payload["detected_specializations"] = existing_specs
+
                     # Fill missing/empty keys from the local extraction layer
                     for key, val in local_acf.items():
+                        if key == "detected_specializations" and detected_type == "course":
+                            if val:
+                                existing_specs = payload.get("detected_specializations") or []
+                                for spec in val:
+                                    if spec not in existing_specs:
+                                        existing_specs.append(spec)
+                                payload["detected_specializations"] = existing_specs
+                            continue
+
                         curr_val = payload.get(key)
                         is_empty = (
                             curr_val is None or 
@@ -883,6 +939,116 @@ async def remap_parent_endpoint(req: RemapParentRequest):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+class GenerateSpecializationStubRequest(BaseModel):
+    university_slug: str
+    spec_name: str
+    parent_course_slug: str
+
+
+@app.post("/generate-specialization-stub")
+async def generate_specialization_stub_endpoint(req: GenerateSpecializationStubRequest):
+    try:
+        import re
+        from workspace.manager import save_page, resolve_page_dir
+        from workspace.compiler import compile_workspace
+        from core.router import render_resolved
+
+        # 1. Clean inputs
+        uni_slug = req.university_slug.lower().strip()
+        spec_name = req.spec_name.strip()
+        parent_slug = req.parent_course_slug.lower().strip()
+
+        # 2. Derive specialization slug
+        spec_slugified = re.sub(r"[^a-z0-9]+", "-", spec_name.lower()).strip("-")
+        spec_slug = f"{uni_slug}-{spec_slugified}"
+
+        # 3. Inherit defaults from parent course if possible
+        course_dir = resolve_page_dir(uni_slug, "course", parent_slug)
+        course_json_path = course_dir / "source.json"
+
+        uni_name = uni_slug.upper()
+        mode = "100% Online"
+        duration = "2 Years"
+        naac_grade = None
+        ugc_status = None
+        parent_program_name = None
+
+        if course_json_path.exists():
+            try:
+                import json
+                course_data = json.loads(course_json_path.read_text(encoding="utf-8"))
+                c_raw = course_data.get("data", {})
+                uni_name = c_raw.get("university_name") or uni_name
+                mode = c_raw.get("mode") or mode
+                duration = c_raw.get("duration") or duration
+                naac_grade = c_raw.get("naac_grade")
+                ugc_status = c_raw.get("ugc_status")
+                names = [c_raw.get("program_name"), c_raw.get("course_name"), c_raw.get("title")]
+                parent_program_name = " ".join(filter(None, names))
+            except Exception:
+                pass
+
+        if not parent_program_name:
+            parent_program_name = parent_slug.replace("-", " ").title()
+
+
+        # Clean the spec name using the normalization helper
+        from core.utils import normalize_specialization_name
+        cleaned_name = normalize_specialization_name(spec_name, parent_program_name, uni_name)
+
+
+        # Prepare source JSON
+        source_json = {
+            "spec_name": cleaned_name,
+            "university_name": uni_name,
+            "mode": mode,
+            "duration": duration,
+            "total_fee": "",
+            "hero_description": f"Boost your career with an online specialization in {cleaned_name} from {uni_name}.",
+            "about_content": f"<p>The specialization in {cleaned_name} is designed to equip you with the advanced skills and knowledge needed for high-growth roles in this domain.</p>",
+            "hero_image_url": "/Assets/images/default-spec.jpg",
+            "hero_image_alt": f"Online specialization in {cleaned_name}",
+        }
+        if naac_grade:
+            source_json["naac_grade"] = naac_grade
+        if ugc_status:
+            source_json["ugc_status"] = ugc_status
+
+        # Prepare dummy/stub rendered html
+        resolved = {
+            "slug": spec_slug,
+            "page_type": "specialization",
+            "university_slug": uni_slug,
+            "parent_slug": parent_slug,
+            "raw": source_json,
+        }
+
+        html = render_resolved(resolved, standalone=True)
+
+        # Save stub page
+        result = save_page(
+            university_slug=uni_slug,
+            page_type="specialization",
+            slug=spec_slug,
+            source_json=source_json,
+            rendered_html=html,
+            parent_slug=parent_slug
+        )
+
+        # Run compile to build the compiled html output and update the sibling specs cache
+        compile_workspace(uni_slug)
+
+        return {
+            "slug": spec_slug,
+            "parent_slug": parent_slug,
+            "status": "created"
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Workspace endpoints
 # ──────────────────────────────────────────────────────────────────────────────
@@ -946,6 +1112,7 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
     """
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        acf_data.pop("detected_specializations", None)
         
         # 1. Validate required images before compile/save
         required_slots = {

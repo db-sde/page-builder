@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ingestAcf, previewHtml, detectParent, remapParent } from '../api';
+import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree } from '../api';
 import FieldHealthPanel from './FieldHealthPanel';
 import AddFieldModal from './AddFieldModal';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
@@ -88,6 +88,81 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [showParentDropdown, setShowParentDropdown] = useState(false);
   const [parentRemapping, setParentRemapping] = useState(false);
   const [parentError, setParentError] = useState('');
+
+  // ── Detected Specializations state (course only) ─────────────────────────
+  const [workspaceSpecs, setWorkspaceSpecs] = useState([]);
+  const [specStates, setSpecStates] = useState({});
+
+  useEffect(() => {
+    if (session.page_type !== 'course' || !session.university_slug) return;
+    getWorkspaceTree(session.university_slug)
+      .then(tree => {
+        if (tree && tree.specializations) {
+          setWorkspaceSpecs(tree.specializations);
+        }
+      })
+      .catch(err => console.warn('Failed to load workspace specializations:', err));
+  }, [session.page_type, session.university_slug]);
+
+  const handleExecuteSpecAction = async (specName) => {
+    const currentState = specStates[specName] || { action: 'skip' };
+    
+    setSpecStates(prev => ({
+      ...prev,
+      [specName]: { ...currentState, loading: true, error: '' }
+    }));
+
+    try {
+      if (currentState.action === 'generate') {
+        const result = await generateSpecializationStub(
+          session.university_slug,
+          specName,
+          session.slug
+        );
+        setSpecStates(prev => ({
+          ...prev,
+          [specName]: {
+            ...currentState,
+            loading: false,
+            completed: true,
+            slug: result.slug
+          }
+        }));
+      } else if (currentState.action === 'link') {
+        if (!currentState.selectedSlug) {
+          throw new Error('Please select an existing specialization page to link');
+        }
+        await remapParent(
+          session.university_slug,
+          currentState.selectedSlug,
+          session.slug
+        );
+        setSpecStates(prev => ({
+          ...prev,
+          [specName]: {
+            ...currentState,
+            loading: false,
+            completed: true
+          }
+        }));
+      }
+      
+      // Refresh specs listing
+      const tree = await getWorkspaceTree(session.university_slug);
+      if (tree && tree.specializations) {
+        setWorkspaceSpecs(tree.specializations);
+      }
+    } catch (err) {
+      setSpecStates(prev => ({
+        ...prev,
+        [specName]: {
+          ...currentState,
+          loading: false,
+          error: err.response?.data?.detail || err.message || 'Operation failed'
+        }
+      }));
+    }
+  };
 
   useEffect(() => {
     if (session.page_type !== 'specialization') return;
@@ -264,6 +339,124 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         page_type={session.page_type}
         onAddField={handleAddField}
       />
+
+      {/* ── Detected Academic Specializations Panel (course only) ── */}
+      {session.page_type === 'course' && session.acf_data?.detected_specializations?.length > 0 && (
+        <div className="card" style={{ marginBottom: 20, borderLeft: '4px solid #4f46e5' }}>
+          <div className="card-body" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                🔍 Detected Academic Specializations
+              </div>
+              <span className="badge" style={{ background: '#e0e7ff', color: '#4338ca', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, height: 'fit-content' }}>
+                {session.acf_data.detected_specializations.length} found
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
+              The parser detected these academic specializations from the document tables. Generate new pages, link them to existing pages, or skip them.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {session.acf_data.detected_specializations.map((spec) => {
+                const state = specStates[spec] || { action: 'skip' };
+                const isCompleted = state.completed;
+                
+                return (
+                  <div key={spec} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.2fr 1.8fr 1fr',
+                    gap: 16,
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    background: isCompleted ? '#f0fdf4' : '#f8fafc',
+                    borderColor: isCompleted ? '#bbf7d0' : undefined,
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: 14 }}>
+                        {spec}
+                      </div>
+                      {isCompleted && (
+                        <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>✓</span> {state.action === 'generate' ? 'Page Generated' : 'Linked Successfully'}
+                        </div>
+                      )}
+                      {state.error && (
+                        <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 600, marginTop: 2 }}>
+                          ⚠ {state.error}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {!isCompleted ? (
+                        <>
+                          <select
+                            className="input"
+                            value={state.action}
+                            onChange={(e) => setSpecStates(prev => ({
+                              ...prev,
+                              [spec]: { ...prev[spec], action: e.target.value }
+                            }))}
+                            style={{ maxWidth: 150, fontSize: 12.5, padding: '4px 8px' }}
+                          >
+                            <option value="skip">Skip / Ignore</option>
+                            <option value="generate">Generate Page</option>
+                            <option value="link">Link Existing</option>
+                          </select>
+
+                          {state.action === 'link' && (
+                            <select
+                              className="input"
+                              value={state.selectedSlug || ''}
+                              onChange={(e) => setSpecStates(prev => ({
+                                ...prev,
+                                [spec]: { ...prev[spec], selectedSlug: e.target.value }
+                              }))}
+                              style={{ flex: 1, fontSize: 12.5, padding: '4px 8px', fontFamily: 'var(--font-code)' }}
+                            >
+                              <option value="">— select spec —</option>
+                              {workspaceSpecs.map(wsSpec => (
+                                <option key={wsSpec.slug} value={wsSpec.slug}>
+                                  {wsSpec.slug.replace(`${session.university_slug}-`, '').replace(/-/g, ' ').toUpperCase()} ({wsSpec.slug})
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'var(--font-code)' }}>
+                          slug: {state.slug || state.selectedSlug}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {!isCompleted && state.action !== 'skip' && (
+                        <button
+                          className="btn btn-primary"
+                          disabled={state.loading || (state.action === 'link' && !state.selectedSlug)}
+                          onClick={() => handleExecuteSpecAction(spec)}
+                          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 6 }}
+                        >
+                          {state.loading ? 'Processing…' : state.action === 'generate' ? 'Generate' : 'Link'}
+                        </button>
+                      )}
+                      {isCompleted && (
+                        <span style={{ fontSize: 12.5, color: '#166534', fontWeight: 600 }}>
+                          Done
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Parent Course Mapping Panel (specialization only) ── */}
       {session.page_type === 'specialization' && (

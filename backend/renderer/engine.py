@@ -426,6 +426,11 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         specialization_name=spec_name
     )
     
+    if "parent_program_name" not in ctx:
+        ctx["parent_program_name"] = prog_name
+    if "parent_course_name" not in ctx:
+        ctx["parent_course_name"] = prog_name
+
     ctx["site"] = ctx.get("site") or {}
 
     # Pre-serialize variables to JSON for the Component script block
@@ -458,57 +463,23 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["highlights_json"] = json.dumps(h_list, ensure_ascii=False)
     
     # 4. Specs (items)
-    # Priority: workspace specs injected by compiler (via transformer) → source data items → hardcoded fallback
+    # ONLY use real workspace specializations filtered by parent_course_slug.
+    # No fallback to raw specialization field or hardcoded placeholders.
     workspace_specs_ctx = ctx.get("_workspace_specs") or []
-    if workspace_specs_ctx:
-        # Build spec cards from real workspace specialization records (capped at 6)
-        spec_list = []
-        for sp in workspace_specs_ctx[:6]:
-            if not isinstance(sp, dict):
-                continue
-            data = sp.get("data", {})
-            sp_slug = sp.get("slug", "")
-            spec_list.append({
-                "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
-                "d": data.get("hero_description") or data.get("description") or "",
-                "href": f"{sp_slug}.html",
-                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
-            })
-    else:
-        specs_raw = (ctx.get("specializations") or {}).get("items", []) or []
-        if isinstance(specs_raw, str):
-            specs_raw = [{"t": specs_raw, "d": ""}]
-        elif isinstance(specs_raw, list):
-            new_s = []
-            for s in specs_raw:
-                if isinstance(s, str):
-                    new_s.append({"t": s, "d": ""})
-                elif isinstance(s, dict):
-                    new_s.append(s)
-            specs_raw = new_s
-        spec_list = [
-            {
-                "t": s.get("name") or s.get("t", ""),
-                "d": s.get("description") or s.get("d", ""),
-                "href": (
-                    s.get("href")
-                    if s.get("href", "").startswith(("#", "/")) or ".html" in s.get("href", "")
-                    else (f"{uni_slug}-" + s.get("href", "").strip("/").replace("page/", "") + ".dc.html" if s.get("href") else "#")
-                )
-            }
-            for s in specs_raw[:6]
-        ]
-        # Hardcoded fallback — only used when workspace is truly empty
-        if not spec_list:
-            spec_list = [
-                {"t": "Marketing Management", "d": "Brand, digital & consumer strategy", "href": "#"},
-                {"t": "Financial Management", "d": "Corporate finance & valuation", "href": "#"},
-                {"t": "Human Resource Management", "d": "Talent, OB & HR analytics", "href": "#"},
-                {"t": "Operations & Supply Chain", "d": "Logistics, lean & procurement", "href": "#"},
-                {"t": "Business Analytics", "d": "Data-driven decision making", "href": "#"},
-                {"t": "IT & Systems Management", "d": "Digital transformation & ERP", "href": "#"},
-            ]
+    spec_list = []
+    for sp in workspace_specs_ctx[:6]:
+        if not isinstance(sp, dict):
+            continue
+        data = sp.get("data", {})
+        sp_slug = sp.get("slug", "")
+        spec_list.append({
+            "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
+            "d": data.get("hero_description") or data.get("description") or "",
+            "href": f"{sp_slug}.html",
+            "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
+        })
     ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
+    ctx["specs"] = spec_list
     
     # 5. Fees
     fee_plans = (ctx.get("fees") or {}).get("plans", []) or []
