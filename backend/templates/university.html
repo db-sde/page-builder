@@ -252,7 +252,6 @@
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#FF5C35;text-transform:uppercase">Why {{ university_name }} Online</div>
         <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.15">A legacy of excellence, reimagined for the way you learn today</h2>
         <p style="color:#6E6A78;font-size:15px;margin-top:14px">Live weekend classes, lifetime recordings, real business cases and a career-services team that gets you hired — all backed by one of India's most respected management institutions.</p>
-        <a href="{{ course_href }}" style="display:inline-block;margin-top:20px;background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14.5px;padding:13px 24px;border-radius:9px">Explore the Online MBA</a>
       </div>
       <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <sc-for list="{{ '{{' }} features {{ '}}' }}" as="f" hint-placeholder-count="4">
@@ -278,7 +277,7 @@
         <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:24px;position:relative">
           <div style="font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#EFEBF8">{{ '{{' }} s.n {{ '}}' }}</div>
           <div style="font-size:16.5px;font-weight:800;color:#1C1B22;margin-top:8px">{{ '{{' }} s.t {{ '}}' }}</div>
-          <div style="font-size:13.5px;color:#6E6A78;margin-top:6px;line-height:1.55">{{ '{{' }} s.d {{ '}}' }}</div>
+          <div style="font-size:13.5px;color:#6E6A78;margin-top:6px;line-height:1.55;white-space:pre-line">{{ '{{' }} s.d {{ '}}' }}</div>
         </div>
       </sc-for>
     </div>
@@ -491,16 +490,62 @@ class Component extends DCLogic {
 
     // ---- Admission process ----
     const rawAdmission = {{ steps_json | safe }};
-    const admission = rawAdmission.map(s => {
+    const processedSteps = [];
+    const reMatchNumberedStep = (str) => {
+      return /^(Step\s*\d+|\d+[\.\s:]+)/i.test(str.trim());
+    };
+    
+    for (let i = 0; i < rawAdmission.length; i++) {
+      const s = rawAdmission[i];
+      const text = s.t.trim();
+      
+      // Merge subsequent bullet list items if this is a header card (ends in colon)
+      if (text.endsWith(':') && text.length < 40) {
+        const headerTitle = text.slice(0, -1).trim();
+        const bullets = [];
+        let j = i + 1;
+        while (j < rawAdmission.length) {
+          const nextItem = rawAdmission[j];
+          if (reMatchNumberedStep(nextItem.t)) {
+            break;
+          }
+          bullets.push(nextItem.t.trim());
+          j++;
+        }
+        if (bullets.length > 0) {
+          processedSteps.push({
+            n: String(processedSteps.length + 1),
+            t: headerTitle,
+            d: bullets.map(b => "• " + b).join("\n")
+          });
+          i = j - 1;
+          continue;
+        }
+      }
+      
+      // Standard splitting logic
       let t = "Step " + s.n;
       let d = s.t;
       const parts = s.t.split(/[:\.]/);
       if (parts.length > 1 && parts[0].length < 30) {
-        t = parts[0].trim();
-        d = s.t.slice(parts[0].length + 1).trim();
+        const sliced_d = s.t.slice(parts[0].length + 1).trim();
+        if (sliced_d) {
+          t = parts[0].trim();
+          d = sliced_d;
+        }
       }
-      return { n: s.n.padStart(2, '0'), t, d };
-    });
+      processedSteps.push({
+        n: String(processedSteps.length + 1),
+        t,
+        d
+      });
+    }
+    
+    const admission = processedSteps.map(s => ({
+      n: s.n.padStart(2, '0'),
+      t: s.t,
+      d: s.d
+    }));
 
     // ---- Fees & financing ----
     const banks = {{ banks_json | safe }};

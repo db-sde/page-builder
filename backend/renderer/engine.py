@@ -374,12 +374,17 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             spec_name = slug_val.replace("-", " ").title()
 
     # Centralized lead URL — no contact/lead forms in this project
+    # Centralized lead URL — only pass program_name/specialization_name on course/specialization pages
     spec_slug_arg = resolved.get("slug") if page_type == "specialization" else None
     course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
+    
+    send_prog_name = prog_name if page_type in ("course", "specialization") else None
+    send_spec_name = spec_name if page_type == "specialization" else None
+
     ctx["lead_url"] = build_lead_url(
         uni_slug, course_slug_val, source=page_type, spec_slug=spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     
     # Inject lead URLs context variables
@@ -392,38 +397,38 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # Inject action-specific encoded lead URLs
     ctx["lead_url_apply"] = build_lead_url(
         uni_slug, course_slug_val, "apply", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_brochure"] = build_lead_url(
         uni_slug, course_slug_val, "brochure", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_enquiry"] = build_lead_url(
         uni_slug, course_slug_val, "enquiry", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_fees"] = build_lead_url(
         uni_slug, course_slug_val, "fees", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_counselling"] = build_lead_url(
         uni_slug, course_slug_val, "counselling", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_syllabus"] = build_lead_url(
         uni_slug, course_slug_val, "syllabus", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     ctx["lead_url_whatsapp"] = build_lead_url(
         uni_slug, course_slug_val, "whatsapp", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=prog_name,
-        specialization_name=spec_name
+        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
+        specialization_name=send_spec_name
     )
     
     if "parent_program_name" not in ctx:
