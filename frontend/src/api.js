@@ -204,3 +204,13 @@ export async function uploadBranding(universitySlug, logoFile, faviconFile) {
   return res.data;
 }
 
+/**
+ * Retrieve source.json for a specific page.
+ */
+export async function getWorkspacePage(universitySlug, pageType, slug, parentSlug = null) {
+  let url = `${BASE}/workspaces/${universitySlug}/pages/${pageType}/${slug}`;
+  if (parentSlug) url += `?parent_slug=${parentSlug}`;
+  const res = await axios.get(url);
+  return res.data;
+}
+

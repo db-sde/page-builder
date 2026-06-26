@@ -1334,6 +1334,43 @@ async def upload_branding_endpoint(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/workspaces/{university_slug}/pages/{page_type}/{slug}")
+async def get_workspace_page_endpoint(
+    university_slug: str,
+    page_type: str,
+    slug: str,
+    parent_slug: Optional[str] = None
+):
+    """Retrieve a single page's source.json content for editing in frontend."""
+    try:
+        from workspace.manager import resolve_page_dir, read_source
+        page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
+        source_path = page_dir / "source.json"
+        
+        if not source_path.exists():
+            # Specialization flat directory search fallback
+            if page_type == "specialization":
+                for p in (WORKSPACES_ROOT / university_slug / "Specializations").glob("*/source.json"):
+                    try:
+                        record = json.loads(p.read_text(encoding="utf-8"))
+                        if record.get("slug") == slug:
+                            return record
+                    except Exception:
+                        pass
+            raise HTTPException(status_code=404, detail="Page source.json not found")
+        
+        record = read_source(source_path)
+        if not record:
+            raise HTTPException(status_code=404, detail="Failed to read page source")
+        return record
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/workspace-tree")
 async def workspace_tree_endpoint(university_slug: str):
     """

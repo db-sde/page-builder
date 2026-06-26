@@ -99,7 +99,7 @@ export default function App() {
       {/* Main workspace */}
       <main className="main-content">
         <div style={{ maxWidth: step === 4 ? 1400 : 960, margin: '0 auto', transition: 'max-width 0.3s ease-in-out' }}>
-          {step === 1 && <Screen0Workspace session={session} updateSession={updateSession} onNext={() => setStep(2)} />}
+          {step === 1 && <Screen0Workspace session={session} updateSession={updateSession} onNext={() => setStep(2)} setStep={setStep} />}
           {step === 2 && <Screen1Upload session={session} updateSession={updateSession} onNext={() => setStep(3)} />}
           {step === 3 && <Screen2Review session={session} updateSession={updateSession} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
           {step === 4 && <Screen3Preview session={session} updateSession={updateSession} onBack={() => setStep(3)} />}

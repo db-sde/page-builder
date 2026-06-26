@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding } from '../api';
+import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage } from '../api';
 
-export default function Screen0Workspace({ session, updateSession, onNext }) {
+export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -218,6 +218,33 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
       setBrandingError(err.response?.data?.detail || err.message || 'Failed to upload branding.');
     } finally {
       setBrandingUploading(false);
+    }
+  };
+
+  const handleEditPage = async (pageType, slug, parentSlug = null) => {
+    try {
+      setError('');
+      const record = await getWorkspacePage(selectedSlug, pageType, slug, parentSlug);
+      const acf_data = record.data || record;
+      const data = { ...acf_data };
+      delete data.slug;
+      delete data.page_type;
+      delete data.university_slug;
+      delete data.parent_slug;
+
+      updateSession({
+        workspace: selectedWorkspace,
+        university_slug: selectedSlug,
+        slug: record.slug || slug,
+        page_type: record.page_type || pageType,
+        parent_slug: record.parent_slug || parentSlug,
+        acf_data: data,
+        raw_acf_data: acf_data,
+        images: {}
+      });
+      setStep(3);
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to load page content.');
     }
   };
 
@@ -658,7 +685,13 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                           {treeData.university ? (
                             <div style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <span>🏛️ {treeData.university.slug}.html</span>
-                              <span style={{ fontSize: 10, color: 'var(--color-success)' }}>✓ Live</span>
+                              <button 
+                                onClick={() => handleEditPage('university', treeData.university.slug)}
+                                className="btn btn-secondary" 
+                                style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                              >
+                                Edit ✏️
+                              </button>
                             </div>
                           ) : (
                             <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', paddingLeft: 4 }}>
@@ -678,16 +711,28 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                                 <div key={course.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}>
                                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <span>🎓 {course.slug}</span>
-                                    {course.has_html && <span style={{ fontSize: 9, color: 'var(--color-success)' }}>✓ HTML</span>}
+                                    <button 
+                                      onClick={() => handleEditPage('course', course.slug)}
+                                      className="btn btn-secondary" 
+                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                    >
+                                      Edit ✏️
+                                    </button>
                                   </div>
                                   
                                   {/* Nest specs */}
                                   {course.specializations && course.specializations.length > 0 && (
                                     <div style={{ borderLeft: '1.5px solid var(--color-border)', marginLeft: 8, paddingLeft: 8, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                       {course.specializations.map(spec => (
-                                        <div key={spec.slug} style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div key={spec.slug} style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                                           <span>├─ 🔬 {spec.slug.replace(`${selectedSlug}-`, '')}</span>
-                                          {spec.has_html && <span style={{ fontSize: 9, color: 'var(--color-success)' }}>✓</span>}
+                                          <button 
+                                            onClick={() => handleEditPage('specialization', spec.slug, course.slug)}
+                                            className="btn btn-secondary" 
+                                            style={{ fontSize: 9, padding: '2px 6px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                          >
+                                            Edit ✏️
+                                          </button>
                                         </div>
                                       ))}
                                     </div>
@@ -712,7 +757,13 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                               {treeData.blogs.map(blog => (
                                 <div key={blog.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <span>✍️ {blog.slug}</span>
-                                  {blog.has_html && <span style={{ fontSize: 9, color: 'var(--color-success)' }}>✓ HTML</span>}
+                                  <button 
+                                    onClick={() => handleEditPage('blog', blog.slug)}
+                                    className="btn btn-secondary" 
+                                    style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                  >
+                                    Edit ✏️
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -733,7 +784,13 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                               {treeData.specializations.map(sp => (
                                 <div key={sp.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <span>🔬 {sp.slug}{sp.parent_slug ? <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10 }}> ← {sp.parent_slug}</span> : ''}</span>
-                                  {sp.has_html && <span style={{ fontSize: 9, color: 'var(--color-success)' }}>✓</span>}
+                                  <button 
+                                    onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)}
+                                    className="btn btn-secondary" 
+                                    style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                  >
+                                    Edit ✏️
+                                  </button>
                                 </div>
                               ))}
                             </div>
