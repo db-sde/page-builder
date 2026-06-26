@@ -232,6 +232,21 @@ def save_base64_image(base64_str: str, dest_dir: Path, filename_prefix: str) -> 
     dest_path.write_bytes(data)
     return f"/assets/images/{filename}"
 
+
+def image_prefix_for_slot(page_type: str, slug: str, slot: str) -> str:
+    if page_type == "university":
+        return "university-hero" if slot == "hero_image_url" else f"university-{slot}"
+    if page_type == "course":
+        if slot == "hero_image_url":
+            return f"{slug}-hero"
+        if slot == "certificate_image_url":
+            return f"{slug}-certificate"
+    if page_type == "specialization":
+        return f"{slug}-hero" if slot == "hero_image_url" else f"{slug}-{slot}"
+    if page_type == "blog":
+        return f"blog-{slug}-hero" if slot in ("hero_image_url", "featured_image_url") else f"blog-{slug}-{slot}"
+    return f"{slug}-{slot}"
+
 @app.get("/assets/images/{filename}")
 async def get_asset_image(filename: str):
     from fastapi.responses import FileResponse
@@ -630,6 +645,8 @@ async def parse_docx_endpoint(
                 "marketing", "finance", "human resource", "hr-", "hr ", "human-resource",
                 "operations", "banking", "insurance", "retail", "supply chain", "logistics", 
                 "analytics", "data science", "information technology", "digital marketing", 
+                "business management", "financial management", "applied finance",
+                "leadership", "strategy", "operations", "supply chain", "management",
                 "specialisation", "specialization"
             ]
             
@@ -640,6 +657,8 @@ async def parse_docx_endpoint(
                 scores["course"] += 3
             if any(w in filename_lower for w in ["specialization", "spec"]) or any(w in filename_lower for w in spec_keywords):
                 scores["specialization"] += 4
+            if " in " in filename_lower and any(w in filename_lower for w in ["mba", "bba", "mca", "bca"]):
+                scores["specialization"] += 5
             if any(w in filename_lower for w in ["blog", "post", "article", "guide", "how-to", "read", "career-path", "salary-after"]):
                 scores["blog"] += 5
                 
@@ -786,11 +805,12 @@ async def parse_docx_endpoint(
             # Route to the micro-pipeline (passing the original file bytes)
             result = forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
             
-            # Hybrid Fallback Stage:
+            # Dual Extraction Validation Stage:
             if result and isinstance(result, dict) and "payload" in result:
                 payload = result["payload"]
                 if isinstance(payload, dict):
                     from ingestion.extractor import extract_acf, classify_fee_plans
+                    from ingestion.comparison import merge_with_micro_primary
                     local_acf = extract_acf(blocks, detected_type, {})
                     
                     # Run classifier on micro-pipeline's fee_plans if it is a course
@@ -806,25 +826,20 @@ async def parse_docx_endpoint(
                                         existing_specs.append(spec)
                                 payload["detected_specializations"] = existing_specs
 
-                    # Fill missing/empty keys from the local extraction layer
-                    for key, val in local_acf.items():
-                        if key == "detected_specializations" and detected_type == "course":
-                            if val:
-                                existing_specs = payload.get("detected_specializations") or []
-                                for spec in val:
-                                    if spec not in existing_specs:
-                                        existing_specs.append(spec)
-                                payload["detected_specializations"] = existing_specs
-                            continue
+                    merged_payload, comparison_report = merge_with_micro_primary(payload, local_acf, detected_type)
 
-                        curr_val = payload.get(key)
-                        is_empty = (
-                            curr_val is None or 
-                            curr_val == "" or 
-                            (isinstance(curr_val, str) and curr_val.strip().lower() in ("na", "n/a", "none", "null", "-", "—"))
-                        )
-                        if is_empty and val:
-                            payload[key] = val
+                    if detected_type == "course":
+                        local_specs = local_acf.get("detected_specializations") or []
+                        if local_specs:
+                            existing_specs = merged_payload.get("detected_specializations") or []
+                            for spec in local_specs:
+                                if spec not in existing_specs:
+                                    existing_specs.append(spec)
+                            merged_payload["detected_specializations"] = existing_specs
+
+                    result["payload"] = merged_payload
+                    result["comparison_report"] = comparison_report
+                    result["local_payload"] = local_acf
 
         from core.router import normalize_value
         return normalize_value(result)
@@ -1141,52 +1156,18 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
         assets_dir = WORKSPACES_ROOT / university_slug / "Assets" / "images"
         assets_dir.mkdir(parents=True, exist_ok=True)
         
-        # Process from req.images
-        for slot, img_data in req.images.items():
-            if img_data:
-                if page_type == "university":
-                    prefix = "university-hero"
-                elif page_type == "course":
-                    if slot == "hero_image_url":
-                        prefix = f"{slug}-hero"
-                    elif slot == "certificate_image_url":
-                        prefix = f"{slug}-certificate"
-                    else:
-                        prefix = f"{slug}-{slot}"
-                elif page_type == "specialization":
-                    prefix = f"{slug}-hero"
-                elif page_type == "blog":
-                    prefix = f"blog-{slug}-hero"
-                else:
-                    prefix = f"{slug}-{slot}"
-                
-                local_path = save_base64_image(img_data, assets_dir, prefix)
-                if local_path:
-                    acf_data[slot] = local_path
-                    
-        # Process from acf_data directly if base64 exists there
-        for slot in ["hero_image_url", "certificate_image_url"]:
-            img_data = acf_data.get(slot)
-            if img_data and img_data.startswith("data:image/"):
-                if page_type == "university":
-                    prefix = "university-hero"
-                elif page_type == "course":
-                    if slot == "hero_image_url":
-                        prefix = f"{slug}-hero"
-                    elif slot == "certificate_image_url":
-                        prefix = f"{slug}-certificate"
-                    else:
-                        prefix = f"{slug}-{slot}"
-                elif page_type == "specialization":
-                    prefix = f"{slug}-hero"
-                elif page_type == "blog":
-                    prefix = f"blog-{slug}-hero"
-                else:
-                    prefix = f"{slug}-{slot}"
-                
-                local_path = save_base64_image(img_data, assets_dir, prefix)
-                if local_path:
-                    acf_data[slot] = local_path
+        image_slots = set(req.images.keys()) | {
+            "hero_image_url", "certificate_image_url", "featured_image_url", "og_image_url"
+        }
+
+        for slot in image_slots:
+            img_data = req.images.get(slot) or acf_data.get(slot)
+            if not img_data:
+                continue
+            prefix = image_prefix_for_slot(page_type, slug, slot)
+            local_path = save_base64_image(img_data, assets_dir, prefix)
+            if local_path:
+                acf_data[slot] = local_path
 
         # Prepare for rendering
         resolved = {
@@ -1455,4 +1436,3 @@ if __name__ == "__main__":
     print(f"🚀 Page Engine server running at: http://{host}:{port}")
     print(f"=======================================================\n")
     uvicorn.run("main:app", host=host, port=port, reload=True)
-

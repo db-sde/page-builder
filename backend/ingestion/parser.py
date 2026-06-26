@@ -1,5 +1,7 @@
 import re
 from docx import Document
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 from docx.oxml.ns import qn
 
 HEADING_MAP = {1: "h1", 2: "h2", 3: "h3", 4: "h4"}
@@ -15,14 +17,18 @@ def clean_text(text: str) -> str:
     text = re.sub(r"^Copy of\s+", "", text, flags=re.IGNORECASE)
     return text.strip()
 
-def parse_docx(filepath: str) -> list[dict]:
-    doc = Document(filepath)
-    blocks = []
+def iter_document_blocks(doc):
+    for child in doc.element.body.iterchildren():
+        if child.tag == qn("w:p"):
+            yield Paragraph(child, doc)
+        elif child.tag == qn("w:tbl"):
+            yield Table(child, doc)
 
-    for para in doc.paragraphs:
+
+def _paragraph_to_block(para) -> dict | None:
         text = clean_text(para.text)
         if not text:
-            continue
+            return None
 
         style_name = para.style.name or ""
         pPr = para._p.pPr
@@ -34,24 +40,42 @@ def parse_docx(filepath: str) -> list[dict]:
 
         if "Heading" in style_name:
             level = int(style_name.split()[-1]) if style_name.split()[-1].isdigit() else 1
-            blocks.append({
+            return {
                 "type": HEADING_MAP.get(level, "h2"),
                 "text": text
-            })
+            }
         elif is_list or "List" in style_name or text.startswith(("•", "▪", "●", "○", "■", "- ", "* ")):
-            blocks.append({"type": "list_item", "text": text})
+            return {"type": "list_item", "text": text}
         elif para.runs and any(r.bold for r in para.runs if r.text.strip()):
-            blocks.append({"type": "bold_para", "text": text})
+            return {"type": "bold_para", "text": text}
         else:
-            blocks.append({"type": "paragraph", "text": text})
+            return {"type": "paragraph", "text": text}
 
-    for table in doc.tables:
-        rows = []
-        for row in table.rows:
-            cells = [cell.text.strip() for cell in row.cells]
-            if any(cells):
-                rows.append(cells)
-        if rows:
-            blocks.append({"type": "table", "rows": rows})
+
+def _table_to_block(table) -> dict | None:
+    rows = []
+    for row in table.rows:
+        cells = [clean_text(cell.text) for cell in row.cells]
+        if any(cells):
+            rows.append(cells)
+    if rows:
+        return {"type": "table", "rows": rows}
+    return None
+
+
+def parse_docx(filepath: str) -> list[dict]:
+    doc = Document(filepath)
+    blocks = []
+
+    for item in iter_document_blocks(doc):
+        if isinstance(item, Paragraph):
+            block = _paragraph_to_block(item)
+        elif isinstance(item, Table):
+            block = _table_to_block(item)
+        else:
+            block = None
+
+        if block:
+            blocks.append(block)
 
     return blocks

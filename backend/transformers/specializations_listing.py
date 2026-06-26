@@ -66,9 +66,22 @@ class SpecializationsListingTransformer:
 
         spec_groups = list(groups_map.values())
 
+        flat_specs = []
+        for g in spec_groups:
+            for sp in g["specs"]:
+                flat_specs.append({
+                    "name": sp["name"],
+                    "slug": sp["slug"],
+                    "fee": sp["fee"],
+                    "duration": sp["duration"],
+                    "description": sp["description"],
+                    "course_name": g["course_name"]
+                })
+
         return {
-            "seo_title": f"{uni_name} MBA Specializations",
-            "meta_description": f"Browse all MBA specializations available at {uni_name}. Choose from marketing, finance, HR, analytics and more.",
+            "seo_title": f"{uni_name} Specializations",
+            "meta_description": f"Browse all online specializations available at {uni_name}. Choose from marketing, finance, HR, analytics and more.",
             "university_name": uni_name,
             "spec_groups": spec_groups,
+            "specs": flat_specs,
         }

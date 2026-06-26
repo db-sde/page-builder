@@ -15,6 +15,7 @@ export default function App() {
     parent_slug: '',
     acf_data: {},
     raw_acf_data: {},
+    comparison_report: null,
     images: {},
     context: null,
     htmlContent: null,
@@ -108,4 +109,3 @@ export default function App() {
     </div>
   );
 }
-

@@ -465,21 +465,22 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # 4. Specs (items)
     # ONLY use real workspace specializations filtered by parent_course_slug.
     # No fallback to raw specialization field or hardcoded placeholders.
-    workspace_specs_ctx = ctx.get("_workspace_specs") or []
-    spec_list = []
-    for sp in workspace_specs_ctx[:6]:
-        if not isinstance(sp, dict):
-            continue
-        data = sp.get("data", {})
-        sp_slug = sp.get("slug", "")
-        spec_list.append({
-            "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
-            "d": data.get("hero_description") or data.get("description") or "",
-            "href": f"{sp_slug}.html",
-            "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
-        })
-    ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
-    ctx["specs"] = spec_list
+    if page_type != "specializations_listing":
+        workspace_specs_ctx = ctx.get("_workspace_specs") or []
+        spec_list = []
+        for sp in workspace_specs_ctx[:6]:
+            if not isinstance(sp, dict):
+                continue
+            data = sp.get("data", {})
+            sp_slug = sp.get("slug", "")
+            spec_list.append({
+                "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
+                "d": data.get("hero_description") or data.get("description") or "",
+                "href": f"{sp_slug}.html",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
+            })
+        ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
+        ctx["specs"] = spec_list
     
     # 5. Fees
     fee_plans = (ctx.get("fees") or {}).get("plans", []) or []
@@ -628,20 +629,35 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     stat_card = hero_dict.get("stat_card") or {}
     hero_title = hero_dict.get("title") or ""
     stat_value = stat_card.get("value") or ""
-    other_specs_list.append([hero_title, clean_fee(stat_value), True])
+    current_slug = ctx.get("slug") or ""
+    
+    other_specs_list.append({
+        "name": hero_title,
+        "fee": clean_fee(stat_value),
+        "cur": True,
+        "href": "",
+        "slug": current_slug
+    })
     for s in siblings:
-        other_specs_list.append([s.get("name") or "", clean_fee(s.get("fee") or ""), False])
+        other_specs_list.append({
+            "name": s.get("name") or "",
+            "fee": clean_fee(s.get("fee") or ""),
+            "cur": False,
+            "href": f"{s.get('slug')}.html" if s.get('slug') else "",
+            "slug": s.get("slug") or ""
+        })
     if len(other_specs_list) <= 1:
         other_specs_list = [
-            ["Marketing Management", "₹2,00,000", True],
-            ["Financial Management", "₹2,00,000", False],
-            ["Human Resource Management", "₹2,00,000", False],
-            ["Operations & Supply Chain", "₹2,00,000", False],
-            ["Business Analytics", "₹2,16,000", False],
-            ["IT & Systems Management", "₹2,00,000", False],
-            ["International Business", "₹2,08,000", False]
+            {"name": "Marketing Management", "fee": "₹2,00,000", "cur": True, "href": "", "slug": ""},
+            {"name": "Financial Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+            {"name": "Human Resource Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+            {"name": "Operations & Supply Chain", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+            {"name": "Business Analytics", "fee": "₹2,16,000", "cur": False, "href": "", "slug": ""},
+            {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+            {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
         ]
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
+
 
     # University specific features, recruiters, financing, testimonials
     ctx["features_json"] = json.dumps([

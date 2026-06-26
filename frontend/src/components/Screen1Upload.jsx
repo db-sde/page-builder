@@ -15,7 +15,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = (acf_data, detectedType) => {
+  const processPayload = (acf_data, detectedType, comparisonReport = null) => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType;
     
@@ -72,7 +72,8 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       slug,
       page_type,
       university_slug,
-      parent_slug
+      parent_slug,
+      comparison_report: comparisonReport
     });
     onNext();
   };
@@ -89,7 +90,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     
     let payload = parsed.payload || parsed.data || parsed;
     let page_type = parsed.page_type || null;
-    processPayload(payload, page_type);
+    processPayload(payload, page_type, parsed.comparison_report || null);
   };
 
   const handleNextDocx = async () => {
@@ -106,7 +107,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         throw new Error('Failed to parse document or empty payload returned.');
       }
       await saveTempJson(res);
-      processPayload(res.payload, res.page_type);
+      processPayload(res.payload, res.page_type, res.comparison_report || null);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || err.message || 'Error occurred while calling the parser API.');
@@ -126,15 +127,6 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         setFile(selected);
       }
     }
-  };
-
-  const card = {
-    background: '#fff',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
-    padding: 28,
-    marginBottom: 20,
-    position: 'relative'
   };
 
   const label = {
@@ -374,4 +366,3 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     </div>
   );
 }
-

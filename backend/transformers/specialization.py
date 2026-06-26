@@ -140,10 +140,12 @@ class SpecializationTransformer(BaseTransformer):
                 {
                     "name": s["data"].get("spec_name", ""),
                     "fee": self.format_fee(s["data"].get("total_fee", "")),
-                    "href": f"/{s['slug']}"
+                    "href": f"{s['slug']}.html",
+                    "slug": s.get("slug")
                 }
                 for s in siblings
             ] or None,
+
 
             # --- Job profiles ---
             "jobs": raw.get("job_profiles") or None,

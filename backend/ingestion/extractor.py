@@ -159,6 +159,19 @@ def blocks_to_list(blocks: list[dict]) -> list[dict]:
             items.append({"text": clean_text})
     return items
 
+def _first_kv(kv: dict, keys: list[str]):
+    for key in keys:
+        val = kv.get(key)
+        if val:
+            return val
+    return None
+
+def _apply_kv_aliases(acf: dict, kv: dict, aliases: list[tuple[str, list[str]]]) -> None:
+    for target_key, kv_keys in aliases:
+        val = _first_kv(kv, kv_keys)
+        if val:
+            acf[target_key] = val
+
 def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
     sections = blocks_to_sections(blocks, page_type)
     acf = {}
@@ -212,12 +225,23 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
             kv[k] = v
 
     if page_type == "course":
-        # Extract metadata from KV if not already in acf/meta
-        for target_key, kv_keys in [
+        _apply_kv_aliases(acf, kv, [
             ("duration", ["duration"]),
             ("mode", ["mode"]),
             ("naac_grade", ["naac_grade"]),
             ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status"]),
+            ("aicte_status", ["aicte", "aicte_status", "aicte_approved_status"]),
+            ("eligibility", ["eligibility", "eligibility_criteria"]),
+            ("total_fee", ["total_fee", "fee", "fees", "program_fee"]),
+            ("fee", ["fee", "fees", "program_fee", "total_fee"]),
+            ("fee_note", ["fee_note", "admission_fee_note", "fees_note", "note"]),
+            ("admission_process", ["admission_process", "admissions_process"]),
+            ("syllabus", ["syllabus", "curriculum"]),
+            ("credits", ["credits", "total_credits"]),
+        ])
+
+        # Backwards-compatible aliases used by existing transformers.
+        for target_key, kv_keys in [
             ("total_fee", ["total_fee"]),
             ("emi_amount", ["emi", "emi_amount"]),
         ]:
@@ -257,13 +281,22 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["og_image_url"] = meta.get("og_image_url", None)
 
     elif page_type == "specialization":
-        # Extract metadata from KV if not already in acf/meta
-        for target_key, kv_keys in [
+        _apply_kv_aliases(acf, kv, [
+            ("spec_name", ["spec_name", "specialization_name", "title"]),
+            ("specialization_name", ["specialization_name", "spec_name", "title"]),
+            ("title", ["title", "specialization_name", "spec_name"]),
+            ("parent", ["parent", "parent_program", "program_name"]),
             ("duration", ["duration"]),
             ("mode", ["mode"]),
             ("naac_grade", ["naac_grade"]),
             ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status"]),
-            ("total_fee", ["total_fee"]),
+            ("eligibility", ["eligibility", "eligibility_criteria"]),
+            ("fees", ["fees", "fee", "total_fee", "program_fee"]),
+            ("total_fee", ["total_fee", "fees", "fee", "program_fee"]),
+        ])
+
+        # Backwards-compatible aliases used by existing transformers.
+        for target_key, kv_keys in [
             ("emi_amount", ["emi", "emi_amount"]),
         ]:
             if not acf.get(target_key):
@@ -305,6 +338,17 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["og_image_url"] = meta.get("og_image_url", None)
 
     elif page_type == "university":
+        _apply_kv_aliases(acf, kv, [
+            ("university_name", ["university_name", "university", "name"]),
+            ("university_full_name", ["university_full_name", "university_name", "university", "name"]),
+            ("established_year", ["established_year", "establishment_year", "established", "established_in"]),
+            ("naac_grade", ["naac_grade", "naac", "naac_accreditation", "naac_rating"]),
+            ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status", "ugc_approved"]),
+            ("aicte_status", ["aicte", "aicte_status", "aicte_approved_status", "aicte_approved"]),
+            ("nirf_rank", ["nirf", "nirf_rank", "nirf_ranking"]),
+            ("rankings", ["rankings", "ranking"]),
+            ("approvals", ["approvals", "recognitions", "recognition"]),
+        ])
         acf["about_content"] = blocks_to_html(sections.get("about", []))
         acf["why_choose_content"] = blocks_to_html(sections.get("why_choose", []))
         acf["facts"] = [
@@ -327,6 +371,14 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["og_image_url"] = meta.get("og_image_url", None)
 
     elif page_type == "blog":
+        _apply_kv_aliases(acf, kv, [
+            ("title", ["title"]),
+            ("author", ["author", "written_by", "by"]),
+            ("published_date", ["published_date", "published_on", "date"]),
+            ("date", ["date", "published_date", "published_on"]),
+            ("reading_time", ["reading_time", "read_time", "min_read"]),
+            ("read_time", ["read_time", "reading_time", "min_read"]),
+        ])
         acf["featured_image_url"] = meta.get("featured_image_url", None)
 
     return acf

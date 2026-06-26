@@ -21,6 +21,18 @@
   html,body{max-width:100%;overflow-x:hidden}
   body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
   a{text-decoration:none}
+  .other-spec-link {
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+  .other-spec-link:hover {
+    text-decoration: underline;
+    color: #FF5C35 !important;
+    background-color: rgba(107, 79, 201, 0.04);
+  }
+  .other-spec-link:focus {
+    outline: 2px solid #FF5C35;
+    outline-offset: -2px;
+  }
   h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
   ::selection{background:#FF5C35;color:#1C1B22}
   ul, ol { margin-bottom: 16px; padding-left: 22px; }
@@ -536,8 +548,13 @@
             <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Specialization</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Fee</th></tr>
             <sc-for list="{{ '{{' }} otherSpecs {{ '}}' }}" as="o" hint-placeholder-count="7">
               <tr>
-                <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} o.bg {{ '}}' }};font-weight:{{ '{{' }} o.weight {{ '}}' }};color:{{ '{{' }} o.color {{ '}}' }};border-top:{{ '{{' }} o.bt {{ '}}' }};border-bottom:{{ '{{' }} o.bb {{ '}}' }}">
-                  {{ '{{' }} o.name {{ '}}' }}
+                <td style="padding:{{ '{{' }} o.padding {{ '}}' }};border-bottom:1px solid #E9E5F2;background:{{ '{{' }} o.bg {{ '}}' }};font-weight:{{ '{{' }} o.weight {{ '}}' }};color:{{ '{{' }} o.color {{ '}}' }};border-top:{{ '{{' }} o.bt {{ '}}' }};border-bottom:{{ '{{' }} o.bb {{ '}}' }}">
+                  <sc-if value="{{ '{{' }} !o.cur {{ '}}' }}">
+                    <a href="{{ '{{' }} o.href {{ '}}' }}" class="other-spec-link" style="color:inherit;text-decoration:none;display:block;width:100%;padding:11px 14px">{{ '{{' }} o.name {{ '}}' }}</a>
+                  </sc-if>
+                  <sc-if value="{{ '{{' }} o.cur {{ '}}' }}">
+                    {{ '{{' }} o.name {{ '}}' }}
+                  </sc-if>
                 </td>
                 <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} o.bg {{ '}}' }};font-weight:{{ '{{' }} o.weight {{ '}}' }};color:{{ '{{' }} o.color {{ '}}' }};border-top:{{ '{{' }} o.bt {{ '}}' }};border-bottom:{{ '{{' }} o.bb {{ '}}' }}">{{ '{{' }} o.fee {{ '}}' }}</td>
               </tr>
@@ -720,15 +737,23 @@ class Component extends DCLogic {
     const sems = isY1 ? y1 : y2;
 
     const osDef = {{ other_specs_json | safe }};
-    const otherSpecs = osDef.map(([name, fee, cur], i) => ({
-      name: cur ? `${name} (you are here)` : name,
-      fee,
-      bg: cur ? '#FFF0EB' : (i % 2 ? '#F6F4FB' : '#fff'),
-      weight: cur ? '700' : '400',
-      color: cur ? '#1C1B22' : '#434346',
-      bt: cur ? `2px solid ${O}` : 'none',
-      bb: cur ? `2px solid ${O}` : '1px solid #E9E5F2'
-    }));
+    const currentSlug = "{{ slug }}";
+    const otherSpecs = osDef.map((item, i) => {
+      const cur = (item.slug && currentSlug) ? (item.slug === currentSlug) : item.cur;
+      const name = cur ? `${item.name} (you are here)` : item.name;
+      return {
+        name,
+        fee: item.fee,
+        cur,
+        href: item.href || '',
+        bg: cur ? '#FFF0EB' : (i % 2 ? '#F6F4FB' : '#fff'),
+        weight: cur ? '700' : '400',
+        color: cur ? '#1C1B22' : '#434346',
+        bt: cur ? `2px solid ${O}` : 'none',
+        bb: cur ? `2px solid ${O}` : '1px solid #E9E5F2',
+        padding: cur ? '11px 14px' : '0'
+      };
+    });
 
     return {
       stats, rail, highlights, fees, steps, otherSpecs, jobs, reviews, faqs, sems,
