@@ -128,22 +128,10 @@ def _default_metadata(university_slug: str) -> dict:
     return {
         "university_slug": university_slug,
         "university_name": university_slug.replace("-", " ").title(),
-        "established_year": "",
-        "default_theme": {
-            "primary_color": "#6B4FC9",
-            "secondary_color": "#FF5C35",
-            "background_color": "#F6F4FB"
-        },
-        "global_contact": {
-            "phone": "",
-            "email": "",
-            "address": ""
-        },
         "branding": {
             "logo": "",
             "favicon": ""
         },
-        "lead_url": "https://apply.degreebaba.com",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_compiled_at": None,
     }
@@ -161,6 +149,11 @@ def ensure_metadata(university_slug: str, overrides: dict | None = None) -> dict
     if meta_path.exists():
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = json.load(f)
+        
+        # Clean up redundant keys from existing metadata
+        for k in ["established_year", "default_theme", "global_contact", "lead_url"]:
+            meta.pop(k, None)
+
         # Ensure default keys are present in existing meta
         defaults = _default_metadata(university_slug)
         for k, v in defaults.items():

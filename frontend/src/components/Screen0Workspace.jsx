@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage } from '../api';
+import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage, deletePage, deleteWorkspace } from '../api';
 
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -248,6 +248,64 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     }
   };
 
+  const handleDeletePage = async (pageType, slug, parentSlug = null) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to delete this ${pageType} page (${slug})? This will permanently delete all its content and HTML file.`
+    );
+    if (!isConfirmed) return;
+
+    try {
+      setTreeLoading(true);
+      setError('');
+      await deletePage(selectedSlug, pageType, slug, parentSlug);
+      
+      // Refresh treeData
+      const tree = await getWorkspaceTree(selectedSlug);
+      setTreeData(tree);
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to delete page.');
+    } finally {
+      setTreeLoading(false);
+    }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    const confirmName = window.prompt(
+      `WARNING: This will permanently delete the entire workspace "${selectedName}" and all its content files. This action cannot be undone.\n\nType the workspace slug "${selectedSlug}" to confirm deletion:`
+    );
+    if (confirmName !== selectedSlug) {
+      if (confirmName !== null) {
+        window.alert("Workspace slug did not match. Deletion cancelled.");
+      }
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      await deleteWorkspace(selectedSlug);
+      setSelectedSlug('');
+      setTreeData(null);
+      // Refresh workspace list
+      await fetchWorkspaces();
+      // Clear session workspace
+      updateSession({
+        workspace: null,
+        university_slug: '',
+        slug: '',
+        page_type: '',
+        parent_slug: null,
+        acf_data: null,
+        raw_acf_data: null,
+        images: {}
+      });
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to delete workspace.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectedWorkspace = workspaces.find(w => (typeof w === 'string' ? w : w.slug) === selectedSlug);
   const selectedName = selectedWorkspace
     ? (typeof selectedWorkspace === 'string' ? selectedWorkspace.replace(/-/g, ' ').toUpperCase() : (selectedWorkspace.name || selectedWorkspace.slug.replace(/-/g, ' ').toUpperCase()))
@@ -468,6 +526,24 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                     >
                       ⬇ Download ZIP
                     </button>
+
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dotted #fda4af' }}>
+                      <button
+                        onClick={handleDeleteWorkspace}
+                        className="btn btn-danger"
+                        style={{
+                          width: '100%',
+                          justifyContent: 'center',
+                          background: '#f43f5e',
+                          borderColor: '#e11d48',
+                          color: '#fff',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🗑️ Delete Workspace
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -711,13 +787,22 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                                 <div key={course.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}>
                                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <span>🎓 {course.slug}</span>
-                                    <button 
-                                      onClick={() => handleEditPage('course', course.slug)}
-                                      className="btn btn-secondary" 
-                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                                    >
-                                      Edit ✏️
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                      <button 
+                                        onClick={() => handleEditPage('course', course.slug)}
+                                        className="btn btn-secondary" 
+                                        style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                      >
+                                        Edit ✏️
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeletePage('course', course.slug)}
+                                        className="btn btn-danger" 
+                                        style={{ fontSize: 10, padding: '3px 8px', height: 'auto', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', cursor: 'pointer' }}
+                                      >
+                                        Delete 🗑️
+                                      </button>
+                                    </div>
                                   </div>
                                   
                                   {/* Nest specs */}
@@ -726,13 +811,22 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                                       {course.specializations.map(spec => (
                                         <div key={spec.slug} style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                                           <span>├─ 🔬 {spec.slug.replace(`${selectedSlug}-`, '')}</span>
-                                          <button 
-                                            onClick={() => handleEditPage('specialization', spec.slug, course.slug)}
-                                            className="btn btn-secondary" 
-                                            style={{ fontSize: 9, padding: '2px 6px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                                          >
-                                            Edit ✏️
-                                          </button>
+                                          <div style={{ display: 'flex', gap: 4 }}>
+                                            <button 
+                                              onClick={() => handleEditPage('specialization', spec.slug, course.slug)}
+                                              className="btn btn-secondary" 
+                                              style={{ fontSize: 9, padding: '2px 6px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                            >
+                                              Edit ✏️
+                                            </button>
+                                            <button 
+                                              onClick={() => handleDeletePage('specialization', spec.slug, course.slug)}
+                                              className="btn btn-danger" 
+                                              style={{ fontSize: 9, padding: '2px 6px', height: 'auto', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', cursor: 'pointer' }}
+                                            >
+                                              Delete 🗑️
+                                            </button>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
@@ -757,13 +851,22 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                               {treeData.blogs.map(blog => (
                                 <div key={blog.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <span>✍️ {blog.slug}</span>
-                                  <button 
-                                    onClick={() => handleEditPage('blog', blog.slug)}
-                                    className="btn btn-secondary" 
-                                    style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                                  >
-                                    Edit ✏️
-                                  </button>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button 
+                                      onClick={() => handleEditPage('blog', blog.slug)}
+                                      className="btn btn-secondary" 
+                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                    >
+                                      Edit ✏️
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePage('blog', blog.slug)}
+                                      className="btn btn-danger" 
+                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', cursor: 'pointer' }}
+                                    >
+                                      Delete 🗑️
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -784,13 +887,22 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                               {treeData.specializations.map(sp => (
                                 <div key={sp.slug} style={{ padding: '6px 10px', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <span>🔬 {sp.slug}{sp.parent_slug ? <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10 }}> ← {sp.parent_slug}</span> : ''}</span>
-                                  <button 
-                                    onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)}
-                                    className="btn btn-secondary" 
-                                    style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                                  >
-                                    Edit ✏️
-                                  </button>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button 
+                                      onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)}
+                                      className="btn btn-secondary" 
+                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                                    >
+                                      Edit ✏️
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeletePage('specialization', sp.slug, sp.parent_slug)}
+                                      className="btn btn-danger" 
+                                      style={{ fontSize: 10, padding: '3px 8px', height: 'auto', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', cursor: 'pointer' }}
+                                    >
+                                      Delete 🗑️
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>

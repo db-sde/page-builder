@@ -87,6 +87,29 @@ export async function getWorkspaceTree(universitySlug) {
 }
 
 /**
+ * Delete a page from the university workspace.
+ */
+export async function deletePage(universitySlug, pageType, slug, parentSlug = null) {
+  const res = await axios.delete(`${BASE}/delete-page`, {
+    params: {
+      university_slug: universitySlug,
+      page_type: pageType,
+      slug,
+      parent_slug: parentSlug,
+    },
+  });
+  return res.data;
+}
+
+/**
+ * Delete a workspace from the backend disk.
+ */
+export async function deleteWorkspace(universitySlug) {
+  const res = await axios.delete(`${BASE}/workspaces/${universitySlug}`);
+  return res.data;
+}
+
+/**
  * Return all university workspaces that have workspaces on disk.
  * Each item: { slug, name, lead_url, last_compiled_at, created_at }
  */

@@ -237,9 +237,6 @@ function App() {
         <div className="max-w-[1180px] mx-auto px-5 py-3 flex items-center justify-between">
           {/* Logo Brand Context */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#FF5C35] text-[#1C1B22] flex items-center justify-center font-extrabold text-xl">
-              {payload.logo_letter}
-            </div>
             <div className="leading-[1.04]">
               <div className="font-extrabold text-sm sm:text-lg text-[#1C1B22] whitespace-nowrap">
                 {payload.uni_name} <span className="text-[#FF5C35]">Admissions</span>
@@ -591,9 +588,6 @@ function App() {
           {/* Column 1: Logo and details */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-[36px] h-[36px] rounded-lg bg-[#FF5C35] text-[#1C1B22] flex items-center justify-center font-bold text-[19px]">
-                {payload.logo_letter}
-              </div>
               <div className="font-extrabold text-base text-white">
                 {payload.uni_name.toLowerCase().endsWith('online') ? (
                   <>

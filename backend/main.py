@@ -1384,24 +1384,119 @@ async def workspace_tree_endpoint(university_slug: str):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.delete("/delete-page")
+async def delete_page_endpoint(
+    university_slug: str,
+    page_type: str,
+    slug: str,
+    parent_slug: str | None = None
+):
+    """
+    Delete a page from the university workspace directory on disk,
+    then trigger a workspace re-compilation to update the index and listing pages.
+    """
+    try:
+        if page_type not in ("course", "specialization", "blog"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot delete page of type '{page_type}'"
+            )
+
+        from workspace.manager import resolve_page_dir
+        
+        # Get directory on disk
+        page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
+        
+        # Security check: Ensure page_dir is inside WORKSPACES_ROOT / university_slug
+        uni_root = (WORKSPACES_ROOT / university_slug).resolve()
+        resolved_page_dir = page_dir.resolve()
+        
+        try:
+            resolved_page_dir.relative_to(uni_root)
+        except ValueError:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: invalid page path"
+            )
+            
+        if not resolved_page_dir.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Page directory for '{slug}' not found"
+            )
+            
+        # Delete directory recursively
+        import shutil
+        shutil.rmtree(resolved_page_dir)
+        
+        # Re-compile workspace to update indexes/listings
+        compile_result = compile_workspace(university_slug)
+        
+        return {
+            "status": "success",
+            "message": f"Successfully deleted {page_type} page '{slug}'",
+            "compile_result": compile_result
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.delete("/workspaces/{university_slug}")
+async def delete_workspace_endpoint(university_slug: str):
+    """
+    Delete an entire university workspace folder from disk.
+    """
+    try:
+        slug = university_slug.lower().strip()
+        uni_dir = (WORKSPACES_ROOT / slug).resolve()
+        
+        # Security check: Ensure we only delete directories inside WORKSPACES_ROOT
+        try:
+            uni_dir.relative_to(WORKSPACES_ROOT.resolve())
+        except ValueError:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: invalid workspace path"
+            )
+            
+        if not uni_dir.exists() or not uni_dir.is_dir():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Workspace '{slug}' not found"
+            )
+            
+        import shutil
+        shutil.rmtree(uni_dir)
+        
+        return {
+            "status": "success",
+            "message": f"Successfully deleted workspace '{slug}'"
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/workspaces")
 async def list_workspaces_endpoint():
     """Return a list of all university workspaces that exist on disk."""
     slugs = list_workspaces()
     workspaces = []
     for slug in slugs:
-        meta_path = WORKSPACES_ROOT / slug / "metadata.json"
-        meta = {}
-        if meta_path.exists():
-            try:
-                with open(meta_path, "r", encoding="utf-8") as f:
-                    meta = json.load(f)
-            except Exception:
-                pass
+        try:
+            meta = ensure_metadata(slug)
+        except Exception:
+            meta = {}
         workspaces.append({
             "slug": slug,
             "name": meta.get("university_name", slug.replace("-", " ").title()),
-            "lead_url": meta.get("lead_url", "https://apply.degreebaba.com"),
             "last_compiled_at": meta.get("last_compiled_at"),
             "created_at": meta.get("created_at"),
             "branding": meta.get("branding", {"logo": "", "favicon": ""}),
