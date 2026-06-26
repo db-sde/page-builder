@@ -805,29 +805,34 @@ async def parse_docx_endpoint(
             # Route to the micro-pipeline (passing the original file bytes)
             result = forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
             
-            # Dual Extraction Validation Stage:
+            # Micro-First Ingestion: Adapt, Validate, and Fallback Merge
             if result and isinstance(result, dict) and "payload" in result:
                 payload = result["payload"]
                 if isinstance(payload, dict):
                     from ingestion.extractor import extract_acf, classify_fee_plans
-                    from ingestion.comparison import merge_with_micro_primary
-                    local_acf = extract_acf(blocks, detected_type, {})
+                    from ingestion.adapter import adapt_and_validate, merge_micro_and_local
                     
-                    # Run classifier on micro-pipeline's fee_plans if it is a course
+                    # 1. Adapt and Validate raw Micro Parser output
+                    adapted_payload, warnings = adapt_and_validate(payload, detected_type)
+                    
+                    # 2. Run classifier on adapted fee_plans if it is a course
                     if detected_type == "course":
-                        micro_fee_plans = payload.get("fee_plans")
+                        micro_fee_plans = adapted_payload.get("fee_plans")
                         if isinstance(micro_fee_plans, list) and micro_fee_plans:
                             classified_plans, detected_specs = classify_fee_plans(micro_fee_plans)
-                            payload["fee_plans"] = classified_plans
+                            adapted_payload["fee_plans"] = classified_plans
                             if detected_specs:
-                                existing_specs = payload.get("detected_specializations") or []
+                                existing_specs = adapted_payload.get("detected_specializations") or []
                                 for spec in detected_specs:
                                     if spec not in existing_specs:
                                         existing_specs.append(spec)
-                                payload["detected_specializations"] = existing_specs
+                                adapted_payload["detected_specializations"] = existing_specs
 
-                    merged_payload, comparison_report = merge_with_micro_primary(payload, local_acf, detected_type)
+                    # 3. Local Parser serves ONLY as a fallback/recovery mechanism (fills missing/empty fields)
+                    local_acf = extract_acf(blocks, detected_type, {})
+                    merged_payload = merge_micro_and_local(adapted_payload, local_acf)
 
+                    # Merge specializations list for courses (since they are arrays of stubs, not atomic overrides)
                     if detected_type == "course":
                         local_specs = local_acf.get("detected_specializations") or []
                         if local_specs:
@@ -838,8 +843,7 @@ async def parse_docx_endpoint(
                             merged_payload["detected_specializations"] = existing_specs
 
                     result["payload"] = merged_payload
-                    result["comparison_report"] = comparison_report
-                    result["local_payload"] = local_acf
+                    result["validation_warnings"] = warnings
 
         from core.router import normalize_value
         return normalize_value(result)

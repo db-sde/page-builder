@@ -69,12 +69,6 @@ function initFields(acf_data, page_type) {
   return out;
 }
 
-function formatCompareValue(value) {
-  if (value === null || value === undefined || value === '') return 'null';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Screen2Review({ session, updateSession, onNext, onBack }) {
@@ -311,13 +305,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   // Split editable fields into simple vs complex
   const simpleFields  = Object.entries(fields);
 
-  // Live acf_data for health panel (parsed)
   const liveAcf = { ...session.acf_data, ...fieldsToAcf(fields), ...imageUrls };
-  const comparisonReport = session.comparison_report;
-  const comparisonSummary = comparisonReport?.summary || {};
-  const comparisonIssues = (comparisonReport?.fields || [])
-    .filter(row => row.status !== 'MATCH')
-    .slice(0, 8);
 
   const isListingPage = ['programs_listing', 'specializations_listing', 'blog_listing'].includes(session.page_type);
 
@@ -352,60 +340,6 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         onAddField={handleAddField}
       />
 
-      {comparisonReport && comparisonIssues.length > 0 && (
-        <div className="card" style={{ marginBottom: 20, borderLeft: '4px solid #f59e0b' }}>
-          <div className="card-body" style={{ padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                  Conflicts Found
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>
-                  Micro Parser remains the source of truth. Local values are shown for validation and debugging.
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>
-                  {comparisonSummary.conflicts || 0} conflicts
-                </span>
-                <span className="badge">
-                  {comparisonSummary.missing_micro || 0} missing Micro
-                </span>
-                <span className="badge">
-                  {comparisonSummary.missing_local || 0} missing Local
-                </span>
-              </div>
-            </div>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                <thead>
-                  <tr style={{ color: 'var(--color-text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '8px 10px' }}>Field</th>
-                    <th style={{ padding: '8px 10px' }}>Micro</th>
-                    <th style={{ padding: '8px 10px' }}>Local</th>
-                    <th style={{ padding: '8px 10px' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonIssues.map((row) => (
-                    <tr key={`${row.field}-${row.status}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '9px 10px', fontWeight: 700 }}>{row.field}</td>
-                      <td style={{ padding: '9px 10px', maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {formatCompareValue(row.micro)}
-                      </td>
-                      <td style={{ padding: '9px 10px', maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {formatCompareValue(row.local)}
-                      </td>
-                      <td style={{ padding: '9px 10px', fontFamily: 'var(--font-code)' }}>{row.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Detected Academic Specializations Panel (course only) ── */}
       {session.page_type === 'course' && session.acf_data?.detected_specializations?.length > 0 && (
