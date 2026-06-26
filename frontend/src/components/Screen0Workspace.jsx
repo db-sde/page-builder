@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
+import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding } from '../api';
 
 export default function Screen0Workspace({ session, updateSession, onNext }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -24,6 +24,13 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
   const [buildError, setBuildError] = useState('');
   const [buildTime, setBuildTime] = useState(null);
   const [buildStatusData, setBuildStatusData] = useState(null);
+
+  // Branding upload states
+  const [logoFile, setLogoFile] = useState(null);
+  const [faviconFile, setFaviconFile] = useState(null);
+  const [brandingUploading, setBrandingUploading] = useState(false);
+  const [brandingError, setBrandingError] = useState('');
+  const [brandingSuccess, setBrandingSuccess] = useState('');
 
   // Load available workspaces
   useEffect(() => {
@@ -181,6 +188,36 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
       setBuildError(err.response?.data?.error || err.message || String(err));
     } finally {
       setBuilding(false);
+    }
+  };
+
+  const handleBrandingUpload = async (e) => {
+    e.preventDefault();
+    if (!logoFile && !selectedWorkspace?.branding?.logo) {
+      setBrandingError("University Logo is required.");
+      return;
+    }
+    setBrandingUploading(true);
+    setBrandingError('');
+    setBrandingSuccess('');
+    try {
+      const res = await uploadBranding(selectedSlug, logoFile, faviconFile);
+      if (res.status === 'success') {
+        setBrandingSuccess('Branding uploaded and workspace re-compiled successfully!');
+        setLogoFile(null);
+        setFaviconFile(null);
+        // Clear file inputs
+        const logoInput = document.getElementById('logo-upload-input');
+        if (logoInput) logoInput.value = '';
+        const favInput = document.getElementById('favicon-upload-input');
+        if (favInput) favInput.value = '';
+        // Refresh workspace list
+        await fetchWorkspaces();
+      }
+    } catch (err) {
+      setBrandingError(err.response?.data?.detail || err.message || 'Failed to upload branding.');
+    } finally {
+      setBrandingUploading(false);
     }
   };
 
@@ -407,7 +444,98 @@ export default function Screen0Workspace({ session, updateSession, onNext }) {
                   </div>
                 </div>
               </div>
+              {/* Branding Settings Card */}
+              <div className="card">
+                <div className="card-body" style={{ padding: 20 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🎨</span> University Branding
+                  </div>
+                  
+                  {/* Current Branding Status */}
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 20, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 90, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase' }}>Current Logo</span>
+                      {selectedWorkspace?.branding?.logo ? (
+                        <img 
+                          src={`http://localhost:8000${selectedWorkspace.branding.logo}`} 
+                          alt="Logo Preview" 
+                          style={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No Logo Uploaded</span>
+                      )}
+                    </div>
 
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 90, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase' }}>Current Favicon</span>
+                      {selectedWorkspace?.branding?.favicon ? (
+                        <img 
+                          src={`http://localhost:8000${selectedWorkspace.branding.favicon}`} 
+                          alt="Favicon Preview" 
+                          style={{ height: 32, width: 32, objectFit: 'contain' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No Favicon Uploaded</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleBrandingUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#33363f', marginBottom: 4 }}>
+                        University Logo {!selectedWorkspace?.branding?.logo && <span style={{ color: 'var(--color-error)' }}>*</span>}
+                      </label>
+                      <input 
+                        type="file" 
+                        id="logo-upload-input"
+                        accept=".svg,.png" 
+                        onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                        style={{ fontSize: 12.5, width: '100%' }}
+                      />
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                        SVG preferred, PNG supported. Transparent background recommended. Used in the website navbar and footer.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#33363f', marginBottom: 4 }}>
+                        Favicon <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(Optional)</span>
+                      </label>
+                      <input 
+                        type="file" 
+                        id="favicon-upload-input"
+                        accept=".ico,.png,.svg" 
+                        onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
+                        style={{ fontSize: 12.5, width: '100%' }}
+                      />
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                        ICO, PNG, or SVG. Used in browser tabs. If not uploaded, generated automatically from the logo.
+                      </span>
+                    </div>
+
+                    {brandingError && (
+                      <div style={{ color: 'var(--color-error)', fontSize: 12, fontWeight: 600, background: 'var(--color-error-light)', padding: '8px 12px', borderRadius: 6 }}>
+                        {brandingError}
+                      </div>
+                    )}
+
+                    {brandingSuccess && (
+                      <div style={{ color: 'var(--color-success)', fontSize: 12, fontWeight: 600, background: '#f0f9f4', border: '1px solid #b7e4c7', padding: '8px 12px', borderRadius: 6 }}>
+                        {brandingSuccess}
+                      </div>
+                    )}
+
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      disabled={brandingUploading || (!logoFile && !faviconFile)}
+                      style={{ marginTop: 6, justifyContent: 'center' }}
+                    >
+                      {brandingUploading ? '⏳ Uploading Branding…' : '📁 Save Branding'}
+                    </button>
+                  </form>
+                </div>
+              </div>
               {/* Build Status Panel */}
               <div className="card">
                 <div className="card-body" style={{ padding: 20 }}>

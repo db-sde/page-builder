@@ -260,6 +260,10 @@ async def get_asset_image(filename: str):
                 media_type = "image/webp"
             elif ext == ".gif":
                 media_type = "image/gif"
+            elif ext == ".svg":
+                media_type = "image/svg+xml"
+            elif ext in (".ico", ".icon"):
+                media_type = "image/x-icon"
             return FileResponse(p, media_type=media_type)
     raise HTTPException(status_code=404, detail="Image not found")
 
@@ -1242,6 +1246,94 @@ async def compile_workspace_endpoint(university_slug: str = Form(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.post("/workspaces/{university_slug}/branding")
+async def upload_branding_endpoint(
+    university_slug: str,
+    logo: UploadFile = File(None),
+    favicon: UploadFile = File(None)
+):
+    """
+    Upload university logo and/or favicon.
+    Updates workspace metadata.json and re-compiles pages immediately.
+    """
+    try:
+        uni_dir = WORKSPACES_ROOT / university_slug
+        if not uni_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
+        
+        meta = ensure_metadata(university_slug)
+        if "branding" not in meta:
+            meta["branding"] = {"logo": "", "favicon": ""}
+        
+        # Validation: Logo is required either now or previously uploaded
+        if not logo and not meta["branding"].get("logo"):
+            raise HTTPException(status_code=400, detail="University Logo is required.")
+        
+        assets_dir = uni_dir / "Assets" / "images"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        logo_ext = None
+        logo_saved = False
+        
+        if logo and logo.filename:
+            logo_ext = Path(logo.filename).suffix.lower()
+            if not logo_ext:
+                logo_ext = ".png"
+            logo_filename = f"branding-{university_slug}-logo{logo_ext}"
+            logo_path = assets_dir / logo_filename
+            
+            content = await logo.read()
+            logo_path.write_bytes(content)
+            
+            meta["branding"]["logo"] = f"/assets/images/{logo_filename}"
+            logo_saved = True
+            
+        # Get logo extension from metadata if logo was not uploaded but exists
+        if not logo_saved and meta["branding"].get("logo"):
+            logo_ext = Path(meta["branding"]["logo"]).suffix.lower()
+            
+        if favicon and favicon.filename:
+            fav_ext = Path(favicon.filename).suffix.lower()
+            if not fav_ext:
+                fav_ext = ".ico"
+            fav_filename = f"branding-{university_slug}-favicon{fav_ext}"
+            fav_path = assets_dir / fav_filename
+            
+            content = await favicon.read()
+            fav_path.write_bytes(content)
+            
+            meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
+        elif logo_saved and logo_ext and not meta["branding"].get("favicon"):
+            # Auto-generate favicon from logo by copying it
+            fav_filename = f"branding-{university_slug}-favicon{logo_ext}"
+            fav_path = assets_dir / fav_filename
+            logo_filename = f"branding-{university_slug}-logo{logo_ext}"
+            logo_path = assets_dir / logo_filename
+            
+            import shutil
+            shutil.copy2(logo_path, fav_path)
+            meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
+            
+        # Save updated metadata
+        meta_path = uni_dir / "metadata.json"
+        meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+        
+        # Compile workspace
+        compile_result = compile_workspace(university_slug)
+        
+        return {
+            "status": "success",
+            "branding": meta["branding"],
+            "compile_result": compile_result
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/workspace-tree")
 async def workspace_tree_endpoint(university_slug: str):
     """
@@ -1275,6 +1367,7 @@ async def list_workspaces_endpoint():
             "lead_url": meta.get("lead_url", "https://apply.degreebaba.com"),
             "last_compiled_at": meta.get("last_compiled_at"),
             "created_at": meta.get("created_at"),
+            "branding": meta.get("branding", {"logo": "", "favicon": ""}),
         })
     return {"workspaces": workspaces}
 

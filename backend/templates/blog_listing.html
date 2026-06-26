@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ seo_title }}</title>
 <meta name="description" content="{{ meta_description }}">
+{% if branding_favicon %}
+<link rel="icon" href="{{ branding_favicon }}">
+{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -76,8 +79,14 @@
   <header style="background:#fff;border-bottom:1px solid #E9E5F2;position:sticky;top:0;z-index:50">
     <div style="max-width:1180px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between">
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
-        <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-        <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+        {% if branding_logo %}
+          <div style="height:44px;display:flex;align-items:center">
+            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+          </div>
+        {% else %}
+          <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+        {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
         <a href="{{ homepage_href }}" style="color:#434346">Home</a>
@@ -188,7 +197,13 @@
   <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
     <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
       <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+        {% if branding_logo %}
+          <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
+            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+          </div>
+        {% else %}
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+        {% endif %}
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>

@@ -139,6 +139,10 @@ def _default_metadata(university_slug: str) -> dict:
             "email": "",
             "address": ""
         },
+        "branding": {
+            "logo": "",
+            "favicon": ""
+        },
         "lead_url": "https://apply.degreebaba.com",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_compiled_at": None,
@@ -157,6 +161,15 @@ def ensure_metadata(university_slug: str, overrides: dict | None = None) -> dict
     if meta_path.exists():
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = json.load(f)
+        # Ensure default keys are present in existing meta
+        defaults = _default_metadata(university_slug)
+        for k, v in defaults.items():
+            if k not in meta:
+                meta[k] = v
+            elif isinstance(v, dict) and isinstance(meta[k], dict):
+                for sub_k, sub_v in v.items():
+                    if sub_k not in meta[k]:
+                        meta[k][sub_k] = sub_v
     else:
         meta = _default_metadata(university_slug)
 

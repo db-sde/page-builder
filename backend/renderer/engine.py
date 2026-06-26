@@ -1,6 +1,7 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from core.router import get_transformer
 import os
+from pathlib import Path
 import json
 import re
 from html.parser import HTMLParser
@@ -303,6 +304,21 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     ctx["university_name"] = uni_name
     ctx["university_letter"] = logo_letter
+
+    branding_logo = ""
+    branding_favicon = ""
+    meta_path = Path("/Users/aryankinha/Documents/Degree/temp/acfTOhtml copy/backend/workspaces") / uni_slug / "metadata.json"
+    if meta_path.exists():
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta_json = json.load(f)
+                branding = meta_json.get("branding") or {}
+                branding_logo = branding.get("logo") or ""
+                branding_favicon = branding.get("favicon") or ""
+        except Exception:
+            pass
+    ctx["branding_logo"] = branding_logo
+    ctx["branding_favicon"] = branding_favicon
     ctx["homepage_href"] = f"{uni_slug}.dc.html"
     ctx["course_href"] = f"{uni_slug}-online-mba.dc.html"
     ctx["spec_href"] = f"{uni_slug}-mba-marketing.dc.html"
