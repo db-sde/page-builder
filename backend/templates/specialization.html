@@ -151,7 +151,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-about" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ about | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ about | safe }}</div>
           <label for="rm-about" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -178,7 +178,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
           <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -301,7 +301,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-exam" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ exam | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ exam | safe }}</div>
           <label for="rm-exam" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -314,12 +314,12 @@
         {% if placement %}
         <div class="rich-content readmore-wrap" style="margin-bottom:12px">
           <input type="checkbox" id="rm-placement" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ placement | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ placement | safe }}</div>
           <label for="rm-placement" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
         {% endif %}
         {% if certificate %}
-          <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4><p style="font-size:13px;color:#6E6A78">{{ certificate }}</p></div>
+          <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4><div class="content-body" style="font-size:13px;color:#6E6A78">{{ certificate | safe }}</div></div>
         {% endif %}
       </section>
       {% endif %}

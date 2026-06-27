@@ -528,3 +528,29 @@ header #mobile-menu-btn {
 picture {
   display: contents;
 }
+
+/* 13. Rich Content Typography Wrapper */
+.content-body p {
+    margin: 0 0 18px 0;
+    line-height: 1.8;
+}
+
+.content-body p:last-child {
+    margin-bottom: 0;
+}
+
+.content-body ul,
+.content-body ol {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.content-body li {
+    margin-bottom: 8px;
+}
+
+.content-body h3,
+.content-body h4 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+}

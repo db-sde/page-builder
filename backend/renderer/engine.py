@@ -542,13 +542,22 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # No fallback to raw specialization field or hardcoded placeholders.
     if page_type != "specializations_listing":
         workspace_specs_ctx = ctx.get("_workspace_specs") or []
+        workspace_courses = raw_dict.get("_workspace_courses") or []
         spec_list = []
         for sp in workspace_specs_ctx[:6]:
             if not isinstance(sp, dict):
                 continue
             data = sp.get("data", {})
             sp_slug = sp.get("slug", "")
+            parent = sp.get("parent_slug") or data.get("parent_slug") or "general"
+            course_name = parent.replace("-", " ").title()
+            for c in workspace_courses:
+                if isinstance(c, dict) and c.get("slug") == parent:
+                    cd = c.get("data", {})
+                    course_name = cd.get("program_name") or cd.get("course_name") or course_name
+                    break
             spec_list.append({
+                "course_name": course_name,
                 "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
                 "d": data.get("hero_description") or data.get("description") or "",
                 "href": f"{sp_slug}.html",
@@ -766,7 +775,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
         {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
         {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
-        {"stat": "24mo", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
+        {"stat": "24 Months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
     ]
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
     ctx["features"] = features_list
@@ -790,7 +799,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # financing for homepage
     financing_list = [
         {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
-        {"stat": "3–12 mo", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
+        {"stat": "3–12 Months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
         {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
     ]
     ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
