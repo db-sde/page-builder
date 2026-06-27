@@ -280,6 +280,59 @@ def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> s
     return name_clean
 
 
+def process_admission_steps(raw_steps):
+    processed = []
+    
+    def is_numbered_step(s):
+        import re
+        return bool(re.match(r'^(Step\s*\d+|\d+[\.\s:]+)', s.strip(), re.IGNORECASE))
+        
+    i = 0
+    n_steps = len(raw_steps)
+    while i < n_steps:
+        s = raw_steps[i]
+        text = s.get("t", "").strip()
+        
+        if text.endswith(':') and len(text) < 40:
+            header_title = text[:-1].strip()
+            bullets = []
+            j = i + 1
+            while j < n_steps:
+                next_item = raw_steps[j]
+                next_text = next_item.get("t", "")
+                if is_numbered_step(next_text):
+                    break
+                bullets.append(next_text.strip())
+                j += 1
+            if bullets:
+                processed.append({
+                    "n": str(len(processed) + 1).zfill(2),
+                    "t": header_title,
+                    "d": "\n".join("• " + b for b in bullets)
+                })
+                i = j
+                continue
+                
+        # Standard splitting logic
+        t = f"Step {s.get('n', '')}"
+        d = text
+        parts = re.split(r'[:\.]', text, maxsplit=1)
+        if len(parts) > 1 and len(parts[0]) < 30:
+            sliced_d = parts[1].strip()
+            if sliced_d:
+                t = parts[0].strip()
+                d = sliced_d
+                
+        processed.append({
+            "n": str(len(processed) + 1).zfill(2),
+            "t": t,
+            "d": d
+        })
+        i += 1
+        
+    return processed
+
+
 def render_resolved(resolved: dict, standalone: bool = False) -> str:
     transformer = get_transformer(resolved)
     ctx = transformer.transform()    # Phase 3 — Context Extraction
@@ -482,9 +535,10 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         for h in highlights_raw
     ]
     ctx["highlights_json"] = json.dumps(h_list, ensure_ascii=False)
+    ctx["highlights"] = h_list
     
     # 4. Specs (items)
-    # ONLY use real workspace specializations filtered by parent_course_slug.
+        # ONLY use real workspace specializations filtered by parent_course_slug.
     # No fallback to raw specialization field or hardcoded placeholders.
     if page_type != "specializations_listing":
         workspace_specs_ctx = ctx.get("_workspace_specs") or []
@@ -500,6 +554,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "href": f"{sp_slug}.html",
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             })
+        spec_icons = ['◑', '◧', '◴']
+        for idx, sp in enumerate(spec_list):
+            sp["icon"] = spec_icons[idx % len(spec_icons)]
         ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
         ctx["specs"] = spec_list
     
@@ -531,17 +588,21 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"plan": "One-time (Full Program)", "amt": "₹1,80,000 once", "total": "₹1,80,000", "bg": "#fff"}
         ]
     ctx["fees_json"] = json.dumps(fee_list, ensure_ascii=False)
+    ctx["fees"] = fee_list
     
     # 6. Admission Steps
     steps_list = parse_admission_html((ctx.get("admission") or {}).get("steps") if ctx.get("admission") else "")
-    if not steps_list:
+    if steps_list:
+        steps_list = process_admission_steps(steps_list)
+    else:
         steps_list = [
-            {"n": "1", "t": "Register on the university portal and verify your mobile number."},
-            {"n": "2", "t": "Complete the application form and choose Online MBA with your preferred specialization."},
-            {"n": "3", "t": "Upload graduation marksheets, photo ID and a passport-size photograph."},
-            {"n": "4", "t": "Pay the first installment online — enrollment and LMS access follow within 7 working days."}
+            {"n": "01", "t": "Register on the university portal", "d": "Verify your mobile number and email to create your student account."},
+            {"n": "02", "t": "Complete application form", "d": "Fill in your personal, professional, and academic details."},
+            {"n": "03", "t": "Upload required documents", "d": "Upload copies of graduation marksheets, ID proof, and a photo."},
+            {"n": "04", "t": "Pay the first installment", "d": "Pay the enrollment/course fee online to start your learning journey."}
         ]
     ctx["steps_json"] = json.dumps(steps_list, ensure_ascii=False)
+    ctx["admission_steps"] = steps_list
     
     # 7. Job profiles
     jobs_raw = ctx.get("jobs", []) or []
@@ -572,6 +633,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"t": "Product Manager", "s": "₹16.5 LPA"}
         ]
     ctx["jobs_json"] = json.dumps(job_list, ensure_ascii=False)
+    ctx["jobs"] = job_list
     
     # 8. Reviews
     reviews_raw = ctx.get("reviews", []) or []
@@ -599,6 +661,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"q": "\"Transparent fees, easy EMI, responsive support team. Exactly what I needed as a working parent.\"", "a": "— Deepa Krishnan, Online MBA (2025)"}
         ]
     ctx["reviews_json"] = json.dumps(review_list, ensure_ascii=False)
+    ctx["reviews"] = review_list
     
     # 9. FAQs
     faqs_raw = ctx.get("faqs", []) or []
@@ -628,6 +691,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission."}
         ]
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
+    ctx["faqs"] = faq_list
 
     # 10. Syllabus Semester 1 & 2 / Semester 3 & 4
     y1, y2 = parse_syllabus_html(ctx.get("syllabus", ""))
@@ -642,6 +706,8 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         ]
     ctx["y1_json"] = json.dumps(y1, ensure_ascii=False)
     ctx["y2_json"] = json.dumps(y2, ensure_ascii=False)
+    ctx["y1"] = y1
+    ctx["y2"] = y2
 
     # Specialization specific other specs list
     siblings = ctx.get("other_specs") or []
@@ -677,17 +743,37 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
             {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
         ]
+
+    for i, item in enumerate(other_specs_list):
+        cur = (item["slug"] == current_slug) if (item.get("slug") and current_slug) else item.get("cur", False)
+        name = f"{item['name']} (you are here)" if cur else item['name']
+        item.update({
+            "name": name,
+            "cur": cur,
+            "bg": '#FFF0EB' if cur else ('#F6F4FB' if i % 2 else '#fff'),
+            "weight": '700' if cur else '400',
+            "color": '#1C1B22' if cur else '#434346',
+            "bt": '2px solid #FF5C35' if cur else 'none',
+            "bb": '2px solid #FF5C35' if cur else '1px solid #E9E5F2',
+            "padding": '11px 14px' if cur else '0'
+        })
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
+    ctx["other_specs"] = other_specs_list
 
 
     # University specific features, recruiters, financing, testimonials
-    ctx["features_json"] = json.dumps([
+    features_list = [
         {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
         {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
         {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
         {"stat": "24mo", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
-    ], ensure_ascii=False)
-    ctx["recruiters_json"] = json.dumps(['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL'], ensure_ascii=False)
+    ]
+    ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
+    ctx["features"] = features_list
+
+    recruiters_list = ['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL']
+    ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
+    ctx["recruiters"] = recruiters_list
     
     # testimonials is reviews mapped for homepage
     testimonials = []
@@ -699,14 +785,20 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "initial": r["a"].replace("—", "").strip()[0].upper() if r["a"] else "S"
         })
     ctx["testimonials_json"] = json.dumps(testimonials, ensure_ascii=False)
+    ctx["testimonials"] = testimonials
     
     # financing for homepage
-    ctx["financing_json"] = json.dumps([
+    financing_list = [
         {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
         {"stat": "3–12 mo", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
         {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
-    ], ensure_ascii=False)
-    ctx["banks_json"] = json.dumps(['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra'], ensure_ascii=False)
+    ]
+    ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
+    ctx["financing"] = financing_list
+
+    banks_list = ['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra']
+    ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
+    ctx["banks"] = banks_list
 
     # Programs list for homepage (enriched from workspace courses if available)
     workspace_courses = raw_dict.get("_workspace_courses") or []
@@ -730,6 +822,23 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         uni_programs = [
             {"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": (ctx.get("sticky_bar") or {}).get("fee") or "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True}
         ]
+
+    uni_programs_enriched = []
+    for p in uni_programs:
+        p_copy = dict(p)
+        f = p_copy.get("featured", False)
+        p_copy.update({
+            "cardStyle": "background:#6B4FC9;border:1px solid #6B4FC9" if f else "background:#fff;border:1px solid #E9E5F2",
+            "nameColor": "#fff" if f else "#1C1B22",
+            "descColor": "#D9D2F2" if f else "#6E6A78",
+            "metaLabel": "#C9BEEC" if f else "#9A93A8",
+            "metaVal": "#fff" if f else "#434346",
+            "divider": "1px solid rgba(255,255,255,.18)" if f else "1px solid #ECE7F5",
+            "feeUnitColor": "#C9BEEC" if f else "#9A93A8",
+            "badgeStyle": "background:rgba(255,92,53,.18);color:#FF5C35" if f else "background:#FFE7E0;color:#E0431F"
+        })
+        uni_programs_enriched.append(p_copy)
+
     ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 
     # Serialized programs/specs data for listing templates
@@ -747,8 +856,12 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "description": data.get("hero_description") or "",
             "mode": data.get("mode") or "100% Online",
         })
-    ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
     ctx["programs_list_json"] = json.dumps(programs_list_data, ensure_ascii=False)
+
+    if page_type == "programs_listing":
+        ctx["programs"] = programs_list_data
+    else:
+        ctx["programs"] = uni_programs_enriched[:4]
 
     # Spec groups for specializations listing page
     workspace_specs = raw_dict.get("_workspace_specs") or []
@@ -776,36 +889,64 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         })
     ctx["spec_groups_json"] = json.dumps(list(spec_groups_map.values()), ensure_ascii=False)
 
+    listing_specs = []
+    for grp in spec_groups_map.values():
+        c_name = grp["course_name"]
+        for sp in grp["specs"]:
+            listing_specs.append({
+                "course_name": c_name,
+                "name": sp["name"],
+                "description": sp["description"],
+                "fee": sp["fee"],
+                "slug": sp["slug"]
+            })
+    if page_type == "specializations_listing":
+        ctx["specs"] = listing_specs
+
     # Blog categories & posts
     ctx["cat_labels_json"] = json.dumps(['All', 'Career', 'Admissions', 'Guide', 'Finance', 'Student Life'], ensure_ascii=False)
 
     # Priority: workspace blogs (via transformer _workspace_blogs) → hardcoded demo fallback
-    workspace_blogs_ctx = ctx.get("_workspace_blogs") or []
+    workspace_blogs_ctx = ctx.get("_workspace_blogs") or raw_dict.get("_workspace_blogs") or []
+    blog_posts = []
     if workspace_blogs_ctx:
-        blog_posts = []
-        for b in workspace_blogs_ctx[:3]:
+        for b in workspace_blogs_ctx:
             if not isinstance(b, dict):
                 continue
             data = b.get("data", {})
             b_slug = b.get("slug", "")
-            # Determine the blog page href — relative path to the blog detail HTML
             blog_href = f"{b_slug}.html"
+            img_url = data.get("hero_image_url") or ""
             blog_posts.append({
                 "tag": data.get("category") or data.get("tag") or "Article",
                 "title": data.get("blog_title") or data.get("title") or b_slug.replace("-", " ").title(),
                 "excerpt": data.get("hero_description") or data.get("excerpt") or "",
                 "meta": data.get("read_time") or data.get("meta") or "",
                 "href": blog_href,
-                "image": data.get("hero_image_url") or "",
+                "image": img_url,
+                "hero_image_url": img_url,
+                "author": data.get("author") or "Admissions Team",
+                "author_initial": (data.get("author") or "Admissions Team").strip()[0].upper()
             })
     else:
         # Demo fallback — only shown when workspace contains no blogs
         blog_posts = [
-            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": ""},
-            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": ""},
-            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": ""},
+            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": "", "hero_image_url": "", "author": "Admissions Team", "author_initial": "A"},
+            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": "", "hero_image_url": "", "author": "Admissions Team", "author_initial": "A"},
+            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": "", "hero_image_url": "", "author": "Admissions Team", "author_initial": "A"},
         ]
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
+
+    if page_type == "blog_listing":
+        if blog_posts:
+            ctx["featured_post"] = blog_posts[0]
+            ctx["blog_posts"] = blog_posts[1:]
+        else:
+            ctx["featured_post"] = None
+            ctx["blog_posts"] = []
+    else:
+        ctx["blog_posts"] = blog_posts
+        ctx["posts"] = blog_posts[:3]
 
     # Contact details
     ctx["details_json"] = json.dumps([

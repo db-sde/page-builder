@@ -64,4 +64,5 @@ class BlogListingTransformer:
             "blog_posts": blog_posts,
             "all_posts": all_posts,
             "cat_labels": cat_labels,
+            "_workspace_blogs": blogs,
         }

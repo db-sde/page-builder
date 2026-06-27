@@ -250,8 +250,26 @@ def image_prefix_for_slot(page_type: str, slug: str, slot: str) -> str:
 @app.get("/assets/images/{filename}")
 async def get_asset_image(filename: str):
     from fastapi.responses import FileResponse
+    # 1. Try build directory first to serve optimized WebP/compressed images
+    for p in WORKSPACES_ROOT.glob(f"*/build/assets/images/{filename}"):
+        if p.exists() and p.is_file():
+            ext = p.suffix.lower()
+            media_type = "image/jpeg"
+            if ext == ".png":
+                media_type = "image/png"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            elif ext == ".svg":
+                media_type = "image/svg+xml"
+            elif ext in (".ico", ".icon"):
+                media_type = "image/x-icon"
+            return FileResponse(p, media_type=media_type)
+
+    # 2. Fall back to raw source assets
     for p in WORKSPACES_ROOT.glob(f"*/Assets/images/{filename}"):
-        if p.exists():
+        if p.exists() and p.is_file():
             ext = p.suffix.lower()
             media_type = "image/jpeg"
             if ext == ".png":
@@ -270,6 +288,7 @@ async def get_asset_image(filename: str):
 @app.get("/assets/{path:path}")
 async def get_build_asset(path: str):
     from fastapi.responses import FileResponse
+    # 1. Try build directory first
     for p in WORKSPACES_ROOT.glob(f"*/build/assets/{path}"):
         if p.exists() and p.is_file():
             ext = p.suffix.lower()
@@ -292,6 +311,30 @@ async def get_build_asset(path: str):
                 media_type = "application/pdf"
             return FileResponse(p, media_type=media_type)
     
+    # 2. Try template assets directory as fallback
+    base_dir = Path(__file__).resolve().parent
+    template_asset = base_dir / "templates" / "assets" / path
+    if template_asset.exists() and template_asset.is_file():
+        ext = template_asset.suffix.lower()
+        media_type = "application/octet-stream"
+        if ext == ".js":
+            media_type = "application/javascript"
+        elif ext == ".css":
+            media_type = "text/css"
+        elif ext == ".png":
+            media_type = "image/png"
+        elif ext in (".jpg", ".jpeg"):
+            media_type = "image/jpeg"
+        elif ext == ".webp":
+            media_type = "image/webp"
+        elif ext == ".gif":
+            media_type = "image/gif"
+        elif ext == ".svg":
+            media_type = "image/svg+xml"
+        elif ext == ".pdf":
+            media_type = "application/pdf"
+        return FileResponse(template_asset, media_type=media_type)
+
     if path == "support.js":
         return await get_support_js()
         

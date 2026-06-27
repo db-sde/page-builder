@@ -11,60 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
-  a{text-decoration:none}
-  h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
-  ::selection{background:#FF5C35;color:#1C1B22}
-  .blog-card:hover{box-shadow:0 14px 30px -16px rgba(46,26,107,.25)}
-  .featured-card:hover{box-shadow:0 18px 40px -20px rgba(46,26,107,.28)}
-  img{max-width:100%;height:auto}
-
-  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
-  @media (max-width: 768px) {
-    header nav, header > div > a:last-of-type {
-      display: none !important;
-    }
-    header #mobile-menu-btn {
-      display: flex !important;
-    }
-    .hero-container {
-      grid-template-columns: 1fr !important;
-      gap: 16px !important;
-    }
-    .hero-container div[style*="height:320px"] {
-      height: 200px !important;
-    }
-    .card-grid-3 {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 16px !important;
-    }
-    .hero-buttons {
-      flex-direction: column !important;
-      gap: 12px !important;
-      width: 100% !important;
-    }
-    .hero-buttons .btn-hero {
-      width: 100% !important;
-      text-align: center !important;
-      min-height: 48px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center;
-    }
-    .site-footer-grid {
-      grid-template-columns: 1fr !important;
-      gap: 28px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .card-grid-3 {
-      grid-template-columns: 1fr !important;
-    }
-  }
-</style>
+<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
 
@@ -238,7 +185,6 @@
       <span>{{ site.copyright | default('© 2026. All rights reserved.') }}</span>
       <span>Privacy Policy · Terms · Refund Policy</span>
     </div>
-  </footer>
-
+  <script src="/assets/js/site.js"></script>
 </body>
 </html>

@@ -3,11 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
+
 <title>{{ seo_title }}</title>
 <meta name="description" content="{{ meta_description }}">
 {% if og_image_url %}
@@ -19,305 +15,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{max-width:100%;overflow-x:hidden}
-  body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
-  a{text-decoration:none}
-  .other-spec-link {
-    transition: color 0.15s ease, background-color 0.15s ease;
-  }
-  .other-spec-link:hover {
-    text-decoration: underline;
-    color: #FF5C35 !important;
-    background-color: rgba(107, 79, 201, 0.04);
-  }
-  .other-spec-link:focus {
-    outline: 2px solid #FF5C35;
-    outline-offset: -2px;
-  }
-  h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
-  ::selection{background:#FF5C35;color:#1C1B22}
-  ul, ol { margin-bottom: 16px; padding-left: 22px; }
-  ul { list-style-type: disc; }
-  ol { list-style-type: decimal; }
-  li { margin-bottom: 6px; display: list-item; }
-  img{max-width:100%;height:auto}
-  table{max-width:100%}
-
-  /* ===== OVERFLOW HARDENING =====
-     CSS Grid tracks default to min-width:auto, which sizes them to fit their
-     content's min-content width. If any grid child (sidebar, hero column,
-     card, footer column) has content that can't shrink, the whole grid -
-     and the page - gets pushed wider than the viewport and the excess is
-     clipped off-screen on the right. Forcing min-width:0 on every grid
-     child lets them shrink to the track width instead, so text wraps
-     inside the visible area instead of overflowing it. */
-  .layout-grid > aside, .layout-grid > main,
-  .hero-container > div,
-  .card-grid-3 > div, .placement-cert-grid > div,
-  .stats-grid-5 > div, .site-footer-grid > div {
-    min-width: 0;
-  }
-
-  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
-  .sticky-apply {
-    display: none !important;
-  }
-  @media (max-width: 768px) {
-    header nav, header > div > a:last-of-type {
-      display: none !important;
-    }
-    header #mobile-menu-btn {
-      display: flex !important;
-    }
-    .layout-grid {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-    }
-    .layout-grid aside {
-      order: 2 !important;
-      position: static !important;
-      width: 100% !important;
-      margin-top: 16px !important;
-    }
-    .layout-grid main {
-      order: 1 !important;
-      width: 100% !important;
-    }
-    .hero-container {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-      padding: 0 16px !important;
-    }
-    .hero-container h1 {
-      font-size: 28px !important;
-      line-height: 1.2 !important;
-    }
-    .hero-container img, .hero-container div[style*="min-height:410px"] {
-      height: 260px !important;
-      min-height: 260px !important;
-    }
-    .stats-grid-5 {
-      grid-template-columns: repeat(3, 1fr) !important;
-      margin-top: -30px !important;
-    }
-    .hero-buttons {
-      flex-direction: column !important;
-      gap: 12px !important;
-      width: 100% !important;
-    }
-    .hero-buttons .btn-hero {
-      width: 100% !important;
-      text-align: center !important;
-      min-height: 48px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center;
-    }
-    .card-grid-3 {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 16px !important;
-    }
-    .site-footer-grid {
-      grid-template-columns: 1fr !important;
-      gap: 28px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .card-grid-3, .placement-cert-grid {
-      grid-template-columns: 1fr !important;
-    }
-    .stats-grid-5 {
-      grid-template-columns: repeat(2, 1fr) !important;
-    }
-    .sticky-bottom-bar {
-      height: auto !important;
-    }
-    .sticky-bar-container {
-      flex-direction: row !important;
-      height: auto !important;
-      padding: 10px 16px !important;
-    }
-    .sticky-text-info {
-      display: none !important;
-    }
-    .sticky-whatsapp {
-      display: none !important;
-    }
-    .sticky-apply {
-      display: inline-flex !important;
-    }
-    .sticky-button-wrap {
-      width: 100% !important;
-      justify-content: stretch !important;
-      gap: 8px !important;
-    }
-    .sticky-button-wrap a {
-      flex: 1 !important;
-      text-align: center !important;
-      font-size: 13px !important;
-      padding: 10px 8px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      min-height: 44px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .stats-grid-5 {
-      grid-template-columns: 1fr !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: TABLET RANGE ===== */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .hero-container {
-      gap: 32px !important;
-    }
-    .layout-grid {
-      gap: 24px !important;
-    }
-    .layout-grid aside {
-      width: 190px !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: TIGHTER PADDING + TYPE SCALE ON MOBILE ===== */
-  @media (max-width: 768px) {
-    .layout-grid {
-      padding: 28px 16px 50px !important;
-    }
-    main section[style*="padding:28px"],
-    div[style*="padding:26px 28px"] {
-      padding: 18px !important;
-    }
-    h2[style*="font-size:21px"] {
-      font-size: 18px !important;
-    }
-    table {
-      font-size: 12.5px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    div[style*="position:absolute;left:18px;bottom:18px"] {
-      padding: 9px 12px !important;
-      gap: 8px !important;
-    }
-    div[style*="position:absolute;left:18px;bottom:18px"] div:first-child {
-      font-size: 19px !important;
-    }
-    div[style*="position:absolute;left:18px;bottom:18px"] div:last-child {
-      font-size: 10.5px !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: SMALL PHONES ===== */
-  @media (max-width: 380px) {
-    .hero-container {
-      padding: 0 14px !important;
-    }
-    .hero-container h1 {
-      font-size: 22px !important;
-    }
-    .hero-container img, .hero-container div[style*="min-height:410px"] {
-      height: 210px !important;
-      min-height: 210px !important;
-    }
-    .stats-grid-5 > div {
-      padding: 14px 8px !important;
-    }
-    .stats-grid-5 > div span:first-child {
-      font-size: 16px !important;
-    }
-    main section[style*="padding:28px"],
-    div[style*="padding:26px 28px"] {
-      padding: 14px !important;
-    }
-    h2[style*="font-size:21px"] {
-      font-size: 17px !important;
-    }
-  }
-
-  /* ===== FIX: PREVENT CMS-SUPPLIED RICH TEXT FROM OVERFLOWING THE VIEWPORT ===== */
-  .rich-content {
-    max-width: 100%;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-  .rich-content img {
-    max-width: 100% !important;
-    height: auto !important;
-  }
-  .rich-content table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .rich-content iframe, .rich-content video {
-    max-width: 100%;
-  }
-  .rich-content * {
-    max-width: 100%;
-  }
-  .rich-content pre, .rich-content code {
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  /* ===== SHOW MORE / SHOW LESS (pure CSS, no JS, mobile only) ===== */
-  .readmore-toggle {
-    display: none;
-  }
-  .readmore-label {
-    display: none;
-    cursor: pointer;
-    color: #FF5C35;
-    font-weight: 700;
-    font-size: 13.5px;
-    margin-top: 10px;
-  }
-  .readmore-label .rm-less {
-    display: none;
-  }
-  .readmore-toggle:checked ~ .readmore-label .rm-more {
-    display: none;
-  }
-  .readmore-toggle:checked ~ .readmore-label .rm-less {
-    display: inline;
-  }
-  @media (max-width: 768px) {
-    .readmore-body {
-      max-height: 190px;
-      overflow: hidden;
-      position: relative;
-    }
-    .readmore-body::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 44px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
-      pointer-events: none;
-    }
-    .readmore-toggle:checked ~ .readmore-body {
-      max-height: none;
-    }
-    .readmore-toggle:checked ~ .readmore-body::after {
-      display: none;
-    }
-    .readmore-label {
-      display: inline-block;
-    }
-  }
-</style>
-</helmet>
+<link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+{% set heroWrap = 'background:#fff;border-bottom:1px solid #ECE8F6;color:#434346' %}
+{% set heroCrumb = '#9A93A8' %}
+{% set heroH1 = '#5737C5' %}
+{% set heroSub = '#6E6A78' %}
+{% set heroBadge = 'background:#FFF0EB;border:1px solid #FFD3C6;color:#E0431F' %}
+{% set heroChip = 'background:#F6F4FB;border:1px solid #E9E5F2;color:#5737C5' %}
+{% set heroSecBtn = 'border:1.5px solid #D9CFF0;color:#5737C5' %}
+{% set heroImg = 'background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 14px,#E4DEF4 14px,#E4DEF4 28px);border:1px solid #E9E5F2' %}
+{% set heroImgText = '#A99BD8' %}
 
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;padding-bottom:64px">
 
@@ -352,7 +61,7 @@
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
 
       <!-- Hamburger Button -->
-      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+      <button onclick="var d=document.getElementById('mobile-drawer'); d.style.display=(d.style.display==='flex'?'none':'flex');" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
@@ -360,7 +69,7 @@
     </div>
 
     <!-- Mobile Navigation Drawer -->
-    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+    <div class="mobile-menu-drawer" id="mobile-drawer" style="display:none;position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2">
       <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
       <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
       <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
@@ -414,12 +123,12 @@
   <!-- ===== STATS STRIP ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:0 20px">
     <div class="stats-grid-5" style="background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(46,26,107,.10);display:grid;grid-template-columns:repeat(5,1fr);margin-top:-56px;position:relative;z-index:5">
-      <sc-for list="{{ '{{' }} stats {{ '}}' }}" as="s" hint-placeholder-count="5">
+      {% for s in stats %}
         <div style="padding:18px 14px;text-align:center;border-right:1px solid #E9E5F2">
-          <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ '{{' }} s.v {{ '}}' }}</span>
-          <span style="font-size:11px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ '{{' }} s.k {{ '}}' }}</span>
+          <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ s.v }}</span>
+          <span style="font-size:11px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ s.k }}</span>
         </div>
-      </sc-for>
+      {% endfor %}
     </div>
   </div>
 
@@ -427,9 +136,9 @@
   <div class="layout-grid" style="max-width:1180px;margin:0 auto;padding:40px 20px 70px;display:grid;grid-template-columns:230px 1fr;gap:32px">
 
     <aside style="position:sticky;top:84px;align-self:start;background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:10px">
-      <sc-for list="{{ '{{' }} rail {{ '}}' }}" as="r" hint-placeholder-count="12">
-        <a href="{{ '{{' }} r.href {{ '}}' }}" style="display:block;padding:9px 14px;font-size:13px;font-weight:600;color:#6E6A78;border-left:3px solid transparent;border-radius:0 8px 8px 0">{{ '{{' }} r.label {{ '}}' }}</a>
-      </sc-for>
+      {% for r in rail %}
+        <a href="{{ r.href }}" style="display:block;padding:9px 14px;font-size:13px;font-weight:600;border-left:3px solid transparent;border-radius:0 8px 8px 0;color:#6E6A78;border-left-color:transparent;background:transparent">{{ r.label }}</a>
+      {% endfor %}
       <div style="padding:14px 12px 6px">
         <a href="{{ lead_url_brochure }}" style="display:block;background:#FF5C35;color:#1C1B22;text-align:center;font-weight:800;font-size:13.5px;padding:11px;border-radius:8px">Get Brochure</a>
       </div>
@@ -453,12 +162,12 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Specialization Highlights</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          <sc-for list="{{ '{{' }} highlights {{ '}}' }}" as="h" hint-placeholder-count="6">
+          {% for h in highlights %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
-              <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ '{{' }} h.t {{ '}}' }}</h4>
-              <p style="font-size:13px;color:#6E6A78">{{ '{{' }} h.d {{ '}}' }}</p>
+              <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ h.t }}</h4>
+              <p style="font-size:13px;color:#6E6A78">{{ h.d }}</p>
             </div>
-          </sc-for>
+          {% endfor %}
         </div>
       </section>
       {% endif %}
@@ -482,9 +191,9 @@
         <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
           <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
             <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700">Amount</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th></tr>
-            <sc-for list="{{ '{{' }} fees {{ '}}' }}" as="f" hint-placeholder-count="3">
-              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.plan {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.amt {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }};font-weight:700;color:#6B4FC9">{{ '{{' }} f.total {{ '}}' }}</td></tr>
-            </sc-for>
+            {% for f in fees %}
+              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.plan }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.amt }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }};font-weight:700;color:#6B4FC9">{{ f.total }}</td></tr>
+            {% endfor %}
           </table>
         </div>
         {% if fees.note %}
@@ -514,12 +223,14 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Admission Process</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;flex-direction:column;gap:4px">
-          <sc-for list="{{ '{{' }} steps {{ '}}' }}" as="st" hint-placeholder-count="5">
+          {% for st in admission_steps %}
             <div style="display:flex;gap:14px;padding:10px 0;font-size:14px;align-items:flex-start">
-              <div style="flex:0 0 30px;height:30px;border-radius:50%;background:#FF5C35;color:#1C1B22;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">{{ '{{' }} st.n {{ '}}' }}</div>
-              <div style="padding-top:3px">{{ '{{' }} st.t {{ '}}' }}</div>
+              <div style="flex:0 0 30px;height:30px;border-radius:50%;background:#FF5C35;color:#1C1B22;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">{{ st.n }}</div>
+              <div style="padding-top:3px;line-height:1.5">
+                <strong style="color:#1C1B22">{{ st.t }}</strong>{% if st.d %}<span style="color:#6E6A78"> — {{ st.d }}</span>{% endif %}
+              </div>
             </div>
-          </sc-for>
+          {% endfor %}
         </div>
         {% if admission.fee_note %}
         <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:12px">{{ admission.fee_note }}</div>
@@ -531,20 +242,32 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button onClick="{{ '{{' }} showY1 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y1bg {{ '}}' }};color:{{ '{{' }} y1color {{ '}}' }};border-color:{{ '{{' }} y1border {{ '}}' }}">Year 1</button>
-          <button onClick="{{ '{{' }} showY2 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y2bg {{ '}}' }};color:{{ '{{' }} y2color {{ '}}' }};border-color:{{ '{{' }} y2border {{ '}}' }}">Year 2</button>
+          <button id="syllabus-btn-y1" style="padding:9px 22px;border:1px solid #6B4FC9;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:#6B4FC9;color:#fff">Year 1</button>
+          <button id="syllabus-btn-y2" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:#6E6A78">Year 2</button>
         </div>
-        <div class="placement-cert-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <sc-for list="{{ '{{' }} sems {{ '}}' }}" as="sem" hint-placeholder-count="2">
+        <div id="syllabus-y1" class="placement-cert-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          {% for sem in y1 %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
-              <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ '{{' }} sem.title {{ '}}' }}</h4>
+              <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ sem.title }}</h4>
               <div style="display:flex;flex-direction:column">
-                <sc-for list="{{ '{{' }} sem.subjects {{ '}}' }}" as="sub" hint-placeholder-count="6">
-                  <div style="font-size:13px;padding:6px 0;border-bottom:1px dashed #E9E5F2;color:#434346">{{ '{{' }} sub {{ '}}' }}</div>
-                </sc-for>
+                {% for sub in sem.subjects %}
+                  <div style="font-size:13px;padding:6px 0;border-bottom:1px dashed #E9E5F2;color:#434346">{{ sub }}</div>
+                {% endfor %}
               </div>
             </div>
-          </sc-for>
+          {% endfor %}
+        </div>
+        <div id="syllabus-y2" class="placement-cert-grid" style="display:none;grid-template-columns:1fr 1fr;gap:16px">
+          {% for sem in y2 %}
+            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
+              <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ sem.title }}</h4>
+              <div style="display:flex;flex-direction:column">
+                {% for sub in sem.subjects %}
+                  <div style="font-size:13px;padding:6px 0;border-bottom:1px dashed #E9E5F2;color:#434346">{{ sub }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
         </div>
       </section>
 
@@ -555,19 +278,18 @@
         <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
           <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
             <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Specialization</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Fee</th></tr>
-            <sc-for list="{{ '{{' }} otherSpecs {{ '}}' }}" as="o" hint-placeholder-count="7">
+            {% for o in other_specs %}
               <tr>
-                <td style="padding:{{ '{{' }} o.padding {{ '}}' }};border-bottom:1px solid #E9E5F2;background:{{ '{{' }} o.bg {{ '}}' }};font-weight:{{ '{{' }} o.weight {{ '}}' }};color:{{ '{{' }} o.color {{ '}}' }};border-top:{{ '{{' }} o.bt {{ '}}' }};border-bottom:{{ '{{' }} o.bb {{ '}}' }}">
-                  <sc-if value="{{ '{{' }} !o.cur {{ '}}' }}">
-                    <a href="{{ '{{' }} o.href {{ '}}' }}" class="other-spec-link" style="color:inherit;text-decoration:none;display:block;width:100%;padding:11px 14px">{{ '{{' }} o.name {{ '}}' }}</a>
-                  </sc-if>
-                  <sc-if value="{{ '{{' }} o.cur {{ '}}' }}">
-                    {{ '{{' }} o.name {{ '}}' }}
-                  </sc-if>
+                <td style="padding:{{ o.padding }};border-bottom:1px solid #E9E5F2;background:{{ o.bg }};font-weight:{{ o.weight }};color:{{ o.color }};border-top:{{ o.bt }};border-bottom:{{ o.bb }}">
+                  {% if not o.cur %}
+                    <a href="{{ o.href }}" class="other-spec-link" style="color:inherit;text-decoration:none;display:block;width:100%;padding:11px 14px">{{ o.name }}</a>
+                  {% else %}
+                    {{ o.name }}
+                  {% endif %}
                 </td>
-                <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} o.bg {{ '}}' }};font-weight:{{ '{{' }} o.weight {{ '}}' }};color:{{ '{{' }} o.color {{ '}}' }};border-top:{{ '{{' }} o.bt {{ '}}' }};border-bottom:{{ '{{' }} o.bb {{ '}}' }}">{{ '{{' }} o.fee {{ '}}' }}</td>
+                <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ o.bg }};font-weight:{{ o.weight }};color:{{ o.color }};border-top:{{ o.bt }};border-bottom:{{ o.bb }}">{{ o.fee }}</td>
               </tr>
-            </sc-for>
+            {% endfor %}
           </table>
         </div>
       </section>
@@ -607,9 +329,9 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Job Profiles After Graduation</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          <sc-for list="{{ '{{' }} jobs {{ '}}' }}" as="j" hint-placeholder-count="6">
-            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ '{{' }} j.t {{ '}}' }}</h4><p style="font-size:13px;color:#6E6A78">Avg. salary: {{ '{{' }} j.s {{ '}}' }}</p></div>
-          </sc-for>
+          {% for j in jobs %}
+            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ j.t }}</h4><p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p></div>
+          {% endfor %}
         </div>
       </section>
       {% endif %}
@@ -627,9 +349,9 @@
       <section id="reviews" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Student Reviews</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <sc-for list="{{ '{{' }} reviews {{ '}}' }}" as="rv" hint-placeholder-count="3">
-          <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px"><p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ '{{' }} rv.q {{ '}}' }}</p><b style="font-size:13px;color:#1C1B22">{{ '{{' }} rv.a {{ '}}' }}</b></div>
-        </sc-for>
+        {% for rv in reviews %}
+          <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px"><p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p><b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b></div>
+        {% endfor %}
       </section>
       {% endif %}
 
@@ -637,12 +359,12 @@
       <section id="faq" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Frequently Asked Questions</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <sc-for list="{{ '{{' }} faqs {{ '}}' }}" as="fq" hint-placeholder-count="5">
-          <div style="border-bottom:1px solid #E9E5F2">
-            <button class="faq-btn" onClick="{{ '{{' }} fq.toggle {{ '}}' }}" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span>{{ '{{' }} fq.q {{ '}}' }}</span><span style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ '{{' }} fq.sign {{ '}}' }}</span></button>
-            <div style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ '{{' }} fq.disp {{ '}}' }}">{{ '{{' }} fq.a {{ '}}' }}</div>
+        {% for fq in faqs %}
+          <div style="border-bottom:1px solid #E9E5F2" class="faq-item">
+            <button class="faq-btn" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span>{{ fq.q }}</span><span class="faq-icon" style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ '+' if not loop.first else '–' }}</span></button>
+            <div class="faq-answer" style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ 'block' if loop.first else 'none' }}">{{ fq.a }}</div>
           </div>
-        </sc-for>
+        {% endfor %}
       </section>
       {% endif %}
     </main>
@@ -717,70 +439,6 @@
   {% endif %}
 
 </div>
-</x-dc>
-<script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  state = { year: 'y1', open: { 0: true }, mobileMenuOpen: false };
-
-  toggleFaq(i) {
-    this.setState(s => { const o = { ...s.open }; o[i] = !o[i]; return { open: o }; });
-  }
-
-  renderVals() {
-    const O = '#FF5C35', NAVY = '#6B4FC9', MUT = '#6E6A78';
-    const stats = {{ stats_json | safe }};
-    const railDef = {{ rail_json | safe }};
-    const rail = railDef.map(([label, href]) => ({
-      label, href, color: MUT, bar: 'transparent', bg: 'transparent'
-    }));
-    const highlights = {{ highlights_json | safe }};
-    const fees = {{ fees_json | safe }};
-    const steps = {{ steps_json | safe }};
-    const jobs = {{ jobs_json | safe }};
-    const reviews = {{ reviews_json | safe }};
-    const faqData = {{ faq_data_json | safe }};
-    const faqs = faqData.map((f, i) => ({
-      q: f.q, a: f.a,
-      sign: this.state.open[i] ? '–' : '+',
-      disp: this.state.open[i] ? 'block' : 'none',
-      toggle: () => this.toggleFaq(i)
-    }));
-
-    const y1 = {{ y1_json | safe }};
-    const y2 = {{ y2_json | safe }};
-    const isY1 = this.state.year === 'y1';
-    const sems = isY1 ? y1 : y2;
-
-    const osDef = {{ other_specs_json | safe }};
-    const currentSlug = "{{ slug }}";
-    const otherSpecs = osDef.map((item, i) => {
-      const cur = (item.slug && currentSlug) ? (item.slug === currentSlug) : item.cur;
-      const name = cur ? `${item.name} (you are here)` : item.name;
-      return {
-        name,
-        fee: item.fee,
-        cur,
-        href: item.href || '',
-        bg: cur ? '#FFF0EB' : (i % 2 ? '#F6F4FB' : '#fff'),
-        weight: cur ? '700' : '400',
-        color: cur ? '#1C1B22' : '#434346',
-        bt: cur ? `2px solid ${O}` : 'none',
-        bb: cur ? `2px solid ${O}` : '1px solid #E9E5F2',
-        padding: cur ? '11px 14px' : '0'
-      };
-    });
-
-    return {
-      stats, rail, highlights, fees, steps, otherSpecs, jobs, reviews, faqs, sems,
-      showY1: () => this.setState({ year: 'y1' }),
-      showY2: () => this.setState({ year: 'y2' }),
-      y1bg: isY1 ? NAVY : '#fff', y1color: isY1 ? '#fff' : MUT, y1border: isY1 ? NAVY : '#E9E5F2',
-      y2bg: !isY1 ? NAVY : '#fff', y2color: !isY1 ? '#fff' : MUT, y2border: !isY1 ? NAVY : '#E9E5F2',
-      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
-      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
-    };
-  }
-}
-</script>
+<script src="/assets/js/site.js"></script>
 </body>
 </html>
