@@ -129,9 +129,8 @@ def build_lead_url(
 class SyllabusHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.y1 = []
-        self.y2 = []
-        self.current_year = 1
+        self.syllabus_years = []
+        self.current_year_dict = None
         self.current_sem = None
         self.in_heading = False
         self.in_li = False
@@ -139,7 +138,7 @@ class SyllabusHTMLParser(HTMLParser):
         self.li_text = ""
 
     def handle_starttag(self, tag, attrs):
-        if tag in ("h3", "h4", "h5"):
+        if tag in ("h3", "h4", "h5", "h6"):
             self.in_heading = True
             self.heading_text = ""
         elif tag == "li":
@@ -147,34 +146,27 @@ class SyllabusHTMLParser(HTMLParser):
             self.li_text = ""
 
     def handle_endtag(self, tag):
-        if tag in ("h3", "h4", "h5"):
+        if tag in ("h3", "h4", "h5", "h6"):
             self.in_heading = False
             text = self.heading_text.strip()
             if text:
-                # Check year
-                if re.search(r"year\s*(i\b|1\b|one)", text, re.IGNORECASE):
-                    self.current_year = 1
-                elif re.search(r"year\s*(ii\b|2\b|two)", text, re.IGNORECASE):
-                    self.current_year = 2
-                # Check sem
-                elif re.search(r"sem(ester)?\s*(i\b|1\b|one)", text, re.IGNORECASE):
-                    self.current_sem = {"title": text, "subjects": []}
-                    if self.current_year == 1:
-                        self.y1.append(self.current_sem)
+                year_match = re.search(r"\byear\b\s*(i+|v+|[1-9]\b|one|two|three|four|five)", text, re.IGNORECASE)
+                sem_match = re.search(r"\bsem(ester)?\b\s*(i+|v+|[1-9]\b|one|two|three|four|five|six|seven|eight)", text, re.IGNORECASE)
+                
+                if year_match and not sem_match:
+                    year_label = text
+                    existing = next((y for y in self.syllabus_years if y["label"].lower() == year_label.lower()), None)
+                    if existing:
+                        self.current_year_dict = existing
                     else:
-                        self.y2.append(self.current_sem)
-                elif re.search(r"sem(ester)?\s*(ii\b|2\b|two)", text, re.IGNORECASE):
+                        self.current_year_dict = {"label": year_label, "semesters": []}
+                        self.syllabus_years.append(self.current_year_dict)
+                elif sem_match:
+                    if self.current_year_dict is None:
+                        self.current_year_dict = {"label": "Year I", "semesters": []}
+                        self.syllabus_years.append(self.current_year_dict)
                     self.current_sem = {"title": text, "subjects": []}
-                    if self.current_year == 1:
-                        self.y1.append(self.current_sem)
-                    else:
-                        self.y2.append(self.current_sem)
-                elif re.search(r"sem(ester)?\s*(iii\b|3\b|three)", text, re.IGNORECASE):
-                    self.current_sem = {"title": text, "subjects": []}
-                    self.y2.append(self.current_sem)
-                elif re.search(r"sem(ester)?\s*(iv\b|4\b|four)", text, re.IGNORECASE):
-                    self.current_sem = {"title": text, "subjects": []}
-                    self.y2.append(self.current_sem)
+                    self.current_year_dict["semesters"].append(self.current_sem)
         elif tag == "li":
             self.in_li = False
             text = self.li_text.strip()
@@ -187,15 +179,15 @@ class SyllabusHTMLParser(HTMLParser):
         elif self.in_li:
             self.li_text += data
 
-def parse_syllabus_html(html_str: str) -> tuple[list, list]:
+def parse_syllabus_html(html_str: str) -> list[dict]:
     if not html_str:
-        return [], []
+        return []
     parser = SyllabusHTMLParser()
     try:
         parser.feed(html_str)
-        return parser.y1, parser.y2
+        return parser.syllabus_years
     except Exception:
-        return [], []
+        return []
 
 class AdmissionHTMLParser(HTMLParser):
     def __init__(self):
@@ -488,13 +480,22 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # No fallback to raw specialization field or hardcoded placeholders.
     if page_type != "specializations_listing":
         workspace_specs_ctx = ctx.get("_workspace_specs") or []
+        workspace_courses = raw_dict.get("_workspace_courses") or []
         spec_list = []
-        for sp in workspace_specs_ctx[:6]:
+        for sp in workspace_specs_ctx:
             if not isinstance(sp, dict):
                 continue
             data = sp.get("data", {})
             sp_slug = sp.get("slug", "")
+            parent = sp.get("parent_slug") or data.get("parent_slug") or "general"
+            course_name = parent.replace("-", " ").title()
+            for c in workspace_courses:
+                if isinstance(c, dict) and c.get("slug") == parent:
+                    cd = c.get("data", {})
+                    course_name = cd.get("program_name") or cd.get("course_name") or course_name
+                    break
             spec_list.append({
+                "course_name": course_name,
                 "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
                 "d": data.get("hero_description") or data.get("description") or "",
                 "href": f"{sp_slug}.html",
@@ -630,18 +631,25 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
 
     # 10. Syllabus Semester 1 & 2 / Semester 3 & 4
-    y1, y2 = parse_syllabus_html(ctx.get("syllabus", ""))
-    if not y1 and not y2:
-        y1 = [
-            { "title": "Semester 1", "subjects": ["Management Theory & Practice", "Organisational Behaviour", "Marketing Management", "Business Economics", "Financial Accounting & Analysis", "Information Systems for Managers"] },
-            { "title": "Semester 2", "subjects": ["Business Communication", "Essentials of HRM", "Business Law", "Strategic Management", "Operations Management", "Decision Science & Analytics"] }
+    syllabus_years = parse_syllabus_html(ctx.get("syllabus", ""))
+    if not syllabus_years:
+        syllabus_years = [
+            {
+                "label": "Year I",
+                "semesters": [
+                    { "title": "Semester I", "subjects": ["Management Theory & Practice", "Organisational Behaviour", "Marketing Management", "Business Economics", "Financial Accounting & Analysis", "Information Systems for Managers"] },
+                    { "title": "Semester II", "subjects": ["Business Communication", "Essentials of HRM", "Business Law", "Strategic Management", "Operations Management", "Decision Science & Analytics"] }
+                ]
+            },
+            {
+                "label": "Year II",
+                "semesters": [
+                    { "title": "Semester III (Specialization Electives)", "subjects": ["Specialization Course I", "Specialization Course II", "Specialization Course III", "Research Methodology", "International Business", "Cost & Management Accounting"] },
+                    { "title": "Semester IV (Specialization + Capstone)", "subjects": ["Specialization Course IV", "Specialization Course V", "Business Ethics & CSR", "Entrepreneurship", "Capstone Project"] }
+                ]
+            }
         ]
-        y2 = [
-            { "title": "Semester 3 (Specialization Electives)", "subjects": ["Specialization Course I", "Specialization Course II", "Specialization Course III", "Research Methodology", "International Business", "Cost & Management Accounting"] },
-            { "title": "Semester 4 (Specialization + Capstone)", "subjects": ["Specialization Course IV", "Specialization Course V", "Business Ethics & CSR", "Entrepreneurship", "Capstone Project"] }
-        ]
-    ctx["y1_json"] = json.dumps(y1, ensure_ascii=False)
-    ctx["y2_json"] = json.dumps(y2, ensure_ascii=False)
+    ctx["syllabus_years_json"] = json.dumps(syllabus_years, ensure_ascii=False)
 
     # Specialization specific other specs list
     siblings = ctx.get("other_specs") or []
@@ -685,7 +693,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
         {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
         {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
-        {"stat": "24mo", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
+        {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
     ], ensure_ascii=False)
     ctx["recruiters_json"] = json.dumps(['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL'], ensure_ascii=False)
     
@@ -703,7 +711,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # financing for homepage
     ctx["financing_json"] = json.dumps([
         {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
-        {"stat": "3–12 mo", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
+        {"stat": "3–12 months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
         {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
     ], ensure_ascii=False)
     ctx["banks_json"] = json.dumps(['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra'], ensure_ascii=False)
@@ -715,20 +723,26 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         for i, c in enumerate(workspace_courses):
             data = c.get("data", {}) if isinstance(c, dict) else {}
             slug = c.get("slug", "") if isinstance(c, dict) else ""
+            
+            # Determine dynamic level based on course title
+            name_lower = (data.get("program_name") or data.get("course_name") or slug).lower()
+            is_undergrad = any(x in name_lower for x in ["bba", "bca", "bcom", "bsc", "ba "]) or name_lower.startswith("ba-") or name_lower.startswith("ba ")
+            level = "Undergraduate" if is_undergrad else "Postgraduate"
+            
             uni_programs.append({
-                "level": "Postgraduate",
+                "level": level,
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
                 "dur": data.get("duration") or "2 Years · 4 Sem",
                 "fee": data.get("total_fee") or data.get("starting_fee") or "₹2,00,000",
                 "feeUnit": "total course",
-                "elig": data.get("eligibility_summary") or "Bachelor's, 50%",
                 "d": data.get("hero_description") or "Industry-aligned specializations, taught by expert faculty.",
                 "href": f"{slug}.html",
                 "featured": i == 0,
+                "mode": data.get("mode") or "100% Online",
             })
     else:
         uni_programs = [
-            {"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": (ctx.get("sticky_bar") or {}).get("fee") or "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True}
+            {"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": (ctx.get("sticky_bar") or {}).get("fee") or "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": "100% Online"}
         ]
     ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 

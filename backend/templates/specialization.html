@@ -45,6 +45,27 @@
   img{max-width:100%;height:auto}
   table{max-width:100%}
 
+  .content-body p {
+      margin: 0 0 18px 0;
+      line-height: 1.8;
+  }
+  .content-body p:last-child {
+      margin-bottom: 0;
+  }
+  .content-body ul,
+  .content-body ol {
+      margin: 16px 0;
+      padding-left: 24px;
+  }
+  .content-body li {
+      margin-bottom: 8px;
+  }
+  .content-body h3,
+  .content-body h4 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+  }
+
   /* ===== OVERFLOW HARDENING =====
      CSS Grid tracks default to min-width:auto, which sizes them to fit their
      content's min-content width. If any grid child (sidebar, hero column,
@@ -380,7 +401,7 @@
         </div>
         <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#FF5C35;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge | default('Most Popular Specialization') }}</div>
         <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ parent_program_name }} in<br>{{ hero.title }}</h1>
-        <div class="rich-content" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
+        <div class="rich-content content-body" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
             <span style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600">{{ pill.label }}</span>
@@ -396,7 +417,7 @@
         <img 
           src="{{ hero_image_url }}"
           alt="{{ hero_image_alt }}"
-          style="width:100%;height:410px;object-fit:cover;border-radius:16px;display:block"
+          style="width:100%;height:auto;max-height:410px;object-fit:contain;border-radius:16px;display:block"
         >
         {% else %}
         <div style="border-radius:16px;min-height:410px;background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 14px,#6244C2 14px,#6244C2 28px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.55)">
@@ -442,7 +463,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-about" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ about | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ about | safe }}</div>
           <label for="rm-about" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -469,7 +490,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
           <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -521,18 +542,17 @@
             </div>
           </sc-for>
         </div>
-        {% if admission.fee_note %}
-        <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:12px">{{ admission.fee_note }}</div>
-        {% endif %}
+
       </section>
       {% endif %}
 
       <section id="syllabus" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button onClick="{{ '{{' }} showY1 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y1bg {{ '}}' }};color:{{ '{{' }} y1color {{ '}}' }};border-color:{{ '{{' }} y1border {{ '}}' }}">Year 1</button>
-          <button onClick="{{ '{{' }} showY2 {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} y2bg {{ '}}' }};color:{{ '{{' }} y2color {{ '}}' }};border-color:{{ '{{' }} y2border {{ '}}' }}">Year 2</button>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <sc-for list="{{ '{{' }} syllabusTabs {{ '}}' }}" as="tab">
+            <button onClick="{{ '{{' }} tab.select {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} tab.bg {{ '}}' }};color:{{ '{{' }} tab.color {{ '}}' }};border-color:{{ '{{' }} tab.border {{ '}}' }}">{{ '{{' }} tab.label {{ '}}' }}</button>
+          </sc-for>
         </div>
         <div class="placement-cert-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <sc-for list="{{ '{{' }} sems {{ '}}' }}" as="sem" hint-placeholder-count="2">
@@ -579,7 +599,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-exam" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ exam | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ exam | safe }}</div>
           <label for="rm-exam" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
       </section>
@@ -592,7 +612,7 @@
         {% if placement %}
         <div class="rich-content readmore-wrap" style="margin-bottom:12px">
           <input type="checkbox" id="rm-placement" class="readmore-toggle">
-          <div class="readmore-body" style="font-size:14.5px">{{ placement | safe }}</div>
+          <div class="readmore-body content-body" style="font-size:14.5px">{{ placement | safe }}</div>
           <label for="rm-placement" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
         </div>
         {% endif %}
@@ -720,7 +740,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { year: 'y1', open: { 0: true }, mobileMenuOpen: false };
+  state = { selectedYearIndex: 0, open: { 0: true }, mobileMenuOpen: false };
 
   toggleFaq(i) {
     this.setState(s => { const o = { ...s.open }; o[i] = !o[i]; return { open: o }; });
@@ -746,10 +766,19 @@ class Component extends DCLogic {
       toggle: () => this.toggleFaq(i)
     }));
 
-    const y1 = {{ y1_json | safe }};
-    const y2 = {{ y2_json | safe }};
-    const isY1 = this.state.year === 'y1';
-    const sems = isY1 ? y1 : y2;
+    const syllabusYears = {{ syllabus_years_json | safe }};
+    const selectedYear = this.state.selectedYearIndex || 0;
+    const syllabusTabs = syllabusYears.map((y, idx) => {
+      const active = selectedYear === idx;
+      return {
+        label: y.label,
+        bg: active ? NAVY : '#fff',
+        color: active ? '#fff' : MUT,
+        border: active ? NAVY : '#E9E5F2',
+        select: () => this.setState({ selectedYearIndex: idx })
+      };
+    });
+    const sems = (syllabusYears[selectedYear] || {}).semesters || [];
 
     const osDef = {{ other_specs_json | safe }};
     const currentSlug = "{{ slug }}";
@@ -771,11 +800,7 @@ class Component extends DCLogic {
     });
 
     return {
-      stats, rail, highlights, fees, steps, otherSpecs, jobs, reviews, faqs, sems,
-      showY1: () => this.setState({ year: 'y1' }),
-      showY2: () => this.setState({ year: 'y2' }),
-      y1bg: isY1 ? NAVY : '#fff', y1color: isY1 ? '#fff' : MUT, y1border: isY1 ? NAVY : '#E9E5F2',
-      y2bg: !isY1 ? NAVY : '#fff', y2color: !isY1 ? '#fff' : MUT, y2border: !isY1 ? NAVY : '#E9E5F2',
+      stats, rail, highlights, fees, steps, otherSpecs, jobs, reviews, faqs, sems, syllabusTabs,
       toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
       mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
     };

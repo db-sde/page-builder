@@ -13,6 +13,27 @@ class BlogTransformer:
         title = raw.get("title") or raw.get("hero_title") or "Untitled Blog Post"
         excerpt = raw.get("excerpt") or raw.get("hero_description") or ""
         content_html = raw.get("content_html") or ""
+
+        import re
+        faqs = raw.get("faqs") or []
+        if not faqs and content_html:
+            pattern = re.compile(
+                r'(<h[2-4][^>]*>(?:FAQ|FAQs|Frequently\s+Asked\s+Questions)(?:\s*\(FAQs?\))?</h[2-4]>)\s*(<(?:ul|ol)[^>]*>.*?</(?:ul|ol)>)',
+                re.IGNORECASE | re.DOTALL
+            )
+            match = pattern.search(content_html)
+            if match:
+                list_block = match.group(2)
+                li_pattern = re.compile(r'<li[^>]*>(.*?)</li>', re.IGNORECASE | re.DOTALL)
+                li_items = li_pattern.findall(list_block)
+                for i in range(0, len(li_items) - 1, 2):
+                    q = li_items[i].strip()
+                    a = li_items[i+1].strip()
+                    faqs.append({
+                        "question": q,
+                        "answer": a
+                    })
+                content_html = pattern.sub('', content_html)
         
         # Metadata fields
         tag = raw.get("tag") or raw.get("category") or "Career"
@@ -34,20 +55,39 @@ class BlogTransformer:
         date = raw.get("date") or raw.get("published_date") or "Jan 12, 2026"
         author_bio = raw.get("author_bio") or "Aditi writes about careers, hiring and the economics of higher education. She has spent a decade advising working professionals on when — and whether — to go back to school."
         
-        # Dynamic TOC from H2 and H3 blocks
-        blocks = raw.get("blocks", [])
+        # Dynamic TOC from H2 and H3 blocks inside content_html
         toc = []
-        if isinstance(blocks, list):
-            for b in blocks:
-                if isinstance(b, dict) and b.get("type") in ("h2", "h3") and b.get("text"):
-                    toc.append(b["text"])
+        if content_html:
+            def replace_heading(m):
+                tag = m.group(1)
+                attrs = m.group(2)
+                text = m.group(3)
+                slug = text.lower()
+                slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+                slug = re.sub(r'[\s-]+', '-', slug)
+                slug = slug.strip('-')
+                if slug:
+                    href = f"#{slug}"
+                    toc.append({"text": text, "href": href})
+                    return f"<{tag}{attrs} id=\"{slug}\">{text}</{tag}>"
+                return m.group(0)
+
+            heading_pattern = re.compile(
+                r'<(h[23])([^>]*)>(.*?)</\1>',
+                re.IGNORECASE | re.DOTALL
+            )
+            content_html = heading_pattern.sub(replace_heading, content_html)
+
+        if faqs:
+            toc.append({"text": "FAQs", "href": "#faq"})
+
         if not toc:
             toc = [
-                'The salary uplift is real',
-                'The real cost is time, not money',
-                'Recruiter perception has shifted',
-                'When an online MBA wins',
-                'The verdict'
+                {"text": "The salary uplift is real", "href": "#the-salary-uplift-is-real"},
+                {"text": "The real cost is time, not money", "href": "#the-real-cost-is-time-not-money"},
+                {"text": "Recruiter perception has shifted", "href": "#recruiter-perception-has-shifted"},
+                {"text": "When an online MBA wins", "href": "#when-an-online-mba-wins"},
+                {"text": "The verdict", "href": "#the-verdict"}
             ]
 
         # Related posts fallback
@@ -80,4 +120,6 @@ class BlogTransformer:
             "related": related,
             "toc_json": json.dumps(toc, ensure_ascii=False),
             "related_json": json.dumps(related, ensure_ascii=False),
+            "faqs": faqs,
+            "faqs_json": json.dumps(faqs, ensure_ascii=False),
         }
