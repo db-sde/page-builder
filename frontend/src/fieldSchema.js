@@ -73,7 +73,7 @@ export const FIELD_SCHEMA = {
     { key: 'hero_image_url',   label: 'Article Hero Image',  required: true,  section: 'Header',         impact: 'Article hero image will be empty/placeholder' },
     { key: 'content_html',     label: 'Article Body HTML',   required: true,  section: 'Body',           impact: 'The main article body will be empty' },
     { key: 'tag',              label: 'Category Tag',        required: false, section: 'Metadata',       impact: 'Defaults to "Career" if missing' },
-    { key: 'author',           label: 'Author Name',         required: false, section: 'Metadata',       impact: 'Defaults to "Aditi Rao" if missing' },
+    { key: 'author',           label: 'Author Name',         required: false, section: 'Metadata',       impact: 'Defaults to "Krishna Porwal" if missing' },
     { key: 'author_role',      label: 'Author Role',         required: false, section: 'Metadata',       impact: 'Defaults to "Career Editor" if missing' },
     { key: 'read_time',        label: 'Reading Time',        required: false, section: 'Metadata',       impact: 'Will be calculated from word count' },
     { key: 'date',             label: 'Published Date',      required: false, section: 'Metadata',       impact: 'Defaults to current date' },

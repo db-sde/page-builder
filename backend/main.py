@@ -794,7 +794,7 @@ async def parse_docx_endpoint(
                 "excerpt": excerpt,
                 "content_html": content_html,
                 "tag": tag,
-                "author": "Aditi Rao",
+                "author": "Krishna Porwal",
                 "author_role": "Career Editor",
                 "read_time": read_time,
                 "date": datetime.now().strftime("%b %d, %Y"),

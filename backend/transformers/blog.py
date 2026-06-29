@@ -33,7 +33,7 @@ class BlogTransformer(BaseTransformer):
         
         # Metadata fields
         tag = raw.get("tag") or raw.get("category") or "Career"
-        author = raw.get("author") or "Aditi Rao"
+        author = raw.get("author") or "Krishna Porwal"
         
         # Author initials
         author_initials = ""
@@ -44,12 +44,12 @@ class BlogTransformer(BaseTransformer):
             elif len(parts) == 1:
                 author_initials = parts[0][:2].upper()
         if not author_initials:
-            author_initials = "AR"
+            author_initials = "KP"
             
         author_role = raw.get("author_role") or raw.get("author_title") or "Career Editor"
         read_time = raw.get("read_time") or raw.get("reading_time") or "8 min read"
         date = raw.get("date") or raw.get("published_date") or "Jan 12, 2026"
-        author_bio = raw.get("author_bio") or "Aditi writes about careers, hiring and the economics of higher education. She has spent a decade advising working professionals on when — and whether — to go back to school."
+        author_bio = raw.get("author_bio") or "Krishna writes about careers, hiring and the economics of higher education. Krishna has spent a decade advising working professionals on when — and whether — to go back to school."
         
         # Dynamic TOC from H2 and H3 blocks inside content_html
         toc = []
