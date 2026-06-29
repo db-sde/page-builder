@@ -397,6 +397,29 @@ def _write_sitemap(
     (build_dir / "sitemap.xml").write_text("\n".join(lines), encoding="utf-8")
 
 
+def _write_robots_txt(
+    build_dir: Path,
+    university_slug: str,
+) -> None:
+    """Write build/robots.txt covering indexing rules and pointing to sitemap."""
+    meta_path = _workspace_root(university_slug) / "metadata.json"
+    base_domain = ""
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            base_domain = (meta.get("site_url") or meta.get("domain") or "").rstrip("/")
+        except Exception:
+            pass
+
+    sitemap_url = f"{base_domain}/sitemap.xml" if base_domain else "/sitemap.xml"
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n\n"
+        f"Sitemap: {sitemap_url}\n"
+    )
+    (build_dir / "robots.txt").write_text(content, encoding="utf-8")
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def build_website(university_slug: str) -> dict:
@@ -549,6 +572,7 @@ def build_website(university_slug: str) -> dict:
 
     _write_routes_json(build_dir, route_map, kind_label)
     _write_sitemap(build_dir, route_map, index, university_slug, last_compiled_at)
+    _write_robots_txt(build_dir, university_slug)
 
     built_at = datetime.now(timezone.utc).isoformat()
 
