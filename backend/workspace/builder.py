@@ -61,6 +61,10 @@ def _build_root(university_slug: str) -> Path:
     return _workspace_root(university_slug) / "build"
 
 
+def _build_root_v2(university_slug: str) -> Path:
+    return _workspace_root(university_slug) / "build_v2"
+
+
 def _locate_support_js() -> Path | None:
     """Find support.js using the same search order as main.py /support.js."""
     backend_root = Path(__file__).resolve().parent.parent
@@ -594,6 +598,168 @@ def build_website(university_slug: str) -> dict:
     }
 
 
+def build_website_v2(university_slug: str) -> dict:
+    """
+    Build a deployable static website package for a university workspace using V2 assets.
+    """
+    university_slug = university_slug.lower().strip()
+    ws_root = _workspace_root(university_slug)
+    build_dir = _build_root_v2(university_slug)
+
+    errors: list[dict] = []
+    pages_compiled = 0
+    pages_failed = 0
+
+    # ── Pass A: index + validate ────────────────────────────────────────────
+    index = _build_index(university_slug)
+
+    validation_errors = _validate_pages(index, university_slug)
+    errors.extend(validation_errors)
+
+    # Read last_compiled_at for sitemap fallback
+    last_compiled_at = None
+    meta_path = ws_root / "metadata.json"
+    if meta_path.exists():
+        try:
+            last_compiled_at = json.loads(meta_path.read_text(encoding="utf-8")).get("last_compiled_at")
+        except Exception:
+            pass
+
+    # ── Pass B: route map + collision detection ─────────────────────────────
+    route_map, route_errors = _build_route_map(index, university_slug)
+    errors.extend(route_errors)
+    rewrite_map = _rewrite_map_for_routes(route_map)
+
+    # ── Pass C: reset build dir ─────────────────────────────────────────────
+    if build_dir.exists():
+        shutil.rmtree(build_dir)
+    build_dir.mkdir(parents=True, exist_ok=True)
+    (build_dir / "assets").mkdir(parents=True, exist_ok=True)
+
+    # ── Pass D: export pages ────────────────────────────────────────────────
+    export_specs: list[tuple[str, str, str]] = []  # (kind, slug, build_rel_dir)
+
+    def _export(html_path: Path, build_rel_dir: str, kind: str, slug: str) -> None:
+        nonlocal pages_compiled, pages_failed
+        if not html_path.exists():
+            pages_failed += 1
+            errors.append({
+                "page_type": kind, "slug": slug,
+                "error": f"Compiled HTML not found: {html_path}",
+            })
+            return
+        try:
+            html = html_path.read_text(encoding="utf-8")
+            html = _rewrite_html(html, university_slug, rewrite_map)
+            out_dir = build_dir / build_rel_dir
+            out_dir.mkdir(parents=True, exist_ok=True)
+            (out_dir / "index.html").write_text(html, encoding="utf-8")
+            pages_compiled += 1
+            export_specs.append((kind, slug, build_rel_dir))
+        except Exception as e:
+            pages_failed += 1
+            errors.append({"page_type": kind, "slug": slug, "error": str(e)})
+
+    # Homepage
+    if index["university"]:
+        rec = next(iter(index["university"].values()))
+        uni_html = ws_root / "University" / _HTML_FILENAME["university"]
+        _export(uni_html, "", "homepage", rec.get("slug", university_slug))
+
+    # Listings
+    listing_dirs = {
+        "programs_listing": (Path("Pages") / "programs", "programs"),
+        "specializations_listing": (Path("Pages") / "specializations", "specializations"),
+        "blog_listing": (Path("Pages") / "blog", "blog"),
+    }
+    for kind, (sub, build_sub) in listing_dirs.items():
+        html_path = ws_root / sub / _HTML_FILENAME[kind]
+        _export(html_path, build_sub, kind, kind)
+
+    # Courses
+    for slug, rec in index["course"].items():
+        if slug in _RESERVED_SEGMENTS:
+            continue  # already reported as collision
+        html_path = ws_root / "Courses" / slug / _HTML_FILENAME["course"]
+        _export(html_path, slug, "course", slug)
+
+    # Specializations
+    for slug, rec in index["specialization"].items():
+        if slug in _RESERVED_SEGMENTS:
+            continue
+        html_path = ws_root / "Specializations" / slug / _HTML_FILENAME["specialization"]
+        _export(html_path, slug, "specialization", slug)
+
+    # Blogs
+    for slug, rec in index["blog"].items():
+        html_path = ws_root / "Blogs" / slug / _HTML_FILENAME["blog"]
+        _export(html_path, f"blog/{slug}", "blog", slug)
+
+    # ── Pass E: copy assets ─────────────────────────────────────────────────
+    images_copied = 0
+    downloads_copied = 0
+
+    src_images = ws_root / "Assets" / "images"
+    if src_images.exists():
+        images_copied = _copy_dir_contents(src_images, build_dir / "assets" / "images")
+
+    src_downloads = ws_root / "Assets" / "downloads"
+    if src_downloads.exists():
+        downloads_copied = _copy_dir_contents(src_downloads, build_dir / "assets" / "downloads")
+
+    # Copy V2 static assets (CSS/JS)
+    static_v2_dir = Path(__file__).resolve().parent.parent / "static_v2"
+    if static_v2_dir.exists():
+        # Copy JS
+        js_dst = build_dir / "assets" / "js"
+        js_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(static_v2_dir / "assets" / "js" / "public-runtime.js", js_dst / "public-runtime.js")
+        
+        # Copy CSS
+        css_dst = build_dir / "assets" / "css"
+        css_dst.mkdir(parents=True, exist_ok=True)
+        for css_file in (static_v2_dir / "assets" / "css").glob("*.css"):
+            shutil.copy2(css_file, css_dst / css_file.name)
+
+    # ── Pass F: manifests ────────────────────────────────────────────────────
+    kind_label = {
+        "homepage": "homepage",
+        "programs_listing": "programs_listing",
+        "specializations_listing": "specializations_listing",
+        "blog_listing": "blog_listing",
+    }
+    for key in route_map:
+        if key.startswith("course:"):
+            kind_label[key] = "course"
+        elif key.startswith("specialization:"):
+            kind_label[key] = "specialization"
+        elif key.startswith("blog:"):
+            kind_label[key] = "blog"
+
+    _write_routes_json(build_dir, route_map, kind_label)
+    _write_sitemap(build_dir, route_map, index, university_slug, last_compiled_at)
+    _write_robots_txt(build_dir, university_slug)
+
+    built_at = datetime.now(timezone.utc).isoformat()
+
+    return {
+        "university_slug": university_slug,
+        "build_path": str(build_dir),
+        "build_url": f"/build-file?university_slug={university_slug}&path=index.html",
+        "pages_compiled": pages_compiled,
+        "pages_failed": pages_failed,
+        "images_copied": images_copied,
+        "downloads_copied": downloads_copied,
+        "routes_generated": len(route_map),
+        "routes": [
+            {"route": route, "type": kind_label[k], "slug": k.split(":", 1)[1] if ":" in k else None}
+            for k, route in route_map.items()
+        ],
+        "errors": errors,
+        "built_at": built_at,
+    }
+
+
 def get_build_status(university_slug: str) -> dict:
     """
     Return whether a build exists for a workspace, plus its routes/stats.
@@ -670,4 +836,29 @@ def zip_build(university_slug: str) -> tuple[bytes, str]:
                 arcname = Path("build") / p.relative_to(build_dir)
                 zf.write(p, str(arcname))
     filename = f"{university_slug}-website.zip"
+    return buf.getvalue(), filename
+
+
+def zip_build_v2(university_slug: str) -> tuple[bytes, str]:
+    """
+    Zip the build_v2/ folder into an in-memory archive, compiling/rebuilding first.
+    """
+    university_slug = university_slug.lower().strip()
+
+    from workspace.compiler import compile_workspace_v2
+    compile_workspace_v2(university_slug)
+    build_website_v2(university_slug)
+
+    build_dir = _build_root_v2(university_slug)
+    if not build_dir.exists():
+        raise FileNotFoundError(f"No V2 build found for workspace '{university_slug}'")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for p in build_dir.rglob("*"):
+            if p.is_file():
+                # Package inside a parent 'build/' directory in the ZIP
+                arcname = Path("build") / p.relative_to(build_dir)
+                zf.write(p, str(arcname))
+    filename = f"{university_slug}-website-v2.zip"
     return buf.getvalue(), filename

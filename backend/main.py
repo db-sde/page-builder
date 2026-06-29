@@ -1,12 +1,12 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from core.router import get_transformer
 from renderer.engine import render_resolved
 from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
 )
-from workspace.compiler import compile_workspace, get_workspace_tree
-from workspace.builder import build_website, get_build_status, zip_build
+from workspace.compiler import compile_workspace, compile_workspace_v2, get_workspace_tree
+from workspace.builder import build_website, build_website_v2, get_build_status, zip_build, zip_build_v2
 import asyncio
 import json
 from pathlib import Path
@@ -269,8 +269,67 @@ async def get_asset_image(filename: str):
     raise HTTPException(status_code=404, detail="Image not found")
 
 @app.get("/assets/{path:path}")
-async def get_build_asset(path: str):
+async def get_build_asset(path: str, request: Request):
     from fastapi.responses import FileResponse
+    # Try to extract university_slug from query parameters or referer to locate correct workspace folder
+    uni_slug = request.query_params.get("university_slug")
+    if not uni_slug:
+        referer = request.headers.get("referer") or ""
+        import urllib.parse
+        parsed = urllib.parse.urlparse(referer)
+        query_dict = urllib.parse.parse_qs(parsed.query)
+        uni_slug = query_dict.get("university_slug", [None])[0]
+
+    if uni_slug:
+        uni_slug = uni_slug.lower().strip()
+        # Look in targeted workspace first
+        for prefix in ("build_v2", "build"):
+            p = WORKSPACES_ROOT / uni_slug / prefix / "assets" / path
+            if p.exists() and p.is_file():
+                ext = p.suffix.lower()
+                media_type = "application/octet-stream"
+                if ext == ".js":
+                    media_type = "application/javascript"
+                elif ext == ".css":
+                    media_type = "text/css"
+                elif ext == ".png":
+                    media_type = "image/png"
+                elif ext in (".jpg", ".jpeg"):
+                    media_type = "image/jpeg"
+                elif ext == ".webp":
+                    media_type = "image/webp"
+                elif ext == ".gif":
+                    media_type = "image/gif"
+                elif ext == ".svg":
+                    media_type = "image/svg+xml"
+                elif ext == ".pdf":
+                    media_type = "application/pdf"
+                return FileResponse(p, media_type=media_type)
+
+    # General fallback globally across workspaces
+    for p in WORKSPACES_ROOT.glob(f"*/build_v2/assets/{path}"):
+        if p.exists() and p.is_file():
+            ext = p.suffix.lower()
+            media_type = "application/octet-stream"
+            if ext == ".js":
+                media_type = "application/javascript"
+            elif ext == ".css":
+                media_type = "text/css"
+            elif ext == ".png":
+                media_type = "image/png"
+            elif ext in (".jpg", ".jpeg"):
+                media_type = "image/jpeg"
+            elif ext == ".webp":
+                media_type = "image/webp"
+            elif ext == ".gif":
+                media_type = "image/gif"
+            elif ext == ".svg":
+                media_type = "image/svg+xml"
+            elif ext == ".pdf":
+                media_type = "application/pdf"
+            return FileResponse(p, media_type=media_type)
+
+    # Fallback to build/assets
     for p in WORKSPACES_ROOT.glob(f"*/build/assets/{path}"):
         if p.exists() and p.is_file():
             ext = p.suffix.lower()
@@ -1653,6 +1712,118 @@ async def download_build_endpoint(university_slug: str):
     """
     try:
         zip_bytes, filename = zip_build(university_slug)
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/build-file-v2")
+async def build_file_v2_endpoint(university_slug: str, path: str = "index.html"):
+    """
+    Serve a single file from a workspace's build_v2/ folder.
+    Used by the iframe / new-tab preview of the V2 built website.
+    """
+    from fastapi.responses import FileResponse
+    try:
+        # Dynamically compile and build using V2 templates so the V2 preview is always fresh
+        compile_workspace_v2(university_slug)
+        build_website_v2(university_slug)
+
+        slug = university_slug.lower().strip()
+        build_dir = WORKSPACES_ROOT / slug / "build_v2"
+        # Normalise and prevent path traversal outside build_v2/
+        target = (build_dir / path).resolve()
+        try:
+            target.relative_to(build_dir.resolve())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid path")
+
+        if not target.exists() or not target.is_file():
+            raise HTTPException(status_code=404, detail="Build file not found")
+
+        # Guess media type from extension
+        ext = target.suffix.lower()
+        media_type = "application/octet-stream"
+        if ext == ".html":
+            media_type = "text/html"
+        elif ext == ".css":
+            media_type = "text/css"
+        elif ext == ".js":
+            media_type = "application/javascript"
+        elif ext == ".json":
+            media_type = "application/json"
+        elif ext == ".xml":
+            media_type = "application/xml"
+        elif ext == ".png":
+            media_type = "image/png"
+        elif ext in (".jpg", ".jpeg"):
+            media_type = "image/jpeg"
+        elif ext == ".webp":
+            media_type = "image/webp"
+        elif ext == ".gif":
+            media_type = "image/gif"
+        elif ext == ".svg":
+            media_type = "image/svg+xml"
+        elif ext == ".pdf":
+            media_type = "application/pdf"
+
+        if ext == ".html":
+            html = target.read_text(encoding="utf-8")
+            # Inject a client-side link interception script to make navigation work with build-file-v2 params
+            script = f"""
+<script>
+document.addEventListener('click', function(e) {{
+  var a = e.target.closest('a');
+  if (a && a.getAttribute('href')) {{
+    var href = a.getAttribute('href');
+    if (href.startsWith('/') && !href.startsWith('/build-file-v2') && !href.startsWith('/download-build-v2')) {{
+      e.preventDefault();
+      var path = href.substring(1);
+      if (!path || path.endsWith('/')) {{
+        path += 'index.html';
+      }}
+      var url = '/build-file-v2?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
+      window.location.href = url;
+    }}
+  }}
+}});
+</script>
+"""
+            if "</body>" in html:
+                html = html.replace("</body>", f"{script}</body>")
+            else:
+                html += script
+            
+            from fastapi.responses import HTMLResponse
+            return HTMLResponse(content=html)
+
+        return FileResponse(target, media_type=media_type)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/download-build-v2")
+async def download_build_v2_endpoint(university_slug: str):
+    """
+    Download the entire build_v2/ folder as a ZIP archive.
+    Returns a file attachment named <uni>-website-v2.zip.
+    """
+    try:
+        # Dynamically compile and build using V2 templates so the V2 download package is always fresh
+        compile_workspace_v2(university_slug)
+        build_website_v2(university_slug)
+
+        zip_bytes, filename = zip_build_v2(university_slug)
         return Response(
             content=zip_bytes,
             media_type="application/zip",

@@ -11,9 +11,15 @@ from html.parser import HTMLParser
 # TODO: add Redis caching layer here — render_resolved should check cache before re-rendering
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
+TEMPLATES_V2_DIR = os.path.join(os.path.dirname(__file__), "..", "templates_v2")
 
 env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
+    autoescape=select_autoescape(["html"]),
+)
+
+env_v2 = Environment(
+    loader=FileSystemLoader(TEMPLATES_V2_DIR),
     autoescape=select_autoescape(["html"]),
 )
 
@@ -22,6 +28,7 @@ def default_empty(value):
     return value if value is not None else ""
 
 env.filters["de"] = default_empty
+env_v2.filters["de"] = default_empty
 
 # clean_fee is now the single canonical implementation, imported as
 # core.utils.format_fee (previously duplicated verbatim here and as
@@ -259,7 +266,7 @@ def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> s
     return name_clean
 
 
-def render_resolved(resolved: dict, standalone: bool = False) -> str:
+def render_resolved(resolved: dict, standalone: bool = False, render_mode: str = "v1") -> str:
     from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
 
     uni_slug = resolved.get("university_slug") or "nmims"
@@ -610,17 +617,19 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     faq_list = [
         {
             "q": f.get("q") or f.get("question", ""),
-            "a": f.get("a") or f.get("answer", "")
+            "a": f.get("a") or f.get("answer", ""),
+            "sign": "+",
+            "disp": "none"
         }
         for f in faqs_raw
     ]
     if not faq_list:
         faq_list = [
-            {"q": "Is the Online MBA equivalent to a regular MBA?", "a": "Yes. Under UGC regulations, online degrees from entitled universities are equivalent to on-campus degrees for employment and higher education."},
-            {"q": "When can I choose my specialization?", "a": "Specializations are selected at the end of year one, before semester 3 begins."},
-            {"q": "How are exams conducted?", "a": "Term-end exams are online and remotely proctored. Internal assignments contribute 30% and term-end exams 70% of your grade."},
-            {"q": "Is there any campus immersion?", "a": "Campus immersion is optional. Convocation is held on-campus, but no visit is mandatory."},
-            {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission."}
+            {"q": "Is the Online MBA equivalent to a regular MBA?", "a": "Yes. Under UGC regulations, online degrees from entitled universities are equivalent to on-campus degrees for employment and higher education.", "sign": "+", "disp": "none"},
+            {"q": "When can I choose my specialization?", "a": "Specializations are selected at the end of year one, before semester 3 begins.", "sign": "+", "disp": "none"},
+            {"q": "How are exams conducted?", "a": "Term-end exams are online and remotely proctored. Internal assignments contribute 30% and term-end exams 70% of your grade.", "sign": "+", "disp": "none"},
+            {"q": "Is there any campus immersion?", "a": "Campus immersion is optional. Convocation is held on-campus, but no visit is mandatory.", "sign": "+", "disp": "none"},
+            {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission.", "sign": "+", "disp": "none"}
         ]
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
  
@@ -693,6 +702,24 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
             ]
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
+    other_specs_formatted = []
+    for i, item in enumerate(other_specs_list):
+        cur = item.get("cur", False)
+        name = f"{item['name']} (you are here)" if cur else item["name"]
+        other_specs_formatted.append({
+            "name": name,
+            "fee": item.get("fee") or "Contact for fee",
+            "cur": cur,
+            "href": item.get("href") or "",
+            "bg": "#FFF0EB" if cur else ("#F6F4FB" if i % 2 == 1 else "#fff"),
+            "weight": "700" if cur else "400",
+            "color": "#1C1B22" if cur else "#434346",
+            "bt": "2px solid #FF5C35" if cur else "none",
+            "bb": "2px solid #FF5C35" if cur else "1px solid #E9E5F2",
+            "padding": "11px 14px" if cur else "0"
+        })
+    ctx["otherSpecs"] = other_specs_formatted
+    ctx["other_specs"] = other_specs_formatted
  
  
     # University specific features, recruiters, financing, testimonials
@@ -707,6 +734,8 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
     
     recruiters_list = resolve_list(raw_dict, knowledge, "recruiters")
+    if not recruiters_list:
+        recruiters_list = ["Tata", "Indiamart", "Wockhardt", "Zalaris", "Milkbasket", "Shopx"]
     ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
     
     # testimonials is reviews mapped for homepage
@@ -766,6 +795,19 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         uni_programs = [
             {"level": "Postgraduate", "name": "Online MBA", "dur": dur_val, "fee": fee_val, "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": mode_val}
         ]
+
+    # Map mk(p) styling attributes for homepage cards
+    for p in uni_programs:
+        f = bool(p.get("featured"))
+        p["cardStyle"] = 'background:#6B4FC9;border:1px solid #6B4FC9' if f else 'background:#fff;border:1px solid #E9E5F2'
+        p["nameColor"] = '#fff' if f else '#1C1B22'
+        p["descColor"] = '#D9D2F2' if f else '#6E6A78'
+        p["metaLabel"] = '#C9BEEC' if f else '#9A93A8'
+        p["metaVal"] = '#fff' if f else '#434346'
+        p["divider"] = '1px solid rgba(255,255,255,.18)' if f else '1px solid #ECE7F5'
+        p["feeUnitColor"] = '#C9BEEC' if f else '#9A93A8'
+        p["badgeStyle"] = 'background:rgba(255,92,53,.18);color:#FF5C35' if f else 'background:#FFE7E0;color:#E0431F'
+
     ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 
     # Serialized programs/specs data for listing templates
@@ -815,31 +857,35 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["cat_labels_json"] = json.dumps(['All', 'Career', 'Admissions', 'Guide', 'Finance', 'Student Life'], ensure_ascii=False)
 
     # Priority: workspace blogs (via transformer _workspace_blogs) → hardcoded demo fallback
-    workspace_blogs_ctx = ctx.get("_workspace_blogs") or []
+    workspace_blogs_ctx = raw_dict.get("_workspace_blogs") or []
+    blog_posts = []
     if workspace_blogs_ctx:
-        blog_posts = []
-        for b in workspace_blogs_ctx[:3]:
+        for b in workspace_blogs_ctx:
             if not isinstance(b, dict):
                 continue
             data = b.get("data", {})
             b_slug = b.get("slug", "")
             # Determine the blog page href — relative path to the blog detail HTML
             blog_href = f"{b_slug}.html"
+            img_url = data.get("hero_image_url") or ""
             blog_posts.append({
                 "tag": data.get("category") or data.get("tag") or "Article",
                 "title": data.get("blog_title") or data.get("title") or b_slug.replace("-", " ").title(),
                 "excerpt": data.get("hero_description") or data.get("excerpt") or "",
                 "meta": data.get("read_time") or data.get("meta") or "",
                 "href": blog_href,
-                "image": data.get("hero_image_url") or "",
+                "image": img_url,
+                "hero_image_url": img_url,
             })
     else:
         # Demo fallback — only shown when workspace contains no blogs
         blog_posts = [
-            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": ""},
-            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": ""},
-            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": ""},
+            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
+            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
+            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": "", "hero_image_url": ""},
         ]
+    ctx["posts"] = blog_posts[:3]
+    ctx["blog_posts"] = blog_posts
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
 
     # Contact details — sourced from the workspace-aware site config (see
@@ -851,8 +897,110 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         {"icon": "⌖", "k": "Visit", "v": (ctx.get("site") or {}).get("address") or ""}
     ], ensure_ascii=False)
 
+    # For V2 rendering compatibility: populate lists directly on the context
+    ctx["features"] = features_list
+    ctx["recruiters"] = recruiters_list
+    ctx["testimonials"] = testimonials
+    ctx["financing"] = financing_list
+    ctx["banks"] = banks_list
+    ctx["programs"] = uni_programs if page_type == "university" else programs_list_data
+    if page_type == "university":
+        processed_steps = []
+        for idx, s in enumerate(steps_list):
+            num_str = str(idx + 1)
+            t = f"Step {num_str}"
+            d = s.get("t", "")
+            
+            parts = re.split(r"[:\.]", d, maxsplit=1)
+            if len(parts) > 1 and len(parts[0]) < 30:
+                sliced_d = d[len(parts[0]) + 1:].strip()
+                if sliced_d:
+                    t = parts[0].strip()
+                    d = sliced_d
+                    
+            processed_steps.append({
+                "n": num_str.zfill(2),
+                "t": t,
+                "d": d
+            })
+        ctx["admission"] = processed_steps
+    else:
+        ctx["admission"] = ctx.get("admission")
+    ctx["steps"] = steps_list
+    ctx["highlights"] = h_list
+    ctx["fees"] = fee_list
+    ctx["jobs"] = job_list
+    ctx["reviews"] = review_list
+    ctx["faqs"] = faq_list
+    
+    # Syllabus tabs formatting for course and specialization details
+    if page_type in ("course", "specialization"):
+        syllabus_tabs_data = []
+        for idx, y in enumerate(syllabus_years):
+            active = (idx == 0)
+            syllabus_tabs_data.append({
+                "label": y.get("label", ""),
+                "bg": "#6B4FC9" if active else "#fff",
+                "color": "#fff" if active else "#6E6A78",
+                "border": "#6B4FC9" if active else "#E9E5F2"
+            })
+        ctx["syllabusTabs"] = syllabus_tabs_data
+        ctx["syllabus_years"] = syllabus_years
+        
+        sems_data = []
+        for y in syllabus_years:
+            for sem in y.get("semesters", []):
+                sems_data.append(sem)
+        ctx["sems"] = sems_data
+
+    if page_type == "specializations_listing":
+        specs_data = []
+        for sp in workspace_specs:
+            if not isinstance(sp, dict): continue
+            data = sp.get("data", {})
+            sp_slug = sp.get("slug", "")
+            parent = sp.get("parent_slug") or data.get("parent_slug") or "general"
+            course_name = parent.replace("-", " ").title()
+            for c in workspace_courses:
+                if isinstance(c, dict) and c.get("slug") == parent:
+                    cd = c.get("data", {})
+                    course_name = cd.get("program_name") or cd.get("course_name") or course_name
+                    break
+            specs_data.append({
+                "slug": sp_slug,
+                "course_name": course_name,
+                "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
+                "description": data.get("hero_description") or data.get("description") or "",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
+            })
+        ctx["specs"] = specs_data
+
+    # Map specs for the homepage as well (adding default icon support for the layout grid)
+    if page_type == "university":
+        for sp in ctx.get("specs") or []:
+            if isinstance(sp, dict) and "icon" not in sp:
+                sp["icon"] = "◑"
+
+    # Default whiteHero styling parameters
+    ctx["heroWrap"] = 'background:#fff;border-bottom:1px solid #ECE8F6;color:#434346'
+    ctx["heroH1"] = '#5737C5'
+    ctx["heroSub"] = '#6E6A78'
+    ctx["heroBadge"] = 'background:#FFF0EB;border:1px solid #FFD3C6;color:#E0431F'
+    ctx["heroSecBtn"] = 'border:1.5px solid #D9CFF0;color:#5737C5'
+    ctx["heroStatLabel"] = '#6E6A78'
+    ctx["heroStatDivider"] = '#ECE8F6'
+    ctx["heroImg"] = 'background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 14px,#E4DEF4 14px,#E4DEF4 28px);border:1px solid #E9E5F2'
+    ctx["heroImgText"] = '#A99BD8'
+    ctx["heroCrumb"] = '#9A93A8'
+    ctx["heroChip"] = 'background:#F6F4FB;border:1px solid #E9E5F2;color:#5737C5'
+
     ctx["ctx_json"] = json.dumps(ctx, default=str)
     ctx["standalone"] = standalone  # controls nav/footer visibility in templates
     template_name = TEMPLATE_MAP.get(resolved["page_type"], f"{resolved['page_type']}.html")
-    template = env.get_template(template_name)
+    
+    if render_mode == "v2":
+        template = env_v2.get_template(template_name)
+    else:
+        template = env.get_template(template_name)
+        
     return template.render(**ctx)

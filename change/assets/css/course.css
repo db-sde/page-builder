@@ -1,0 +1,36 @@
+/* course.css - course and specialization detail pages */
+.layout-grid { max-width: 1180px; margin: 0 auto; padding: 40px 20px 70px; display: grid; grid-template-columns: 230px 1fr; gap: 32px; }
+.stats-grid-6 { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(46,26,107,.10); display: grid; grid-template-columns: repeat(6,1fr); margin-top: -56px; position: relative; z-index: 5; }
+.stats-grid-5 { background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(46,26,107,.10); display: grid; grid-template-columns: repeat(5,1fr); margin-top: -56px; position: relative; z-index: 5; }
+.syllabus-tab { padding: 9px 22px; border: 1px solid #E9E5F2; border-radius: 24px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; background: #fff; color: #6E6A78; }
+.syllabus-tab.is-active { background: #6B4FC9; color: #fff; border-color: #6B4FC9; }
+@media (max-width: 768px) {
+  .hero-container img, .hero-container div[style*="min-height:410px"] { height: 260px !important; min-height: 260px !important; }
+  .stats-grid-6, .stats-grid-5 { grid-template-columns: repeat(3, 1fr) !important; margin-top: -30px !important; }
+  .layout-grid { padding: 28px 16px 50px !important; }
+  .layout-grid aside { position: static !important; }
+  main section[style*="padding:28px"], div[style*="padding:26px 28px"] { padding: 18px !important; }
+  h2[style*="font-size:21px"] { font-size: 18px !important; }
+  table { font-size: 12.5px !important; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero-container { gap: 32px !important; }
+  .layout-grid { gap: 24px !important; }
+  .layout-grid aside { width: 190px !important; }
+}
+@media (max-width: 640px) {
+  .stats-grid-6, .stats-grid-5 { grid-template-columns: repeat(2, 1fr) !important; }
+  div[style*="position:absolute;left:18px;bottom:18px"] { padding: 9px 12px !important; gap: 8px !important; }
+  div[style*="position:absolute;left:18px;bottom:18px"] > div:first-child { font-size: 19px !important; }
+  div[style*="position:absolute;left:18px;bottom:18px"] > div:last-child { font-size: 10.5px !important; }
+}
+@media (max-width: 480px) {
+  .stats-grid-6, .stats-grid-5 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 380px) {
+  .hero-container { padding: 0 14px !important; }
+  .hero-container h1 { font-size: 22px !important; }
+  .hero-container img, .hero-container div[style*="min-height:410px"] { height: 210px !important; min-height: 210px !important; }
+  .stats-grid-6 > div, .stats-grid-5 > div { padding: 14px 8px !important; }
+  main section[style*="padding:28px"], div[style*="padding:26px 28px"] { padding: 14px !important; }
+}

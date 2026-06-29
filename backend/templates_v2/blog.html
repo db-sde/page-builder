@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ seo_title }}</title>
+<meta name="description" content="{{ meta_description }}">
+{% if og_image_url %}
+<meta property="og:image" content="{{ og_image_url }}">
+{% endif %}
+{% if branding_favicon %}
+<link rel="icon" href="{{ branding_favicon }}">
+{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
+{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/blog.css">
+</head>
+<body>
+<div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
+
+  {% if standalone %}
+  <!-- ===== TOP BAR ===== -->
+  <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
+    <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
+      <span>Admissions open for the 2026 batch · Limited seats</span>
+    </div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header style="background:#fff;border-bottom:1px solid #E9E5F2;position:sticky;top:0;z-index:50">
+    <div style="max-width:1180px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between">
+      <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
+        {% if branding_logo %}
+          <div style="height:44px;display:flex;align-items:center">
+            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+          </div>
+        {% else %}
+          <div style="width:40px;height:40px;border-radius:99px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+        {% endif %}
+      </a>
+      <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
+        <a href="{{ homepage_href }}" style="color:#434346">Home</a>
+        <a href="{{ programs_listing_href }}" style="color:#434346">Programs</a>
+        <a href="{{ specs_listing_href }}" style="color:#434346">Specialisations</a>
+        <a href="{{ blog_listing_href }}" style="color:#1C1B22;font-weight:800">Blog</a>
+        <a href="{{ lead_url_enquiry }}" style="color:#434346">Contact</a>
+      </nav>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
+
+      <!-- Hamburger Button -->
+      <button id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center" aria-expanded="false" aria-label="Open navigation">
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-drawer">
+      <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
+      <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
+      <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
+      <a href="{{ blog_listing_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Blog</a>
+      <a href="{{ lead_url_enquiry }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Contact</a>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px;border-radius:8px;text-align:center;margin-top:12px">Apply Now</a>
+    </div>
+  </header>
+  {% endif %}
+
+  <!-- ===== ARTICLE HEADER ===== -->
+  <div style="background:linear-gradient(120deg,#6B4FC9 0%,#8A6BF0 72%);color:#fff;padding:44px 0 48px">
+    <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr .82fr;gap:48px;align-items:center">
+      <div>
+        <div style="font-size:12.5px;color:#C9BEEC;margin-bottom:18px"><a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a> › <a href="{{ blog_href }}" style="color:#C9BEEC">Blog</a> › <span style="color:#D9D2F2">{{ tag }}</span></div>
+        <span style="display:inline-block;background:#FF5C35;color:#1C1B22;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:6px;margin-bottom:18px">{{ tag }}</span>
+        <h1 style="font-size:38px;font-weight:800;letter-spacing:-.015em;line-height:1.16">{{ title }}</h1>
+        <p id="hero-excerpt" style="font-size:16.5px;color:#D9D2F2;margin-top:18px;line-height:1.6">{{ excerpt }}</p>
+        <div class="hero-meta" style="display:flex;align-items:center;gap:13px;margin-top:26px">
+          <div style="width:46px;height:46px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">{{ author_initials }}</div>
+          <div><div style="font-size:14.5px;font-weight:700;color:#fff">{{ author }}</div><div style="font-size:12.5px;color:#C9BEEC">{{ author_role }} · {{ read_time }} · {{ date }}</div></div>
+        </div>
+      </div>
+      {% if hero_image_url %}
+      <div style="width:100%;aspect-ratio:3/2;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px -28px rgba(0,0,0,.45)">
+        <img src="{{ hero_image_url }}" alt="{{ title }}" style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
+      {% else %}
+      <div style="width:100%;aspect-ratio:3/2;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 16px,#6244C2 16px,#6244C2 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px -28px rgba(0,0,0,.45)"><span style="font-family:ui-monospace,monospace;font-size:13px;color:#A99BD8">[ article hero image ]</span></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <div class="layout-grid" style="max-width:1080px;margin:0 auto;padding:44px 20px 10px;display:grid;grid-template-columns:1fr 240px;gap:54px">
+
+    <!-- main column -->
+    <article class="article-body">
+      {{ content_html | safe }}
+
+      {% if faqs %}
+      <section id="faq" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;margin-top:24px;scroll-margin-top:84px">
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Frequently Asked Questions</h2>
+        <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
+        {% for fq in faqs %}
+          <div style="border-bottom:1px solid #E9E5F2">
+            <button class="faq-btn" data-faq-btn type="button" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+              <span>{{ fq.q }}</span>
+              <span data-faq-sign style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ fq.sign }}</span>
+            </button>
+            <div data-faq-answer style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ fq.disp }}">{{ fq.a }}</div>
+          </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <!-- author bio -->
+      <div style="display:flex;gap:18px;margin-top:26px;padding:24px;background:#fff;border:1px solid #E9E5F2;border-radius:14px">
+        <div style="width:56px;height:56px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;flex-shrink:0">{{ author_initials }}</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#1C1B22">{{ author }}</div>
+          <div style="font-size:12.5px;color:#FF5C35;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">{{ author_role }}</div>
+          <p style="font-size:14px;color:#6E6A78;line-height:1.6;margin-top:10px">{{ author_bio }}</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- sidebar -->
+    <aside style="position:relative">
+      <div style="position:sticky;top:90px;display:flex;flex-direction:column;gap:20px">
+        <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:20px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9A93A8;margin-bottom:14px">In this article</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            {% for t in toc %}
+              <a href="{{ t.href }}" class="toc-link" style="font-size:13.5px;color:#434346;font-weight:600;line-height:1.45;border-left:2px solid #ECE7F5;padding-left:12px">{{ t.text }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        <div style="background:linear-gradient(140deg,#6B4FC9,#8A6BF0);border-radius:14px;padding:22px;color:#fff">
+          <div style="font-size:17px;font-weight:800;line-height:1.3">Ready to start your online MBA?</div>
+          <div style="font-size:13px;color:#D9D2F2;margin-top:8px;line-height:1.55">Get details about fees, eligibility and the 2026 batch online.</div>
+          <a href="{{ lead_url_apply }}" style="display:block;text-align:center;background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:12px;border-radius:9px;margin-top:16px">Apply Now</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+
+
+  <!-- ===== NEWSLETTER / CTA ===== -->
+  <div style="max-width:1080px;margin:0 auto;padding:40px 20px 10px">
+    <div class="cta-newsletter-band" style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:18px;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#fff">
+      <div>
+        <div class="cta-heading" style="font-size:25px;font-weight:800">Get updates and career insights in your inbox</div>
+        <div style="color:#D9D2F2;font-size:14.5px;margin-top:6px">One useful email a month on admissions, fees and careers. No spam.</div>
+      </div>
+      <div class="newsletter-wrap" style="display:flex;gap:10px;flex-wrap:wrap">
+        <input placeholder="you@email.com" style="background:#fff;border-radius:9px;border:none;padding:13px 16px;font-size:14px;color:#1C1B22;min-width:240px;outline:none">
+        <a href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Subscribe</a>
+      </div>
+    </div>
+  </div>
+
+  {% if standalone %}
+  <!-- ===== FOOTER ===== -->
+  {% set show_contact = site.email or site.address %}
+  <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
+    <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
+      <div>
+        {% if branding_logo %}
+          <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
+            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+          </div>
+        {% else %}
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+        {% endif %}
+        <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#C9BEEC">Specialisations</a>
+        </div>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Company</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
+        </div>
+      </div>
+      {% if show_contact %}
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Get in touch</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          {% if site.email %}
+          <span>Email: {{ site.email }}</span>
+          {% endif %}
+          {% if site.address %}
+          <span>{{ site.address }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <span>{{ site.copyright | default("© 2026 NMIMS Online. All rights reserved.") }}</span>
+      <span>Privacy Policy · Terms · Refund Policy</span>
+    </div>
+  </footer>
+  {% endif %}
+
+</div>
+
+<script src="/assets/js/public-runtime.js" defer></script>
+</body>
+</html>
