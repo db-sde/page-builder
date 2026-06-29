@@ -54,6 +54,15 @@ from workspace.compiler import _build_index
 # not collide with these (they are used by the listing pages).
 _RESERVED_SEGMENTS = {"programs", "specializations", "blog"}
 
+import threading
+_build_v2_lock = threading.Lock()
+
+def with_build_v2_lock(func):
+    def wrapper(*args, **kwargs):
+        with _build_v2_lock:
+            return func(*args, **kwargs)
+    return wrapper
+
 
 # ── Path helpers ──────────────────────────────────────────────────────────────
 
@@ -598,6 +607,7 @@ def build_website(university_slug: str) -> dict:
     }
 
 
+@with_build_v2_lock
 def build_website_v2(university_slug: str) -> dict:
     """
     Build a deployable static website package for a university workspace using V2 assets.
@@ -701,7 +711,9 @@ def build_website_v2(university_slug: str) -> dict:
 
     src_images = ws_root / "Assets" / "images"
     if src_images.exists():
-        images_copied = _copy_dir_contents(src_images, build_dir / "assets" / "images")
+        from workspace.image_optimizer import optimize_images_pipeline
+        opt_stats = optimize_images_pipeline(src_images, build_dir / "assets" / "images")
+        images_copied = len(opt_stats)
 
     src_downloads = ws_root / "Assets" / "downloads"
     if src_downloads.exists():

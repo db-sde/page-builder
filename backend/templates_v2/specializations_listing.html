@@ -34,7 +34,10 @@
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
         {% if branding_logo %}
           <div style="height:44px;display:flex;align-items:center">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
@@ -124,7 +127,10 @@
       <div>
         {% if branding_logo %}
           <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>

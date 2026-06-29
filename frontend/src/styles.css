@@ -37,6 +37,7 @@ table { border-collapse: collapse; width: 100%; }
 :root {
   --navy: var(--color-navy);
   --amber: var(--color-orange);
+  --primary: var(--color-orange);
   --bg: var(--color-bg);
   --border: var(--color-border);
   --muted: var(--color-text-muted);

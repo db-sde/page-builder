@@ -18,6 +18,9 @@ env = Environment(
     autoescape=select_autoescape(["html"]),
 )
 
+from jinja2 import pass_context
+from PIL import Image
+
 env_v2 = Environment(
     loader=FileSystemLoader(TEMPLATES_V2_DIR),
     autoescape=select_autoescape(["html"]),
@@ -29,6 +32,53 @@ def default_empty(value):
 
 env.filters["de"] = default_empty
 env_v2.filters["de"] = default_empty
+
+def webp_variant_filter(url, width=None):
+    if not url:
+        return ""
+    p = Path(url)
+    if width:
+        return str(p.with_name(f"{p.stem}-{width}.webp"))
+    else:
+        return str(p.with_name(f"{p.stem}.webp"))
+
+@pass_context
+def image_width_filter(context, url):
+    if not url:
+        return "0"
+    uni_slug = context.get("university_slug")
+    if not uni_slug:
+        return "0"
+    filename = Path(url).name
+    src_file = WORKSPACES_ROOT / uni_slug / "Assets" / "images" / filename
+    if src_file.exists():
+        try:
+            with Image.open(src_file) as img:
+                return str(img.width)
+        except Exception:
+            pass
+    return "0"
+
+@pass_context
+def image_height_filter(context, url):
+    if not url:
+        return "0"
+    uni_slug = context.get("university_slug")
+    if not uni_slug:
+        return "0"
+    filename = Path(url).name
+    src_file = WORKSPACES_ROOT / uni_slug / "Assets" / "images" / filename
+    if src_file.exists():
+        try:
+            with Image.open(src_file) as img:
+                return str(img.height)
+        except Exception:
+            pass
+    return "0"
+
+env_v2.filters["webp_variant"] = webp_variant_filter
+env_v2.filters["image_width"] = image_width_filter
+env_v2.filters["image_height"] = image_height_filter
 
 # clean_fee is now the single canonical implementation, imported as
 # core.utils.format_fee (previously duplicated verbatim here and as

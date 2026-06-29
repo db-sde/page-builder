@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { renderHtml, saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
+import { renderHtml, saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, downloadBuildV2, buildFileUrlV2 } from '../api';
 
 // Per-page-type transformer field descriptions for context comparison labels
 const TRANSFORMER_DOCS = {
@@ -471,19 +471,38 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
         )}
 
         {buildResult && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
-              style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-            >
-              Preview Website ↗
-            </button>
-            <button
-              onClick={() => downloadBuild(session.university_slug)}
-              style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}
-            >
-              Download ZIP
-            </button>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>V2 (Optimized WebP Templates)</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => window.open(buildFileUrlV2(session.university_slug, 'index.html'), '_blank')}
+                style={{ background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+              >
+                Preview V2 Website ↗
+              </button>
+              <button
+                onClick={() => downloadBuildV2(session.university_slug)}
+                style={{ background: '#fff', color: 'var(--primary)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--primary)', borderRadius: 8, cursor: 'pointer' }}
+              >
+                Download V2 ZIP
+              </button>
+            </div>
+            
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 8 }}>V1 (Legacy Templates)</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
+                style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+              >
+                Preview V1 Website ↗
+              </button>
+              <button
+                onClick={() => downloadBuild(session.university_slug)}
+                style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}
+              >
+                Download V1 ZIP
+              </button>
+            </div>
           </div>
         )}
       </div>

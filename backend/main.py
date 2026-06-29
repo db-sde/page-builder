@@ -251,21 +251,36 @@ def image_prefix_for_slot(page_type: str, slug: str, slot: str) -> str:
 @app.get("/assets/images/{filename}")
 async def get_asset_image(filename: str):
     from fastapi.responses import FileResponse
+    
+    def get_media_type(p_path):
+        ext = p_path.suffix.lower()
+        if ext == ".png":
+            return "image/png"
+        elif ext == ".webp":
+            return "image/webp"
+        elif ext == ".gif":
+            return "image/gif"
+        elif ext == ".svg":
+            return "image/svg+xml"
+        elif ext in (".ico", ".icon"):
+            return "image/x-icon"
+        return "image/jpeg"
+
+    # 1. Search build_v2/assets/images first (V2 builds)
+    for p in WORKSPACES_ROOT.glob(f"*/build_v2/assets/images/{filename}"):
+        if p.exists():
+            return FileResponse(p, media_type=get_media_type(p))
+
+    # 2. Search build/assets/images (V1 builds fallback)
+    for p in WORKSPACES_ROOT.glob(f"*/build/assets/images/{filename}"):
+        if p.exists():
+            return FileResponse(p, media_type=get_media_type(p))
+
+    # 3. Search raw Assets/images source folder
     for p in WORKSPACES_ROOT.glob(f"*/Assets/images/{filename}"):
         if p.exists():
-            ext = p.suffix.lower()
-            media_type = "image/jpeg"
-            if ext == ".png":
-                media_type = "image/png"
-            elif ext == ".webp":
-                media_type = "image/webp"
-            elif ext == ".gif":
-                media_type = "image/gif"
-            elif ext == ".svg":
-                media_type = "image/svg+xml"
-            elif ext in (".ico", ".icon"):
-                media_type = "image/x-icon"
-            return FileResponse(p, media_type=media_type)
+            return FileResponse(p, media_type=get_media_type(p))
+            
     raise HTTPException(status_code=404, detail="Image not found")
 
 @app.get("/assets/{path:path}")

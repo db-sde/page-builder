@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage, deletePage, deleteWorkspace } from '../api';
+import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage, deletePage, deleteWorkspace, downloadBuildV2, buildFileUrlV2 } from '../api';
 
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -491,6 +491,45 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                   </div>
 
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>V2 (Next-Gen Templates)</div>
+                    <button
+                      onClick={() => {
+                        if (buildResult) {
+                          window.open(buildFileUrlV2(selectedSlug, 'index.html'), '_blank');
+                        }
+                      }}
+                      disabled={!buildResult || building}
+                      className="btn btn-primary"
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        opacity: buildResult ? 1 : 0.5,
+                        cursor: buildResult ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      📂 Preview V2 Site ↗
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (buildResult) {
+                          downloadBuildV2(selectedSlug);
+                        }
+                      }}
+                      disabled={!buildResult || building}
+                      className="btn btn-primary"
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        opacity: buildResult ? 1 : 0.5,
+                        cursor: buildResult ? 'pointer' : 'not-allowed',
+                        marginBottom: 6
+                      }}
+                    >
+                      ⬇ Download V2 ZIP
+                    </button>
+
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2, marginTop: 6 }}>V1 (Legacy Templates)</div>
                     <button
                       onClick={() => {
                         if (buildResult) {
@@ -506,7 +545,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                         cursor: buildResult ? 'pointer' : 'not-allowed'
                       }}
                     >
-                      📂 Preview Site ↗
+                      📂 Preview V1 Site ↗
                     </button>
                     
                     <button
@@ -524,7 +563,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                         cursor: buildResult ? 'pointer' : 'not-allowed'
                       }}
                     >
-                      ⬇ Download ZIP
+                      ⬇ Download V1 ZIP
                     </button>
 
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dotted #fda4af' }}>

@@ -39,7 +39,10 @@
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
         {% if branding_logo %}
           <div style="height:44px;display:flex;align-items:center">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:99px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
@@ -90,7 +93,13 @@
       </div>
       {% if hero_image_url %}
       <div style="width:100%;aspect-ratio:3/2;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px -28px rgba(0,0,0,.45)">
-        <img src="{{ hero_image_url }}" alt="{{ title }}" style="width:100%;height:100%;object-fit:cover;display:block">
+        <picture>
+          <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
+          <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
+          <source type="image/webp" media="(max-width: 1200px)" srcset="{{ hero_image_url | webp_variant(1200) }}">
+          <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
+          <img src="{{ hero_image_url }}" alt="{{ title }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;height:100%;object-fit:cover;display:block" fetchpriority="high" decoding="async">
+        </picture>
       </div>
       {% else %}
       <div style="width:100%;aspect-ratio:3/2;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 16px,#6244C2 16px,#6244C2 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px -28px rgba(0,0,0,.45)"><span style="font-family:ui-monospace,monospace;font-size:13px;color:#A99BD8">[ article hero image ]</span></div>
@@ -176,7 +185,10 @@
       <div>
         {% if branding_logo %}
           <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
