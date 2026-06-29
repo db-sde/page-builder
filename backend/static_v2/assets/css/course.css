@@ -22,7 +22,7 @@
   .stats-grid-6, .stats-grid-5 { grid-template-columns: repeat(2, 1fr) !important; }
   div[style*="position:absolute;left:18px;bottom:18px"] { padding: 9px 12px !important; gap: 8px !important; }
   div[style*="position:absolute;left:18px;bottom:18px"] > div:first-child { font-size: 19px !important; }
-  div[style*="position:absolute;left:18px;bottom:18px"] > div:last-child { font-size: 10.5px !important; }
+  div[style*="position:absolute;left:18px;bottom:18px"] > div:last-child { font-size: 12px !important; }
   .sticky-bottom-bar { height: auto !important; }
   .sticky-bar-container { flex-direction: row !important; height: auto !important; padding: 10px 16px !important; }
   .sticky-text-info, .sticky-whatsapp { display: none !important; }

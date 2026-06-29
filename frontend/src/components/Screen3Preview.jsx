@@ -222,9 +222,12 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
   const [error, setError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewWidth, setPreviewWidth] = useState('100%');
+  const [previewVersion, setPreviewVersion] = useState('v2');
 
   const previewUrl = session.slug && session.page_type && session.university_slug
-    ? `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
+    ? (previewVersion === 'v2'
+        ? `http://localhost:8000/preview-file-v2?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
+        : `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`)
     : null;
 
 
@@ -572,11 +575,41 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
                     border: 'none',
                     borderRadius: 6,
                     cursor: 'pointer',
-                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   {device.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Version Toggles */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
+            {[
+              { id: 'v2', label: '🚀 V2 (Optimized)' },
+              { id: 'v1', label: '⏳ V1 (Legacy)' },
+            ].map((ver) => {
+              const active = previewVersion === ver.id;
+              return (
+                <button
+                  key={ver.id}
+                  onClick={() => setPreviewVersion(ver.id)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: active ? 800 : 600,
+                    fontFamily: 'var(--font-ui)',
+                    background: active ? '#fff' : 'transparent',
+                    color: active ? 'var(--primary)' : 'var(--color-text-secondary)',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {ver.label}
                 </button>
               );
             })}

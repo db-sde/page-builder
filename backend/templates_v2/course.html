@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,7 +27,7 @@
 
   {% if standalone %}
   <!-- ===== TOP BAR ===== -->
-  <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
+  <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
       <span>Admissions open for the 2026 batch · Limited seats</span>
     </div>
@@ -46,7 +46,7 @@
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
         {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -117,7 +117,7 @@
         {% endif %}
         {% if hero.stat_card %}
         <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
-          <div style="font-size:26px;font-weight:800;color:#FF5C35">{{ hero.stat_card.value }}</div>
+          <div style="font-size:26px;font-weight:800;color:#E04015">{{ hero.stat_card.value }}</div>
           <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label }}<br><span style="color:#6E6A78;font-weight:600">Highest Category Rating</span></div>
         </div>
         {% endif %}
@@ -131,7 +131,7 @@
       {% for s in stats %}
         <div style="padding:18px 14px;text-align:center;border-right:1px solid #E9E5F2">
           <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ s.v }}</span>
-          <span style="font-size:11px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ s.k }}</span>
+          <span style="font-size:12px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ s.k }}</span>
         </div>
       {% endfor %}
     </div>
@@ -350,7 +350,7 @@
             </picture>
           </div>
           {% else %}
-          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px"><span style="font-family:ui-monospace,monospace;font-size:11.5px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span></div>
+          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px"><span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span></div>
           {% endif %}
           <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:18px;display:flex;flex-direction:column;justify-content:center">
             <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4>
@@ -406,7 +406,7 @@
           <div style="border-bottom:1px solid #E9E5F2">
             <button class="faq-btn" data-faq-btn type="button" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
               <span>{{ fq.q }}</span>
-              <span data-faq-sign style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ fq.sign }}</span>
+              <span data-faq-sign style="color:#E04015;font-size:20px;flex-shrink:0;margin-left:14px">{{ fq.sign }}</span>
             </button>
             <div data-faq-answer style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ fq.disp }}">{{ fq.a }}</div>
           </div>
@@ -419,7 +419,7 @@
   {% if standalone %}
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
-  <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px">
+  <footer style="background:#6B4FC9;color:#EAE7FD;padding:48px 20px 26px">
     <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
       <div>
         {% if branding_logo %}
@@ -430,22 +430,22 @@
             </picture>
           </div>
         {% else %}
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a>
-          <a href="{{ specs_listing_href }}" style="color:#C9BEEC">Specialisations</a>
+          <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#EAE7FD">Specialisations</a>
         </div>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Company</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a>
-          <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
+          <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#EAE7FD">Blog</a>
         </div>
       </div>
       {% if show_contact %}
@@ -471,7 +471,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#C9BEEC;display:block;font-size:11px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>

@@ -559,6 +559,55 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/preview-file-v2", response_class=HTMLResponse)
+async def preview_file_v2(university_slug: str, page_type: str, slug: str):
+    """Serve dynamic preview from GET query params using V2 templates."""
+    try:
+        from workspace.compiler import _build_index, _enrich_resolved
+        index = _build_index(university_slug)
+
+        draft = load_draft_data(university_slug, page_type, slug)
+        if draft:
+            parent_slug = draft.get("parent_slug")
+            merged = {**(draft.get("data") or {}), **(draft.get("images") or {})}
+        else:
+            if page_type in index and slug in index[page_type]:
+                record = index[page_type][slug]
+                parent_slug = record.get("parent_slug")
+                merged = record.get("data") or {}
+            else:
+                raise HTTPException(status_code=404, detail="Preview data not found")
+
+        draft_record = {
+            "university_slug": university_slug,
+            "page_type": page_type,
+            "slug": slug,
+            "parent_slug": parent_slug,
+            "data": merged
+        }
+        if page_type in index:
+            index[page_type][slug] = draft_record
+            
+        enriched_record = _enrich_resolved(draft_record, index)
+        
+        resolved = {
+            "slug": slug,
+            "page_type": page_type,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+            "raw": enriched_record["raw"]
+        }
+        standalone = page_type in ("course", "specialization", "blog")
+        html = render_resolved(resolved, standalone=standalone, render_mode="v2")
+        return HTMLResponse(content=html)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/render-html")
 async def render_html(req: RenderRequest):
     """Render dynamically, save file to generated/{page_type}/{slug}.html — return HTML as downloadable attachment."""

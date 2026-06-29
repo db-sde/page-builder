@@ -852,11 +852,11 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         p["cardStyle"] = 'background:#6B4FC9;border:1px solid #6B4FC9' if f else 'background:#fff;border:1px solid #E9E5F2'
         p["nameColor"] = '#fff' if f else '#1C1B22'
         p["descColor"] = '#D9D2F2' if f else '#6E6A78'
-        p["metaLabel"] = '#C9BEEC' if f else '#9A93A8'
+        p["metaLabel"] = '#EAE7FD' if f else '#706A80'
         p["metaVal"] = '#fff' if f else '#434346'
         p["divider"] = '1px solid rgba(255,255,255,.18)' if f else '1px solid #ECE7F5'
-        p["feeUnitColor"] = '#C9BEEC' if f else '#9A93A8'
-        p["badgeStyle"] = 'background:rgba(255,92,53,.18);color:#FF5C35' if f else 'background:#FFE7E0;color:#E0431F'
+        p["feeUnitColor"] = '#EAE7FD' if f else '#706A80'
+        p["badgeStyle"] = 'background:rgba(255,92,53,.18);color:#E04015' if f else 'background:#FFE7E0;color:#CC3910'
 
     ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 
