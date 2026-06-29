@@ -1,5 +1,7 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from core.router import get_transformer
+from core.utils import format_fee as clean_fee
+from workspace.manager import WORKSPACES_ROOT
 import os
 from pathlib import Path
 import json
@@ -21,24 +23,9 @@ def default_empty(value):
 
 env.filters["de"] = default_empty
 
-def clean_fee(amount_str: str) -> str:
-    if not amount_str:
-        return ""
-    s = str(amount_str).strip()
-    if not s or s.upper() in ("NA", "N/A", "NIL", "FREE", "-", "--"):
-        return ""
-    if s.startswith("₹"):
-        return s
-    # Strip INR prefix (case-insensitive)
-    s = re.sub(r'^INR\s*', '', s, flags=re.IGNORECASE).strip()
-    # Strip trailing garbage: /-, /--, /year, /sem etc
-    s = re.sub(r'\s*/[-–]+.*$', '', s).strip()
-    s = re.sub(r'\s*/\s*(year|sem|semester|month|mo).*$', '', s, flags=re.IGNORECASE).strip()
-    # Strip any non-numeric/comma/dot characters remaining at end
-    s = re.sub(r'[^0-9,.].*$', '', s).strip()
-    if not s:
-        return ""
-    return f"₹{s}"
+# clean_fee is now the single canonical implementation, imported as
+# core.utils.format_fee (previously duplicated verbatim here and as
+# BaseTransformer.format_fee in transformers/base.py).
 
 TEMPLATE_MAP = {
     "university": "university.html",
@@ -299,7 +286,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     branding_logo = ""
     branding_favicon = ""
-    meta_path = Path("/Users/aryankinha/Documents/Degree/temp/acfTOhtml copy/backend/workspaces") / uni_slug / "metadata.json"
+    meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
     if meta_path.exists():
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
@@ -563,7 +550,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for j in jobs_raw
     ]
-    if not job_list:
+    if not job_list and uni_slug == "nmims":
         job_list = [
             {"t": "Marketing Manager", "s": "₹12.5 LPA"},
             {"t": "Financial Analyst", "s": "₹9.8 LPA"},
@@ -593,7 +580,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for r in reviews_raw
     ]
-    if not review_list:
+    if not review_list and uni_slug == "nmims":
         review_list = [
             {"q": "\"Weekend live classes fit perfectly around my job. The electives were genuinely hands-on.\"", "a": "— Sneha Kulkarni, Online MBA (2024)"},
             {"q": "\"The capstone project with an industry mentor was the highlight — it became the centerpiece of my promotion case.\"", "a": "— Rohit Verma, Online MBA (2023)"},
@@ -695,7 +682,10 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
         {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
     ], ensure_ascii=False)
-    ctx["recruiters_json"] = json.dumps(['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL'], ensure_ascii=False)
+    ctx["recruiters_json"] = json.dumps(
+        ['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL'] if uni_slug == "nmims" else [],
+        ensure_ascii=False
+    )
     
     # testimonials is reviews mapped for homepage
     testimonials = []
@@ -761,7 +751,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "description": data.get("hero_description") or "",
             "mode": data.get("mode") or "100% Online",
         })
-    ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
     ctx["programs_list_json"] = json.dumps(programs_list_data, ensure_ascii=False)
 
     # Spec groups for specializations listing page
@@ -821,10 +810,13 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         ]
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
 
-    # Contact details
+    # Contact details — sourced from the workspace-aware site config (see
+    # core/site_config.get_site_config); no hardcoded NMIMS fallback here,
+    # since that previously leaked NMIMS's email/address onto every other
+    # university's page whenever their own contact info wasn't set.
     ctx["details_json"] = json.dumps([
-        {"icon": "✉", "k": "Email", "v": (ctx.get("site") or {}).get("email") or "admissions@nmimsonline.edu"},
-        {"icon": "⌖", "k": "Visit", "v": (ctx.get("site") or {}).get("address") or "V. L. Mehta Road, Vile Parle (W), Mumbai 400056"}
+        {"icon": "✉", "k": "Email", "v": (ctx.get("site") or {}).get("email") or ""},
+        {"icon": "⌖", "k": "Visit", "v": (ctx.get("site") or {}).get("address") or ""}
     ], ensure_ascii=False)
 
     ctx["ctx_json"] = json.dumps(ctx, default=str)

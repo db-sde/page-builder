@@ -1,10 +1,11 @@
 import json
-from core.site_config import SITE_CONFIG
+from core.site_config import get_site_config
 
 class BlogTransformer:
     def __init__(self, resolved: dict):
-        self.site = SITE_CONFIG
+        self.university_slug = resolved.get("university_slug")
         self.raw = resolved["raw"]
+        self.site = get_site_config(self.university_slug, self.raw.get("university_name"))
 
     def transform(self) -> dict:
         raw = self.raw

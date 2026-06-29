@@ -7,6 +7,7 @@ from workspace.manager import (
 )
 from workspace.compiler import compile_workspace, get_workspace_tree
 from workspace.builder import build_website, get_build_status, zip_build
+import asyncio
 import json
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -806,8 +807,11 @@ async def parse_docx_endpoint(
                 "payload": payload
             }
         else:
-            # Route to the micro-pipeline (passing the original file bytes)
-            result = forward_to_micro_pipeline(file_bytes, file.filename, detected_type)
+            # Route to the micro-pipeline (passing the original file bytes).
+            # forward_to_micro_pipeline does a blocking network call (urllib),
+            # so it's offloaded to a worker thread instead of blocking the
+            # event loop for up to 180s on every other in-flight request.
+            result = await asyncio.to_thread(forward_to_micro_pipeline, file_bytes, file.filename, detected_type)
             
             # Micro-First Ingestion: Adapt, Validate, and Fallback Merge
             if result and isinstance(result, dict) and "payload" in result:
@@ -974,7 +978,7 @@ async def generate_specialization_stub_endpoint(req: GenerateSpecializationStubR
         import re
         from workspace.manager import save_page, resolve_page_dir
         from workspace.compiler import compile_workspace
-        from core.router import render_resolved
+        # render_resolved is already imported at module level from renderer.engine
 
         # 1. Clean inputs
         uni_slug = req.university_slug.lower().strip()

@@ -1,7 +1,8 @@
 # TODO: add AI gap-fill hook here — if required field is None, call Groq before skipping section
 
 from abc import ABC, abstractmethod
-from core.site_config import SITE_CONFIG
+from core.site_config import get_site_config
+from core.utils import format_fee
 import re
 
 class BaseTransformer(ABC):
@@ -11,27 +12,13 @@ class BaseTransformer(ABC):
         self.parent_slug = resolved.get("parent_slug")
         self.university_slug = resolved.get("university_slug")
         self.raw = resolved["raw"]          # the ACF data dict
-        self.site = SITE_CONFIG
+        self.site = get_site_config(self.university_slug, self.raw.get("university_name"))
 
     def format_fee(self, amount_str: str) -> str:
-        if not amount_str:
-            return ""
-        s = str(amount_str).strip()
-        if not s or s.upper() in ("NA", "N/A", "NIL", "FREE", "-", "--"):
-            return ""
-        # Already formatted correctly
-        if s.startswith("₹"):
-            return s
-        # Strip INR prefix (case-insensitive)
-        s = re.sub(r'^INR\s*', '', s, flags=re.IGNORECASE).strip()
-        # Strip trailing garbage: /-, /--, /year, /sem etc
-        s = re.sub(r'\s*/[-–]+.*$', '', s).strip()
-        s = re.sub(r'\s*/\s*(year|sem|semester|month|mo).*$', '', s, flags=re.IGNORECASE).strip()
-        # Strip any non-numeric/comma/dot characters remaining at end
-        s = re.sub(r'[^0-9,.].*$', '', s).strip()
-        if not s:
-            return ""
-        return f"₹{s}"
+        # Delegates to the single canonical implementation in core/utils.py
+        # (previously duplicated verbatim here and as clean_fee in
+        # renderer/engine.py).
+        return format_fee(amount_str)
 
     def build_breadcrumbs(self, crumbs: list[dict]) -> list[dict]:
         # Validates and returns the breadcrumbs list; template handles rendering.
