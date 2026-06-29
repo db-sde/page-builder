@@ -260,42 +260,47 @@ def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> s
 
 
 def render_resolved(resolved: dict, standalone: bool = False) -> str:
+    from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
+
+    uni_slug = resolved.get("university_slug") or "nmims"
+    knowledge = load_or_create_knowledge(uni_slug)
+
     transformer = get_transformer(resolved)
     ctx = transformer.transform()    # Phase 3 — Context Extraction
     raw_dict = resolved.get("raw") or {}
     
     # 1. University Display Name
-    uni_name = None
-    if ctx.get("university_name"):
+    uni_name = resolve_field(raw_dict, knowledge, "university_name")
+    if not uni_name and ctx.get("university_name"):
         uni_name = ctx["university_name"]
-    elif raw_dict.get("university_name"):
-        uni_name = raw_dict["university_name"]
-    elif raw_dict.get("name") and resolved.get("page_type") == "university":
+    if not uni_name and raw_dict.get("name") and resolved.get("page_type") == "university":
         uni_name = raw_dict["name"]
-    else:
-        uni_name = raw_dict.get("university_full_name") or resolved.get("university_slug", "nmims").upper()
+    if not uni_name:
+        uni_name = resolve_field(raw_dict, knowledge, "university_full_name") or resolved.get("university_slug", "nmims").upper()
         
     logo_letter = uni_name[0].upper() if uni_name else "N"
     
-    uni_slug = resolved.get("university_slug") or "nmims"
     page_type = resolved.get("page_type", "course")
     course_slug = resolved.get("parent_slug") or resolved.get("slug") or ""
 
     ctx["university_name"] = uni_name
     ctx["university_letter"] = logo_letter
 
-    branding_logo = ""
-    branding_favicon = ""
-    meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
-    if meta_path.exists():
-        try:
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta_json = json.load(f)
-                branding = meta_json.get("branding") or {}
-                branding_logo = branding.get("logo") or ""
-                branding_favicon = branding.get("favicon") or ""
-        except Exception:
-            pass
+    branding_logo = resolve_field(raw_dict, knowledge, "logo")
+    branding_favicon = resolve_field(raw_dict, knowledge, "favicon")
+    if not branding_logo or not branding_favicon:
+        meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
+        if meta_path.exists():
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta_json = json.load(f)
+                    branding = meta_json.get("branding") or {}
+                    if not branding_logo:
+                        branding_logo = branding.get("logo") or ""
+                    if not branding_favicon:
+                        branding_favicon = branding.get("favicon") or ""
+            except Exception:
+                pass
     ctx["branding_logo"] = branding_logo
     ctx["branding_favicon"] = branding_favicon
     ctx["homepage_href"] = f"{uni_slug}.dc.html"
@@ -490,9 +495,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             })
         ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
         ctx["specs"] = spec_list
-    
-    # 5. Fees
-    fee_plans = (ctx.get("fees") or {}).get("plans", []) or []
+    fee_plans = (ctx.get("fees") or {}).get("plans") or resolve_list(raw_dict, knowledge, "fee_plans")
     if isinstance(fee_plans, str):
         fee_plans = [{"plan_name": "Full Program", "plan_amount": fee_plans, "plan_total": fee_plans}]
     elif isinstance(fee_plans, list):
@@ -523,16 +526,20 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # 6. Admission Steps
     steps_list = parse_admission_html((ctx.get("admission") or {}).get("steps") if ctx.get("admission") else "")
     if not steps_list:
-        steps_list = [
-            {"n": "1", "t": "Register on the university portal and verify your mobile number."},
-            {"n": "2", "t": "Complete the application form and choose Online MBA with your preferred specialization."},
-            {"n": "3", "t": "Upload graduation marksheets, photo ID and a passport-size photograph."},
-            {"n": "4", "t": "Pay the first installment online — enrollment and LMS access follow within 7 working days."}
-        ]
+        steps_raw = resolve_field(raw_dict, knowledge, "admission_steps")
+        if steps_raw:
+            steps_list = parse_admission_html(steps_raw)
+        else:
+            steps_list = [
+                {"n": "1", "t": "Register on the university portal and verify your mobile number."},
+                {"n": "2", "t": "Complete the application form and choose Online MBA with your preferred specialization."},
+                {"n": "3", "t": "Upload graduation marksheets, photo ID and a passport-size photograph."},
+                {"n": "4", "t": "Pay the first installment online — enrollment and LMS access follow within 7 working days."}
+            ]
     ctx["steps_json"] = json.dumps(steps_list, ensure_ascii=False)
     
     # 7. Job profiles
-    jobs_raw = ctx.get("jobs", []) or []
+    jobs_raw = ctx.get("jobs") or resolve_list(raw_dict, knowledge, "job_profiles")
     if isinstance(jobs_raw, str):
         jobs_raw = [{"job_title": jobs_raw, "avg_salary": ""}]
     elif isinstance(jobs_raw, list):
@@ -550,7 +557,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for j in jobs_raw
     ]
-    if not job_list and uni_slug == "nmims":
+    if not job_list:
         job_list = [
             {"t": "Marketing Manager", "s": "₹12.5 LPA"},
             {"t": "Financial Analyst", "s": "₹9.8 LPA"},
@@ -562,7 +569,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["jobs_json"] = json.dumps(job_list, ensure_ascii=False)
     
     # 8. Reviews
-    reviews_raw = ctx.get("reviews", []) or []
+    reviews_raw = ctx.get("reviews") or resolve_list(raw_dict, knowledge, "reviews")
     if isinstance(reviews_raw, str):
         reviews_raw = [{"review_text": reviews_raw, "reviewer_label": "Student"}]
     elif isinstance(reviews_raw, list):
@@ -580,7 +587,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for r in reviews_raw
     ]
-    if not review_list and uni_slug == "nmims":
+    if not review_list:
         review_list = [
             {"q": "\"Weekend live classes fit perfectly around my job. The electives were genuinely hands-on.\"", "a": "— Sneha Kulkarni, Online MBA (2024)"},
             {"q": "\"The capstone project with an industry mentor was the highlight — it became the centerpiece of my promotion case.\"", "a": "— Rohit Verma, Online MBA (2023)"},
@@ -589,7 +596,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["reviews_json"] = json.dumps(review_list, ensure_ascii=False)
     
     # 9. FAQs
-    faqs_raw = ctx.get("faqs", []) or []
+    faqs_raw = ctx.get("faqs") or resolve_list(raw_dict, knowledge, "faqs")
     if isinstance(faqs_raw, str):
         faqs_raw = [{"question": faqs_raw, "answer": ""}]
     elif isinstance(faqs_raw, list):
@@ -616,9 +623,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission."}
         ]
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
-
+ 
     # 10. Syllabus Semester 1 & 2 / Semester 3 & 4
-    syllabus_years = parse_syllabus_html(ctx.get("syllabus", ""))
+    syllabus_years = parse_syllabus_html(ctx.get("syllabus") or resolve_field(raw_dict, knowledge, "syllabus_content", ""))
     if not syllabus_years:
         syllabus_years = [
             {
@@ -637,7 +644,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             }
         ]
     ctx["syllabus_years_json"] = json.dumps(syllabus_years, ensure_ascii=False)
-
+ 
     # Specialization specific other specs list
     siblings = ctx.get("other_specs") or []
     other_specs_list = []
@@ -663,29 +670,44 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": s.get("slug") or ""
         })
     if len(other_specs_list) <= 1:
-        other_specs_list = [
-            {"name": "Marketing Management", "fee": "₹2,00,000", "cur": True, "href": "", "slug": ""},
-            {"name": "Financial Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-            {"name": "Human Resource Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-            {"name": "Operations & Supply Chain", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-            {"name": "Business Analytics", "fee": "₹2,16,000", "cur": False, "href": "", "slug": ""},
-            {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-            {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
-        ]
+        other_specs_list = resolve_list(raw_dict, knowledge, "other_specs")
+        if other_specs_list:
+            other_specs_list = [
+                {
+                    "name": s.get("name") or s.get("other_spec_name") or "",
+                    "fee": clean_fee(s.get("fee") or ""),
+                    "cur": False,
+                    "href": f"{s.get('slug')}.html" if s.get('slug') else "",
+                    "slug": s.get("slug") or ""
+                }
+                for s in other_specs_list
+            ]
+        else:
+            other_specs_list = [
+                {"name": "Marketing Management", "fee": "₹2,00,000", "cur": True, "href": "", "slug": ""},
+                {"name": "Financial Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+                {"name": "Human Resource Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+                {"name": "Operations & Supply Chain", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+                {"name": "Business Analytics", "fee": "₹2,16,000", "cur": False, "href": "", "slug": ""},
+                {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
+                {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
+            ]
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
-
-
+ 
+ 
     # University specific features, recruiters, financing, testimonials
-    ctx["features_json"] = json.dumps([
-        {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
-        {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
-        {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
-        {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
-    ], ensure_ascii=False)
-    ctx["recruiters_json"] = json.dumps(
-        ['Deloitte', 'Amazon', 'HDFC', 'TCS', 'Accenture', 'HUL'] if uni_slug == "nmims" else [],
-        ensure_ascii=False
-    )
+    features_list = resolve_list(raw_dict, knowledge, "features")
+    if not features_list:
+        features_list = [
+            {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
+            {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
+            {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
+            {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
+        ]
+    ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
+    
+    recruiters_list = resolve_list(raw_dict, knowledge, "recruiters")
+    ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
     
     # testimonials is reviews mapped for homepage
     testimonials = []
@@ -699,12 +721,19 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["testimonials_json"] = json.dumps(testimonials, ensure_ascii=False)
     
     # financing for homepage
-    ctx["financing_json"] = json.dumps([
-        {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
-        {"stat": "3–12 months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
-        {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
-    ], ensure_ascii=False)
-    ctx["banks_json"] = json.dumps(['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra'], ensure_ascii=False)
+    financing_list = resolve_list(raw_dict, knowledge, "financing")
+    if not financing_list:
+        financing_list = [
+            {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
+            {"stat": "3–12 months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
+            {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
+        ]
+    ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
+    
+    banks_list = resolve_list(raw_dict, knowledge, "banks")
+    if not banks_list:
+        banks_list = ['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra']
+    ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
 
     # Programs list for homepage (enriched from workspace courses if available)
     workspace_courses = raw_dict.get("_workspace_courses") or []
@@ -723,7 +752,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "level": level,
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
                 "dur": data.get("duration") or "2 Years · 4 Sem",
-                "fee": data.get("total_fee") or data.get("starting_fee") or "₹2,00,000",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or "") or "₹2,00,000",
                 "feeUnit": "total course",
                 "d": data.get("hero_description") or "Industry-aligned specializations, taught by expert faculty.",
                 "href": f"{slug}.html",
@@ -731,8 +760,11 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "mode": data.get("mode") or "100% Online",
             })
     else:
+        dur_val = resolve_field({}, knowledge, "duration", "2 Years · 4 Sem")
+        fee_val = (ctx.get("sticky_bar") or {}).get("fee") or clean_fee(resolve_field({}, knowledge, "starting_fee", "")) or "₹2,00,000"
+        mode_val = resolve_field({}, knowledge, "mode", "100% Online")
         uni_programs = [
-            {"level": "Postgraduate", "name": "Online MBA", "dur": "2 Years · 4 Sem", "fee": (ctx.get("sticky_bar") or {}).get("fee") or "₹2,00,000", "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": "100% Online"}
+            {"level": "Postgraduate", "name": "Online MBA", "dur": dur_val, "fee": fee_val, "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": mode_val}
         ]
     ctx["programs_json"] = json.dumps(uni_programs[:4], ensure_ascii=False)
 

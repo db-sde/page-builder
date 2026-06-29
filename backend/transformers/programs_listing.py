@@ -1,3 +1,5 @@
+from core.utils import format_fee as clean_fee
+
 class ProgramsListingTransformer:
     """
     Transformer for the auto-generated Programs Listing page.
@@ -19,7 +21,7 @@ class ProgramsListingTransformer:
             programs.append({
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
                 "slug": slug,
-                "fee": data.get("total_fee") or data.get("starting_fee") or "",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
                 "duration": data.get("duration") or "2 Years",
                 "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
                 "description": data.get("hero_description") or "",

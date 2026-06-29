@@ -11,16 +11,15 @@ class UniversityTransformer(BaseTransformer):
         workspace_blogs = raw.get("_workspace_blogs") or []
 
         # ── Fallback: mode ──────────────────────────────────────────────────────────
-        # Pipeline does not always output 'mode' — default to online since all
-        # DegreeBaba courses are online programs.
-        if not raw.get("mode"):
-            raw["mode"] = "100% Online"
+        mode_val = self.resolve("mode", "100% Online")
+        raw["mode"] = mode_val
 
         # ── Fallback: fee_plans from total_fee ──────────────────────────────────────
         # If fee_plans array is missing but total_fee string exists, synthesize a
         # single-row fee plan so the fee section renders instead of being hidden.
-        if not raw.get("fee_plans") and raw.get("total_fee"):
-            cleaned_fee = self.format_fee(raw.get("total_fee", ""))
+        total_fee_val = self.resolve("total_fee")
+        if not raw.get("fee_plans") and total_fee_val:
+            cleaned_fee = self.format_fee(total_fee_val)
             if cleaned_fee:
                 raw["fee_plans"] = [
                     {
@@ -30,12 +29,44 @@ class UniversityTransformer(BaseTransformer):
                     }
                 ]
 
+        naac = self.resolve("naac_grade")
+        ugc = self.resolve("ugc_status")
+        nirf = self.resolve("nirf_rank")
+        uni_name = self.resolve("university_name", "")
+        uni_full_name = self.resolve("university_full_name", "")
+        mode_of_learning = self.resolve("mode_of_learning")
+        established_year = self.resolve("established_year")
+        starting_fee = self.resolve("starting_fee")
+        num_programs = self.resolve("num_programs")
+
+        # Resolve badge content dynamically
+        badge_parts = []
+        if naac:
+            badge_parts.append(f"NAAC {naac}")
+        if ugc:
+            badge_parts.append(ugc)
+        if nirf:
+            badge_parts.append(nirf)
+        badge = " · ".join(badge_parts) if (uni_name and badge_parts) else None
+
+        about_content = self.resolve("about_content")
+        why_choose_content = self.resolve("why_choose_content")
+        facts = self.resolve_list("facts")
+        accreditations = self.resolve_list("accreditations")
+        programs_table = self.resolve_list("programs_table")
+        admission_steps = self.resolve("admission_steps")
+        emi_content = self.resolve("emi_content")
+        exam_content = self.resolve("exam_content")
+        placement_content = self.resolve("placement_content")
+        reviews = self.resolve_list("reviews")
+        faqs = self.resolve_list("faqs")
+
         return {
-            "hero_image_url": raw.get("hero_image_url"),
-            "hero_image_alt": raw.get("hero_image_alt", ""),
-            "og_image_url": raw.get("og_image_url") or raw.get("hero_image_url"),
-            "naac_grade": raw.get("naac_grade"),
-            "ugc_approved": raw.get("ugc_approved"),
+            "hero_image_url": self.resolve("hero_image_url"),
+            "hero_image_alt": self.resolve("hero_image_alt", ""),
+            "og_image_url": self.resolve("og_image_url") or self.resolve("hero_image_url"),
+            "naac_grade": naac,
+            "ugc_approved": ugc,
 
             # --- SEO ---
             "seo_title": raw.get("seo_title", ""),
@@ -46,69 +77,63 @@ class UniversityTransformer(BaseTransformer):
 
             # --- Hero ---
             "hero": {
-                "title": raw.get("university_name", ""),
-                "full_name": raw.get("university_full_name", ""),
+                "title": uni_name,
+                "full_name": uni_full_name,
                 "description": raw.get("hero_description", ""),
                 "pills": self.build_pills([
-                    (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", None),
-                    (raw.get("ugc_approved"), None),
-                    (raw.get("mode_of_learning"), None),
+                    (naac and f"NAAC {naac}", None),
+                    (ugc, None),
+                    (mode_of_learning, None),
                 ]),
-                "badge": (
-                    f"NAAC {raw.get('naac_grade')} · {raw.get('ugc_approved')} · NIRF #24"
-                    if raw.get("university_name") and (raw.get("naac_grade") or raw.get("ugc_approved"))
-                    else None
-                ),
+                "badge": badge,
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
                 "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {
-                    "value": raw.get("naac_grade"),
+                    "value": naac,
                     "label": "NAAC Accredited"
-                } if raw.get("naac_grade") else None
+                } if naac else None
             },
 
             # --- Breadcrumbs ---
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
-                ([{"label": raw.get("university_name"), "href": None}] if raw.get("university_name") else [])
+                ([{"label": uni_name, "href": None}] if uni_name else [])
             ),
 
             # --- Stats strip ---
             "stats": self.build_stats([
-                (raw.get("established_year"), "Est."),
-                (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", "Accreditation"),
-                (raw.get("ugc_approved"), "UGC Status"),
-                (f"{self.format_fee(raw.get('starting_fee'))}/sem" if raw.get("starting_fee") else None, "Starting Fee"),
-                (str(raw.get("num_programs")) if raw.get("num_programs") else None, "Programs"),
+                (established_year, "Est."),
+                (naac and f"NAAC {naac}", "Accreditation"),
+                (ugc, "UGC Status"),
+                (f"{self.format_fee(starting_fee)}/sem" if starting_fee else None, "Starting Fee"),
+                (str(num_programs) if num_programs else None, "Programs"),
             ]),
 
             # --- Sidebar rail ---
             "rail": self.build_rail([
-                ("about", "About", raw.get("about_content")),
-                ("why-choose", "Why Choose", raw.get("why_choose_content")),
-                ("facts", "Quick Facts", raw.get("facts")),
-                ("accreditations", "Accreditations", raw.get("accreditations")),
-                ("programs", "Programs & Fees", raw.get("programs_table") or my_courses),
-                ("admission", "Admission", raw.get("admission_steps")),
-                ("emi", "Fees & EMI", raw.get("emi_content")),
-                ("exams", "Exam Process", raw.get("exam_content")),
-                ("placement", "Placements", raw.get("placement_content")),
-                ("reviews", "Reviews", raw.get("reviews")),
-                ("faq", "FAQs", raw.get("faqs")),
+                ("about", "About", about_content),
+                ("why-choose", "Why Choose", why_choose_content),
+                ("facts", "Quick Facts", facts),
+                ("accreditations", "Accreditations", accreditations),
+                ("programs", "Programs & Fees", programs_table or my_courses),
+                ("admission", "Admission", admission_steps),
+                ("emi", "Fees & EMI", emi_content),
+                ("exams", "Exam Process", exam_content),
+                ("placement", "Placements", placement_content),
+                ("reviews", "Reviews", reviews),
+                ("faq", "FAQs", faqs),
             ]),
 
             # --- Sections ---
-            "about": self.section_or_none("about_content"),
-            "why_choose": self.section_or_none("why_choose_content"),
-
-            "facts": raw.get("facts") or None,
-
-            "accreditations": raw.get("accreditations") or None,
+            "about": about_content,
+            "why_choose": why_choose_content,
+            "facts": facts or None,
+            "accreditations": accreditations or None,
 
             # Programs table — from DB if courses exist, fallback to raw table
             "programs": {
                 "intro": raw.get("programs_intro", ""),
-                "table": raw.get("programs_table") or [],
+                "table": programs_table,
                 "courses": [
                     {
                         "name": c["data"].get("program_name", ""),
@@ -119,24 +144,21 @@ class UniversityTransformer(BaseTransformer):
                     }
                     for c in my_courses
                 ]
-            } if (raw.get("programs_table") or my_courses) else None,
+            } if (programs_table or my_courses) else None,
 
             "admission": {
-                "steps": self.section_or_none("admission_steps"),
+                "steps": admission_steps,
                 "fee_note": self.clean_str(raw.get("admission_fee_note")),
-            } if raw.get("admission_steps") else None,
+            } if admission_steps else None,
 
-            "emi": self.section_or_none("emi_content"),
-            "exam": self.section_or_none("exam_content"),
-            "placement": self.section_or_none("placement_content"),
+            "emi": emi_content,
+            "exam": exam_content,
+            "placement": placement_content,
 
-            "reviews": self.build_reviews(raw.get("reviews", [])) or None,
-            "faqs": raw.get("faqs") or None,
+            "reviews": self.build_reviews(reviews) or None,
+            "faqs": faqs or None,
 
             # Workspace-driven dynamic sections
-            # These are passed through directly to engine.py so the renderer
-            # can build the homepage specializations grid and blog preview cards
-            # from real workspace content instead of hardcoded fallbacks.
             "_workspace_specs": workspace_specs,
             "_workspace_blogs": workspace_blogs,
         }

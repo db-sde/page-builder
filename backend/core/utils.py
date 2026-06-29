@@ -5,24 +5,21 @@ def format_fee(amount_str: str) -> str:
     """
     Cleans a raw fee/amount string into a consistent '₹<amount>' format
     (or '' if it can't be parsed / is a non-value like 'NA').
-
-    Single canonical implementation — previously duplicated verbatim as
-    BaseTransformer.format_fee (transformers/base.py) and clean_fee
-    (renderer/engine.py).
     """
     if not amount_str:
         return ""
     s = str(amount_str).strip()
     if not s or s.upper() in ("NA", "N/A", "NIL", "FREE", "-", "--"):
         return ""
-    # Already formatted correctly
-    if s.startswith("₹"):
-        return s
-    # Strip INR prefix (case-insensitive)
-    s = re.sub(r'^INR\s*', '', s, flags=re.IGNORECASE).strip()
+    
+    # Strip any existing leading ₹ or INR symbols
+    s = re.sub(r'^₹\s*', '', s).strip()
+    s = re.sub(r'\bINR\b\s*', '', s, flags=re.IGNORECASE).strip()
+    
     # Strip trailing garbage: /-, /--, /year, /sem etc
     s = re.sub(r'\s*/[-–]+.*$', '', s).strip()
     s = re.sub(r'\s*/\s*(year|sem|semester|month|mo).*$', '', s, flags=re.IGNORECASE).strip()
+    
     # Strip any non-numeric/comma/dot characters remaining at end
     s = re.sub(r'[^0-9,.].*$', '', s).strip()
     if not s:

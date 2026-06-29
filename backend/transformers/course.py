@@ -7,16 +7,13 @@ class CourseTransformer(BaseTransformer):
         my_specs = raw.get("_workspace_specs") or []
 
         # ── Fallback: mode ──────────────────────────────────────────────────────────
-        # Pipeline does not always output 'mode' — default to online since all
-        # DegreeBaba courses are online programs.
-        if not raw.get("mode"):
-            raw["mode"] = "100% Online"
+        mode_val = self.resolve("mode", "100% Online")
+        raw["mode"] = mode_val
 
         # ── Fallback: fee_plans from total_fee ──────────────────────────────────────
-        # If fee_plans array is missing but total_fee string exists, synthesize a
-        # single-row fee plan so the fee section renders instead of being hidden.
-        if not raw.get("fee_plans") and raw.get("total_fee"):
-            cleaned_fee = self.format_fee(raw.get("total_fee", ""))
+        total_fee_val = self.resolve("total_fee")
+        if not raw.get("fee_plans") and total_fee_val:
+            cleaned_fee = self.format_fee(total_fee_val)
             if cleaned_fee:
                 raw["fee_plans"] = [
                     {
@@ -27,8 +24,6 @@ class CourseTransformer(BaseTransformer):
                 ]
 
         # ── Fallback: program_name preferred over course_name ───────────────────────
-        # Pipeline sometimes outputs course_name instead of or in addition to
-        # program_name. Prefer the longer/more complete value.
         if raw.get("course_name") and not raw.get("program_name"):
             raw["program_name"] = raw["course_name"]
         elif raw.get("course_name") and raw.get("program_name"):
@@ -37,19 +32,19 @@ class CourseTransformer(BaseTransformer):
                 raw["program_name"] = raw["course_name"]
 
         # ── Fallback: about_content from hero_description ───────────────────────────
-        # If about_content is missing, use hero_description as a minimal about
-        # paragraph so the About section renders with something rather than nothing.
-        if not raw.get("about_content") and raw.get("hero_description"):
-            raw["about_content"] = f"<p>{raw['hero_description']}</p>"
+        about_content_val = self.resolve("about_content")
+        if not about_content_val and raw.get("hero_description"):
+            about_content_val = f"<p>{raw['hero_description']}</p>"
+        raw["about_content"] = about_content_val
 
         # ── Fallback: admission_steps ───────────────────────────────────────────────
-        if not raw.get("admission_steps"):
-            raw["admission_steps"] = (
-                "<p><strong>Step 1.</strong> Visit the official university online admission portal and register.</p>"
-                "<p><strong>Step 2.</strong> Fill in personal, contact, and academic details in the application form.</p>"
-                "<p><strong>Step 3.</strong> Upload scanned copies of required documents (graduation marksheet, ID proof, photograph).</p>"
-                "<p><strong>Step 4.</strong> Pay the program admission fee online to confirm your enrollment.</p>"
-            )
+        admission_steps_val = self.resolve("admission_steps", (
+            "<p><strong>Step 1.</strong> Visit the official university online admission portal and register.</p>"
+            "<p><strong>Step 2.</strong> Fill in personal, contact, and academic details in the application form.</p>"
+            "<p><strong>Step 3.</strong> Upload scanned copies of required documents (graduation marksheet, ID proof, photograph).</p>"
+            "<p><strong>Step 4.</strong> Pay the program admission fee online to confirm your enrollment.</p>"
+        ))
+        raw["admission_steps"] = admission_steps_val
 
         spec_desc_map = {
             "marketing": "Brand, digital & consumer strategy",
@@ -89,6 +84,27 @@ class CourseTransformer(BaseTransformer):
                     "href": f"/{s['slug']}"
                 })
 
+        naac = self.resolve("naac_grade")
+        ugc = self.resolve("ugc_status")
+        ugc_display = (f"UGC {ugc}" if ugc and "ugc" not in ugc.lower() else ugc) if ugc else None
+        uni_name = self.resolve("university_name", "")
+        duration = self.resolve("duration")
+        mode = self.resolve("mode")
+        placement_content = self.resolve("placement_content")
+        certificate_description = self.resolve("certificate_description")
+        eligibility_content = self.resolve("eligibility_content")
+        syllabus_content = self.resolve("syllabus_content")
+        emi_amount = self.resolve("emi_amount")
+        highlights = self.resolve_list("highlights")
+        reviews = self.resolve_list("reviews")
+        faqs = self.resolve_list("faqs")
+
+        badge_parts = []
+        if naac:
+            badge_parts.append(f"NAAC {naac} Accredited")
+        if ugc_display:
+            badge_parts.append(ugc_display)
+        badge = " · ".join(badge_parts) if badge_parts else None
 
         return {
             "hero_image_url": raw.get("hero_image_url"),
@@ -106,74 +122,70 @@ class CourseTransformer(BaseTransformer):
             # --- Hero ---
             "hero": {
                 "title": raw.get("program_name", ""),
-                "university": raw.get("university_name", ""),
+                "university": uni_name,
                 "description": raw.get("hero_description", ""),
                 "pills": self.build_pills([
-                    (raw.get("duration"), None),
-                    (raw.get("mode"), None),
+                    (duration, None),
+                    (mode, None),
                     ("No Entrance Exam" if raw.get("program_name") else None, None),
                 ]),
-                "badge": (
-                    f"NAAC {raw.get('naac_grade')} Accredited · {raw.get('ugc_status')}"
-                    if raw.get("naac_grade") and raw.get("ugc_status")
-                    else (f"NAAC {raw.get('naac_grade')} Accredited" if raw.get("naac_grade") else raw.get("ugc_status"))
-                ) or None,
+                "badge": badge,
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
                 "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {
-                    "value": raw.get("naac_grade"),
+                    "value": naac,
                     "label": "NAAC Accredited"
-                } if raw.get("naac_grade") else None
+                } if naac else None
             },
 
             # --- Breadcrumbs ---
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
-                ([{"label": raw.get("university_name"), "href": f"/{self.university_slug}"}] if raw.get("university_name") else []) +
+                ([{"label": uni_name, "href": f"/{self.university_slug}"}] if uni_name else []) +
                 ([{"label": raw.get("program_name"), "href": None}] if raw.get("program_name") else [])
             ),
 
             # --- Stats strip ---
             "stats": self.build_stats([
-                (raw.get("duration"), "Duration"),
-                (raw.get("mode"), "Mode"),
-                (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", "Accreditation"),
-                (raw.get("ugc_status"), "Approval"),
-                (self.format_fee(raw.get("total_fee", "")), "Total Fee"),
+                (duration, "Duration"),
+                (mode, "Mode"),
+                (naac and f"NAAC {naac}", "Accreditation"),
+                (ugc_display, "Approval"),
+                (self.format_fee(total_fee_val), "Total Fee"),
                 (str(raw.get("num_specializations", "")), "Specializations"),
             ]),
 
             # --- Sidebar rail ---
             "rail": self.build_rail([
-                ("about", "About", raw.get("about_content")),
-                ("highlights", "Highlights", raw.get("highlights")),
-                ("accreditations", "Accreditations", raw.get("naac_grade") or raw.get("ugc_status")),
+                ("about", "About", about_content_val),
+                ("highlights", "Highlights", highlights),
+                ("accreditations", "Accreditations", naac or ugc_display),
                 ("specializations", "Specializations", my_specs),
                 ("fees", "Fee Structure", raw.get("fee_plans")),
-                ("eligibility", "Eligibility", raw.get("eligibility_content")),
-                ("admission", "Admission", raw.get("admission_steps")),
-                ("syllabus", "Syllabus", raw.get("syllabus_content")),
-                ("placement", "Placements", raw.get("placement_content")),
+                ("eligibility", "Eligibility", eligibility_content),
+                ("admission", "Admission", admission_steps_val),
+                ("syllabus", "Syllabus", syllabus_content),
+                ("placement", "Placements", placement_content),
                 ("jobs", "Job Profiles", raw.get("job_profiles")),
-                ("reviews", "Reviews", raw.get("reviews")),
-                ("faq", "FAQs", raw.get("faqs")),
+                ("reviews", "Reviews", reviews),
+                ("faq", "FAQs", faqs),
             ]),
 
             # --- Sections ---
-            "about": self.section_or_none("about_content"),
-            "highlights": raw.get("highlights") or None,
+            "about": about_content_val,
+            "highlights": highlights or None,
 
             # Accreditations built from flat fields
             "accreditations": [
                 card for card in [
                     {
-                        "title": "NAAC " + raw.get("naac_grade"),
-                        "description": f"{raw.get('university_name', 'The university')} holds NAAC Grade {raw.get('naac_grade')} — among India's highest-rated private universities."
-                    } if raw.get("naac_grade") else None,
+                        "title": "NAAC " + naac,
+                        "description": f"{uni_name or 'The university'} holds NAAC Grade {naac} — among India's highest-rated private universities."
+                    } if naac else None,
                     {
-                        "title": raw.get("ugc_status") or raw.get("ugc_approved"),
+                        "title": ugc_display,
                         "description": "Offered under UGC (ODL & Online Programmes) Regulations, 2020 — fully valid for jobs and higher studies."
-                    } if (raw.get("ugc_status") or raw.get("ugc_approved")) else None
+                    } if ugc_display else None
                 ] if card is not None
             ] or None,
 
@@ -183,41 +195,41 @@ class CourseTransformer(BaseTransformer):
                 "items": spec_items
             } if spec_items else None,
 
-            "eligibility": self.section_or_none("eligibility_content"),
+            "eligibility": eligibility_content,
 
             # Fees
             "fees": {
                 "plans": raw.get("fee_plans") or [],
-                "note": self.build_fee_note(raw.get("emi_amount")),
-            } if (raw.get("fee_plans") or self.clean_str(raw.get("emi_amount"))) else None,
+                "note": self.build_fee_note(emi_amount),
+            } if (raw.get("fee_plans") or self.clean_str(emi_amount)) else None,
 
             "admission": {
-                "steps": self.section_or_none("admission_steps"),
+                "steps": admission_steps_val,
                 "fee_note": self.clean_str(raw.get("admission_fee_note")),
-            } if raw.get("admission_steps") else None,
+            } if admission_steps_val else None,
 
             # Syllabus — raw HTML, template renders as-is
-            "syllabus": self.section_or_none("syllabus_content"),
+            "syllabus": syllabus_content,
 
             "placement": {
-                "content": self.section_or_none("placement_content"),
-                "certificate": self.section_or_none("certificate_description"),
-            } if (raw.get("placement_content") or raw.get("certificate_description")) else None,
+                "content": placement_content,
+                "certificate": certificate_description,
+            } if (placement_content or certificate_description) else None,
 
             # Sticky bar
             "sticky_bar": {
-                "fee": self.format_fee(raw.get("total_fee")),
-                "emi": raw.get("emi_amount"),
-            } if (raw.get("total_fee") or raw.get("emi_amount")) else None,
+                "fee": self.format_fee(total_fee_val),
+                "emi": emi_amount,
+            } if (total_fee_val or emi_amount) else None,
 
             # Job profiles
             "jobs": raw.get("job_profiles") or None,
 
             # Reviews
-            "reviews": self.build_reviews(raw.get("reviews", [])) or None,
+            "reviews": self.build_reviews(reviews) or None,
 
             # FAQs
-            "faqs": raw.get("faqs") or None,
+            "faqs": faqs or None,
 
             # Workspace-driven dynamic sections (forward to engine.py)
             "_workspace_specs": raw.get("_workspace_specs") or [],

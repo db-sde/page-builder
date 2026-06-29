@@ -1208,6 +1208,13 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             parent_slug=parent_slug,
         )
 
+        try:
+            from workspace.knowledge import update_university_knowledge
+            update_university_knowledge(university_slug, acf_data, page_type)
+        except Exception as knowledge_err:
+            import logging
+            logging.error(f"Failed to update university knowledge: {knowledge_err}")
+
         # After saving user content, auto-re-render all 3 listing pages
         # so they always reflect the latest workspace state.
         try:

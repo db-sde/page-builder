@@ -1,12 +1,8 @@
+from transformers.base import BaseTransformer
 import json
-from core.site_config import get_site_config
+import re
 
-class BlogTransformer:
-    def __init__(self, resolved: dict):
-        self.university_slug = resolved.get("university_slug")
-        self.raw = resolved["raw"]
-        self.site = get_site_config(self.university_slug, self.raw.get("university_name"))
-
+class BlogTransformer(BaseTransformer):
     def transform(self) -> dict:
         raw = self.raw
         
@@ -15,7 +11,6 @@ class BlogTransformer:
         excerpt = raw.get("excerpt") or raw.get("hero_description") or ""
         content_html = raw.get("content_html") or ""
 
-        import re
         faqs = raw.get("faqs") or []
         if not faqs and content_html:
             pattern = re.compile(

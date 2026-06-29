@@ -19,21 +19,17 @@ class SpecializationTransformer(BaseTransformer):
             parent_program_name = (
                 raw.get("program_name") or
                 raw.get("course_name") or
-                f"{raw.get('university_name') or 'University'} Online MBA"
+                f"{self.resolve('university_name') or 'University'} Online MBA"
             )
 
-
         # ── Fallback: mode ──────────────────────────────────────────────────────────
-        # Pipeline does not always output 'mode' — default to online since all
-        # DegreeBaba courses are online programs.
-        if not raw.get("mode"):
-            raw["mode"] = "100% Online"
+        mode_val = self.resolve("mode", "100% Online")
+        raw["mode"] = mode_val
 
         # ── Fallback: fee_plans from total_fee ──────────────────────────────────────
-        # If fee_plans array is missing but total_fee string exists, synthesize a
-        # single-row fee plan so the fee section renders instead of being hidden.
-        if not raw.get("fee_plans") and raw.get("total_fee"):
-            cleaned_fee = self.format_fee(raw.get("total_fee", ""))
+        total_fee_val = self.resolve("total_fee")
+        if not raw.get("fee_plans") and total_fee_val:
+            cleaned_fee = self.format_fee(total_fee_val)
             if cleaned_fee:
                 raw["fee_plans"] = [
                     {
@@ -42,6 +38,24 @@ class SpecializationTransformer(BaseTransformer):
                         "plan_total": cleaned_fee
                     }
                 ]
+
+        uni_name = self.resolve("university_name", "")
+        duration = self.resolve("duration")
+        mode = self.resolve("mode")
+        naac = self.resolve("naac_grade")
+        ugc = self.resolve("ugc_status")
+        ugc_display = (f"UGC {ugc}" if ugc and "ugc" not in ugc.lower() else ugc) if ugc else None
+        about_content = self.resolve("about_content")
+        highlights = self.resolve_list("highlights")
+        eligibility_content = self.resolve("eligibility_content")
+        syllabus_content = self.resolve("syllabus_content")
+        exam_content = self.resolve("exam_content")
+        admission_steps = self.resolve("admission_steps")
+        placement_content = self.resolve("placement_content")
+        certificate_description = self.resolve("certificate_description")
+        emi_amount = self.resolve("emi_amount")
+        reviews = self.resolve_list("reviews")
+        faqs = self.resolve_list("faqs")
 
         return {
             "hero_image_url": raw.get("hero_image_url"),
@@ -58,26 +72,26 @@ class SpecializationTransformer(BaseTransformer):
             # --- Hero ---
             "hero": {
                 "title": raw.get("spec_name", ""),
-                "university": raw.get("university_name", ""),
+                "university": uni_name,
                 "description": raw.get("hero_description", ""),
                 "pills": self.build_pills([
-                    (raw.get("duration"), None),
-                    (raw.get("mode"), None),
+                    (duration, None),
+                    (mode, None),
                     ("No Entrance Exam" if raw.get("spec_name") else None, None),
                 ]),
                 "badge": "Most Popular Specialization" if raw.get("spec_name") else None,
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
                 "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {
-                    "value": self.format_fee(raw.get("total_fee")),
+                    "value": self.format_fee(total_fee_val),
                     "label": "Total program fee"
-                } if raw.get("total_fee") else None
+                } if total_fee_val else None
             },
 
             # --- Breadcrumbs ---
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
-                ([{"label": raw.get("university_name"), "href": f"/{self.university_slug}"}] if raw.get("university_name") else []) +
+                ([{"label": uni_name, "href": f"/{self.university_slug}"}] if uni_name else []) +
                 ([{"label": parent_program_name, "href": f"/{self.parent_slug}"}] if self.parent_slug else []) +
                 ([{"label": raw.get("spec_name"), "href": None}] if raw.get("spec_name") else [])
             ),
@@ -87,53 +101,53 @@ class SpecializationTransformer(BaseTransformer):
 
             # --- Stats strip ---
             "stats": self.build_stats([
-                (raw.get("duration"), "Duration"),
-                (raw.get("mode"), "Mode"),
-                (raw.get("naac_grade") and f"NAAC {raw.get('naac_grade')}", "Accreditation"),
-                (raw.get("ugc_status"), "Approval"),
-                (self.format_fee(raw.get("total_fee", "")), "Total Fee"),
+                (duration, "Duration"),
+                (mode, "Mode"),
+                (naac and f"NAAC {naac}", "Accreditation"),
+                (ugc_display, "Approval"),
+                (self.format_fee(total_fee_val), "Total Fee"),
             ]),
 
             # --- Sidebar rail ---
             "rail": self.build_rail([
-                ("about", "About", raw.get("about_content")),
-                ("highlights", "Highlights", raw.get("highlights")),
-                ("eligibility", "Eligibility", raw.get("eligibility_content")),
+                ("about", "About", about_content),
+                ("highlights", "Highlights", highlights),
+                ("eligibility", "Eligibility", eligibility_content),
                 ("fees", "Fee Structure", raw.get("fee_plans")),
                 ("other-specs", "Other Specializations", siblings),
-                ("syllabus", "Syllabus", raw.get("syllabus_content")),
-                ("exams", "Exam Process", raw.get("exam_content")),
-                ("admission", "Admission", raw.get("admission_steps")),
-                ("placement", "Placements", raw.get("placement_content")),
+                ("syllabus", "Syllabus", syllabus_content),
+                ("exams", "Exam Process", exam_content),
+                ("admission", "Admission", admission_steps),
+                ("placement", "Placements", placement_content),
                 ("jobs", "Job Profiles", raw.get("job_profiles")),
-                ("reviews", "Reviews", raw.get("reviews")),
-                ("faq", "FAQs", raw.get("faqs")),
+                ("reviews", "Reviews", reviews),
+                ("faq", "FAQs", faqs),
             ]),
 
             # --- Sections (None = hide the section) ---
-            "about": self.section_or_none("about_content"),
-            "highlights": raw.get("highlights") or None,
-            "eligibility": self.section_or_none("eligibility_content"),
-            "syllabus": self.section_or_none("syllabus_content"),
-            "exam": self.section_or_none("exam_content"),
+            "about": about_content,
+            "highlights": highlights or None,
+            "eligibility": eligibility_content,
+            "syllabus": syllabus_content,
+            "exam": exam_content,
             "admission": {
-                "steps": self.section_or_none("admission_steps"),
+                "steps": admission_steps,
                 "fee_note": self.clean_str(raw.get("admission_fee_note")),
-            } if raw.get("admission_steps") else None,
-            "placement": self.section_or_none("placement_content"),
-            "certificate": self.section_or_none("certificate_description"),
+            } if admission_steps else None,
+            "placement": placement_content,
+            "certificate": certificate_description,
 
             # --- Fees ---
             "fees": {
                 "plans": raw.get("fee_plans") or [],
-                "note": self.build_fee_note(raw.get("emi_amount")),
-            } if (raw.get("fee_plans") or self.clean_str(raw.get("emi_amount"))) else None,
+                "note": self.build_fee_note(emi_amount),
+            } if (raw.get("fee_plans") or self.clean_str(emi_amount)) else None,
 
             # --- Sticky bar ---
             "sticky_bar": {
-                "fee": self.format_fee(raw.get("total_fee")),
-                "emi": raw.get("emi_amount"),
-            } if (raw.get("total_fee") or raw.get("emi_amount")) else None,
+                "fee": self.format_fee(total_fee_val),
+                "emi": emi_amount,
+            } if (total_fee_val or emi_amount) else None,
 
             # --- Sibling specializations ---
             "other_specs": [
@@ -146,13 +160,12 @@ class SpecializationTransformer(BaseTransformer):
                 for s in siblings
             ] or None,
 
-
             # --- Job profiles ---
             "jobs": raw.get("job_profiles") or None,
 
             # --- Reviews ---
-            "reviews": self.build_reviews(raw.get("reviews", [])) or None,
+            "reviews": self.build_reviews(reviews) or None,
 
             # --- FAQs ---
-            "faqs": raw.get("faqs") or None,
+            "faqs": faqs or None,
         }

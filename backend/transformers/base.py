@@ -1,6 +1,7 @@
 # TODO: add AI gap-fill hook here — if required field is None, call Groq before skipping section
 
 from abc import ABC, abstractmethod
+from typing import Any
 from core.site_config import get_site_config
 from core.utils import format_fee
 import re
@@ -12,7 +13,20 @@ class BaseTransformer(ABC):
         self.parent_slug = resolved.get("parent_slug")
         self.university_slug = resolved.get("university_slug")
         self.raw = resolved["raw"]          # the ACF data dict
-        self.site = get_site_config(self.university_slug, self.raw.get("university_name"))
+        
+        from workspace.knowledge import load_or_create_knowledge
+        self.knowledge = load_or_create_knowledge(self.university_slug) if self.university_slug else {}
+        
+        uni_name_val = self.resolve("university_name")
+        self.site = get_site_config(self.university_slug, uni_name_val)
+
+    def resolve(self, field: str, default: Any = None) -> Any:
+        from workspace.knowledge import resolve_field
+        return resolve_field(self.raw, self.knowledge, field, default)
+
+    def resolve_list(self, field: str, default: Any = None) -> list:
+        from workspace.knowledge import resolve_list
+        return resolve_list(self.raw, self.knowledge, field, default)
 
     def format_fee(self, amount_str: str) -> str:
         # Delegates to the single canonical implementation in core/utils.py
