@@ -337,11 +337,11 @@
         </div>
       </div>
       {% if hero_image_url %}
-      <div style="height:340px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px -28px rgba(0,0,0,.45)">
+      <div style="width:100%;aspect-ratio:3/2;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px -28px rgba(0,0,0,.45)">
         <img src="{{ hero_image_url }}" alt="{{ title }}" style="width:100%;height:100%;object-fit:cover;display:block">
       </div>
       {% else %}
-      <div style="height:340px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 16px,#6244C2 16px,#6244C2 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px -28px rgba(0,0,0,.45)"><span style="font-family:ui-monospace,monospace;font-size:13px;color:#A99BD8">[ article hero image — 460 × 340 ]</span></div>
+      <div style="width:100%;aspect-ratio:3/2;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 16px,#6244C2 16px,#6244C2 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px -28px rgba(0,0,0,.45)"><span style="font-family:ui-monospace,monospace;font-size:13px;color:#A99BD8">[ article hero image ]</span></div>
       {% endif %}
     </div>
   </div>
