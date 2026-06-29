@@ -37,9 +37,9 @@ class BlogListingTransformer:
                 "hero_image_url": data.get("hero_image_url") or "",
             })
 
-        # Featured = most recent (first), rest go to grid
-        featured = all_posts[0] if all_posts else None
-        blog_posts = all_posts[1:] if len(all_posts) > 1 else []
+        # All posts go directly to the grid, no separate featured layout
+        featured = None
+        blog_posts = all_posts
 
         # Fallback posts when workspace has no blog content yet
         if not all_posts:
@@ -51,8 +51,8 @@ class BlogListingTransformer:
                 {"tag": "Student Life", "title": "Balancing a full-time job with an online MBA", "excerpt": "Real routines from working students on managing weekend classes and assignments.", "meta": "6 min · Oct 2025", "href": "#", "author": "Editorial Team", "author_initial": "E", "hero_image_url": ""},
                 {"tag": "Guide", "title": "Is an online degree valid for government jobs?", "excerpt": "What UGC entitlement means in practice for employment and higher studies.", "meta": "4 min · Oct 2025", "href": "#", "author": "Editorial Team", "author_initial": "E", "hero_image_url": ""},
             ]
-            featured = fallback[0]
-            blog_posts = fallback[1:]
+            featured = None
+            blog_posts = fallback
 
         cat_labels = ["All", "Career", "Admissions", "Guide", "Finance", "Student Life"]
 

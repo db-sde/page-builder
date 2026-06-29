@@ -125,28 +125,7 @@
     </div>
   </div>
 
-  <!-- ===== FEATURED POST ===== -->
-  {% if featured_post %}
-  <div style="max-width:1180px;margin:0 auto;padding:28px 20px 0">
-    <a href="{{ featured_post.href }}" class="featured-card hero-container" style="display:grid;grid-template-columns:1.05fr .95fr;gap:0;background:#fff;border:1px solid #E9E5F2;border-radius:16px;overflow:hidden;transition:box-shadow .18s">
-      {% if featured_post.hero_image_url %}
-        <div style="height:320px;background:url('{{ featured_post.hero_image_url }}') center/cover no-repeat"></div>
-      {% else %}
-        <div style="height:320px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 14px,#E4DEF4 14px,#E4DEF4 28px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8">[ featured article image ]</span></div>
-      {% endif %}
-      <div style="padding:34px;display:flex;flex-direction:column;justify-content:center">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="background:#FF5C35;color:#1C1B22;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:6px">Featured</span><span style="font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ featured_post.tag | default('') }}</span></div>
-        <h2 style="font-size:28px;font-weight:800;color:#1C1B22;line-height:1.2">{{ featured_post.title | default('') }}</h2>
-        <p style="font-size:14.5px;color:#6E6A78;margin-top:12px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ featured_post.excerpt | default('') }}</p>
-        <div style="display:flex;align-items:center;gap:11px;margin-top:20px">
-          <div style="width:40px;height:40px;border-radius:50%;background:#6B4FC9;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">{{ featured_post.author_initial | default('A') }}</div>
-          <div><div style="font-size:13.5px;font-weight:700;color:#1C1B22">{{ featured_post.author | default('') }}</div><div style="font-size:12px;color:#9A93A8">{{ featured_post.meta | default('') }}</div></div>
-          <span style="margin-left:auto;font-size:14px;color:#FF5C35;font-weight:800">Read article →</span>
-        </div>
-      </div>
-    </a>
-  </div>
-  {% endif %}
+
 
   <!-- ===== POST GRID ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:28px 20px 10px">
@@ -154,9 +133,9 @@
       {% for p in blog_posts %}
         <a href="{{ p.href }}" class="blog-card" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;min-height:380px;transition:box-shadow .18s">
           {% if p.hero_image_url %}
-            <div style="height:170px;background:url('{{ p.hero_image_url }}') center/cover no-repeat"></div>
+            <img src="{{ p.hero_image_url }}" alt="{{ p.title | default('') }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block">
           {% else %}
-            <div style="height:170px;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag | default('article') }} image ]</span></div>
+            <div style="width:100%;aspect-ratio:3/2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag | default('article') }} image ]</span></div>
           {% endif %}
           <div style="padding:20px;display:flex;flex-direction:column;flex:1">
             <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ p.tag | default('') }}</span>
