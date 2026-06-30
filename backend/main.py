@@ -853,6 +853,14 @@ async def parse_docx_endpoint(
                     cleaned_block["text"] = cleaned_text
                 if "rows" in b:
                     cleaned_block["rows"] = b["rows"]
+                if "table_title" in b:
+                    cleaned_block["table_title"] = b["table_title"]
+                if "headers" in b:
+                    cleaned_block["headers"] = b["headers"]
+                if "warning" in b:
+                    cleaned_block["warning"] = b["warning"]
+                if "warning_info" in b:
+                    cleaned_block["warning_info"] = b["warning_info"]
                 cleaned_blocks.append(cleaned_block)
 
             # Find the title (usually the first heading block)
@@ -918,7 +926,7 @@ async def parse_docx_endpoint(
                 "content_html": content_html,
                 "tag": tag,
                 "author": "Krishna Porwal",
-                "author_role": "Career Editor",
+                "author_role": "content writer",
                 "read_time": read_time,
                 "date": datetime.now().strftime("%b %d, %Y"),
                 "blocks": cleaned_blocks
@@ -975,6 +983,19 @@ async def parse_docx_endpoint(
 
                     result["payload"] = merged_payload
                     result["validation_warnings"] = warnings
+
+        # Collect table warnings from cleaned_blocks
+        table_warnings = []
+        for b in cleaned_blocks:
+            if b.get("type") == "table" and b.get("warning"):
+                info = b.get("warning_info") or {}
+                table_warnings.append({
+                    "warning_type": b.get("warning"),
+                    "table_title": info.get("table_title", ""),
+                    "detected_headers": info.get("detected_headers", []),
+                    "suggested_headers": info.get("suggested_headers", [])
+                })
+        result["table_warnings"] = table_warnings
 
         from core.router import normalize_value
         return normalize_value(result)

@@ -106,9 +106,14 @@ class CourseTransformer(BaseTransformer):
             badge_parts.append(ugc_display)
         badge = " · ".join(badge_parts) if badge_parts else None
 
+        hero_image_alt = raw.get("hero_image_alt", "")
+        if not hero_image_alt:
+            c_name = raw.get("program_name") or raw.get("course_name") or ""
+            hero_image_alt = f"{c_name} Course Hero Image"
+
         return {
             "hero_image_url": raw.get("hero_image_url"),
-            "hero_image_alt": raw.get("hero_image_alt", ""),
+            "hero_image_alt": hero_image_alt,
             "og_image_url": raw.get("og_image_url") or raw.get("hero_image_url"),
             "certificate_image_url": raw.get("certificate_image_url"),
 

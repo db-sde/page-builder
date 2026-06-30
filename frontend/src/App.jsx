@@ -19,6 +19,8 @@ export default function App() {
     context: null,
     htmlContent: null,
     htmlBlob: null,
+    validation_warnings: [],
+    table_warnings: [],
   });
 
   const updateSession = (patch) => setSession(s => ({ ...s, ...patch }));

@@ -19,10 +19,10 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
         if not p.is_file() or p.suffix.lower() not in image_suffixes:
             continue
             
-        # Copy original as fallback
-        shutil.copy2(p, dst_dir / p.name)
-        
         try:
+            # Copy original as fallback
+            shutil.copy2(p, dst_dir / p.name)
+            
             with Image.open(p) as img:
                 orig_width, orig_height = img.size
                 orig_size = p.stat().st_size

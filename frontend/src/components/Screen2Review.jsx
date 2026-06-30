@@ -45,7 +45,8 @@ function fieldsToAcf(fields) {
 function initFields(acf_data, page_type) {
   const excludedKeys = [
     'slug', 'page_type', 'university_slug', 'parent_slug',
-    'hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url'
+    'hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url',
+    'hero_image_alt'
   ];
   const out = {};
   const schema = FIELD_SCHEMA[page_type] || [];
@@ -86,6 +87,9 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [modalField, setModalField] = useState(null);   // field object or null
+  const [heroImageAlt, setHeroImageAlt] = useState(() => {
+    return session.acf_data?.hero_image_alt || '';
+  });
 
   // ── Parent Mapping state (specialization only) ────────────────────────────
   const [parentInfo, setParentInfo]     = useState(null);   // { detected_parent_slug, confidence, available_courses }
@@ -255,7 +259,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
 
     setLoading(true);
     try {
-      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields) };
+      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), hero_image_alt: heroImageAlt };
 
       // IMPORTANT: Always include metadata keys so the backend uses the correct
       // transformer. Without these, the backend auto-detects and can wrongly
@@ -339,6 +343,53 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         page_type={session.page_type}
         onAddField={handleAddField}
       />
+
+      {/* ── Table Ingestion Warnings ── */}
+      {session.table_warnings && session.table_warnings.length > 0 && (
+        <div className="card" style={{ marginBottom: 20, borderLeft: '4px solid var(--color-warning)', background: 'var(--color-warning-light)' }}>
+          <div className="card-body" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 18 }}>⚠</span>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-warning)' }}>
+                Table Ingestion Warning
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {session.table_warnings.map((w, idx) => (
+                <div key={idx} style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 13, marginBottom: 8 }}>
+                    Table Title:
+                  </div>
+                  <div style={{ fontStyle: 'italic', fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+                    {w.table_title || '(Untitled Table)'}
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#c53030', fontSize: 12, marginBottom: 6 }}>
+                        Detected Headers:
+                      </div>
+                      <div style={{ fontSize: 12, fontFamily: 'var(--font-code)', color: '#c53030', whiteSpace: 'pre-wrap' }}>
+                        {(w.detected_headers || []).join('\n')}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#166534', fontSize: 12, marginBottom: 6 }}>
+                        Suggested Headers:
+                      </div>
+                      <div style={{ fontSize: 12, fontFamily: 'var(--font-code)', color: '#166534', whiteSpace: 'pre-wrap' }}>
+                        {(w.suggested_headers || []).join('\n')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* ── Detected Academic Specializations Panel (course only) ── */}
@@ -673,6 +724,19 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
                         style={{ display: 'block', width: '100%', cursor: 'pointer' }}
                       />
                     </div>
+
+                    {slot.key === 'hero_image_url' && (
+                      <div style={{ marginTop: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Alt Text</label>
+                        <input
+                          className="input"
+                          placeholder="Alt text for accessibility / SEO..."
+                          value={heroImageAlt}
+                          onChange={e => setHeroImageAlt(e.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Preview thumbnail */}

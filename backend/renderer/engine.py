@@ -316,6 +316,39 @@ def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> s
     return name_clean
 
 
+def clean_html_tables(html: str) -> str:
+    if not html:
+        return html
+
+    def repl(match):
+        table_open_tag = match.group(1)
+        table_content = match.group(2)
+        
+        # Find all tr blocks inside table_content
+        tr_blocks = re.findall(r'<tr[^>]*>.*?</tr>', table_content, re.DOTALL | re.IGNORECASE)
+        if tr_blocks:
+            first_tr = tr_blocks[0]
+            # Find cells in the first row
+            cells = re.findall(r'<(?:th|td)[^>]*>(.*?)</(?:th|td)>', first_tr, re.DOTALL | re.IGNORECASE)
+            cells_cleaned = [re.sub(r'<[^>]+>', '', c).strip() for c in cells]
+            
+            if cells_cleaned and len(cells_cleaned) > 1 and len(set(cells_cleaned)) == 1 and cells_cleaned[0]:
+                table_title = cells_cleaned[0]
+                
+                if len(tr_blocks) >= 2:
+                    second_tr = tr_blocks[1]
+                    second_cells = re.findall(r'<(?:th|td)[^>]*>(.*?)</(?:th|td)>', second_tr, re.DOTALL | re.IGNORECASE)
+                    
+                    if second_cells:
+                        new_thead = "<thead><tr>" + "".join(f"<th>{c}</th>" for c in second_cells) + "</tr></thead>"
+                        new_tbody_rows = "".join(tr_blocks[2:])
+                        return f"<h3>{table_title}</h3>\n{table_open_tag}\n{new_thead}\n<tbody>\n{new_tbody_rows}\n</tbody>\n</table>"
+                        
+        return match.group(0)
+
+    return re.sub(r'(<table[^>]*>)(.*?)</table>', repl, html, flags=re.DOTALL | re.IGNORECASE)
+
+
 def render_resolved(resolved: dict, standalone: bool = False, render_mode: str = "v1") -> str:
     from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
 
@@ -1053,4 +1086,4 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
     else:
         template = env.get_template(template_name)
         
-    return template.render(**ctx)
+    return clean_html_tables(template.render(**ctx))

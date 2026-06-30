@@ -15,7 +15,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = (acf_data, detectedType) => {
+  const processPayload = (acf_data, detectedType, validationWarnings = [], tableWarnings = []) => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType;
     
@@ -72,7 +72,9 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       slug,
       page_type,
       university_slug,
-      parent_slug
+      parent_slug,
+      validation_warnings: validationWarnings,
+      table_warnings: tableWarnings
     });
     onNext();
   };
@@ -106,7 +108,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         throw new Error('Failed to parse document or empty payload returned.');
       }
       await saveTempJson(res);
-      processPayload(res.payload, res.page_type);
+      processPayload(res.payload, res.page_type, res.validation_warnings || [], res.table_warnings || []);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || err.message || 'Error occurred while calling the parser API.');

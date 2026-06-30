@@ -57,9 +57,14 @@ class SpecializationTransformer(BaseTransformer):
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
 
+        hero_image_alt = raw.get("hero_image_alt", "")
+        if not hero_image_alt:
+            spec_name = raw.get("spec_name", "")
+            hero_image_alt = f"{spec_name} Specialization Hero Image"
+
         return {
             "hero_image_url": raw.get("hero_image_url"),
-            "hero_image_alt": raw.get("hero_image_alt", ""),
+            "hero_image_alt": hero_image_alt,
             "og_image_url": raw.get("og_image_url") or raw.get("hero_image_url"),
 
             # --- SEO ---

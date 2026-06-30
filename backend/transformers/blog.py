@@ -45,8 +45,9 @@ class BlogTransformer(BaseTransformer):
                 author_initials = parts[0][:2].upper()
         if not author_initials:
             author_initials = "KP"
-            
-        author_role = raw.get("author_role") or raw.get("author_title") or "Career Editor"
+        author_role = raw.get("author_role") or raw.get("author_title") or "content writer"
+        if author_role.lower() in ("career editor", "content editor", "editor"):
+            author_role = "content writer"
         read_time = raw.get("read_time") or raw.get("reading_time") or "8 min read"
         date = raw.get("date") or raw.get("published_date") or "Jan 12, 2026"
         author_bio = raw.get("author_bio") or "Krishna writes about careers, hiring and the economics of higher education. Krishna has spent a decade advising working professionals on when — and whether — to go back to school."

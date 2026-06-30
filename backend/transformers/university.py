@@ -61,9 +61,13 @@ class UniversityTransformer(BaseTransformer):
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
 
+        hero_image_alt = self.resolve("hero_image_alt", "")
+        if not hero_image_alt:
+            hero_image_alt = f"{uni_name} Online Degree Programs Hero Image"
+
         return {
             "hero_image_url": self.resolve("hero_image_url"),
-            "hero_image_alt": self.resolve("hero_image_alt", ""),
+            "hero_image_alt": hero_image_alt,
             "og_image_url": self.resolve("og_image_url") or self.resolve("hero_image_url"),
             "naac_grade": naac,
             "ugc_approved": ugc,

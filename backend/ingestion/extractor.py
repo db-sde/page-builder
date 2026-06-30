@@ -132,17 +132,19 @@ def blocks_to_html(blocks: list[dict]) -> str:
             elif btype == "bold_para":
                 parts.append(f"<p><strong>{text}</strong></p>")
             elif btype == "table":
+                title = b.get("table_title", "")
+                if title:
+                    parts.append(f"<h3>{title}</h3>")
+                headers = b.get("headers", [])
                 rows = b.get("rows", [])
-                if rows:
-                    header_row = rows[0]
-                    thead = "<thead><tr>" + "".join(f"<th>{c}</th>" for c in header_row) + "</tr></thead>"
-                    tbody_rows = "".join(
-                        "<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
-                        for row in rows[1:]
-                    )
-                    parts.append(f"<table>{thead}<tbody>{tbody_rows}</tbody></table>")
-                else:
-                    parts.append("<table></table>")
+                thead = ""
+                if headers:
+                    thead = "<thead><tr>" + "".join(f"<th>{c}</th>" for c in headers) + "</tr></thead>"
+                tbody_rows = "".join(
+                    "<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
+                    for row in rows
+                )
+                parts.append(f"<table>{thead}<tbody>{tbody_rows}</tbody></table>")
     if in_list:
         parts.append("</ul>")
     return "\n".join(parts)
@@ -466,7 +468,7 @@ def _classify_fee_table(blocks):
     raw_plans = []
     for b in blocks:
         if b["type"] == "table":
-            for row in b["rows"][1:]:  # skip header row
+            for row in b["rows"]:  # do not skip header row since rows contains only data rows
                 if len(row) >= 2:
                     raw_plans.append({
                         "plan_name": row[0],
@@ -480,7 +482,7 @@ def _extract_fee_plans(blocks):
     plans = []
     for b in blocks:
         if b["type"] == "table":
-            for row in b["rows"][1:]:  # skip header row
+            for row in b["rows"]:  # do not skip header row
                 if len(row) >= 2:
                     plans.append({
                         "plan_name": row[0],
@@ -519,7 +521,7 @@ def _extract_jobs(blocks):
     jobs = []
     for b in blocks:
         if b["type"] == "table":
-            for row in b["rows"][1:]:
+            for row in b["rows"]:  # do not skip header row since rows contains only data rows
                 if len(row) >= 2:
                     jobs.append({"job_title": row[0], "avg_salary": row[1]})
     return jobs
@@ -540,7 +542,7 @@ def _extract_programs_table(blocks):
     for b in blocks:
         if b["type"] == "table":
             rows = []
-            for row in b["rows"][1:]:
+            for row in b["rows"]:  # do not skip header row
                 if len(row) >= 3:
                     rows.append({
                         "program_name": row[0],
