@@ -499,7 +499,7 @@ async def preview_html(req: RenderRequest):
             "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
-        html = render_resolved(resolved, standalone=standalone)
+        html = render_resolved(resolved, standalone=standalone, render_mode="v2")
         return HTMLResponse(content=html)
     except Exception as e:
         import traceback
@@ -1207,7 +1207,7 @@ async def generate_specialization_stub_endpoint(req: GenerateSpecializationStubR
         )
 
         # Run compile to build the compiled html output and update the sibling specs cache
-        compile_workspace(uni_slug)
+        compile_workspace_v2(uni_slug)
 
         return {
             "slug": spec_slug,
@@ -1393,7 +1393,7 @@ async def compile_workspace_endpoint(university_slug: str = Form(...)):
              re-renders via the Jinja2 engine, and overwrites each .html file.
     """
     try:
-        result = compile_workspace(university_slug)
+        result = compile_workspace_v2(university_slug)
         return result
     except Exception as e:
         import traceback
@@ -1474,7 +1474,7 @@ async def upload_branding_endpoint(
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
         
         # Compile workspace
-        compile_result = compile_workspace(university_slug)
+        compile_result = compile_workspace_v2(university_slug)
         
         return {
             "status": "success",
@@ -1585,7 +1585,7 @@ async def delete_page_endpoint(
         shutil.rmtree(resolved_page_dir)
         
         # Re-compile workspace to update indexes/listings
-        compile_result = compile_workspace(university_slug)
+        compile_result = compile_workspace_v2(university_slug)
         
         return {
             "status": "success",
@@ -1682,9 +1682,9 @@ async def build_website_endpoint(
     try:
         compile_summary = None
         if not skip_compile:
-            compile_summary = compile_workspace(university_slug)
+            compile_summary = compile_workspace_v2(university_slug)
 
-        result = build_website(university_slug)
+        result = build_website_v2(university_slug)
         result["compile_summary"] = compile_summary
         return result
     except Exception as e:
@@ -1751,6 +1751,10 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
             media_type = "image/svg+xml"
         elif ext == ".pdf":
             media_type = "application/pdf"
+        elif ext == ".woff2":
+            media_type = "font/woff2"
+        elif ext == ".woff":
+            media_type = "font/woff"
 
         if ext == ".html":
             html = target.read_text(encoding="utf-8")
@@ -1796,7 +1800,7 @@ async def download_build_endpoint(university_slug: str):
     Returns a file attachment named <uni>-website.zip.
     """
     try:
-        zip_bytes, filename = zip_build(university_slug)
+        zip_bytes, filename = zip_build_v2(university_slug)
         return Response(
             content=zip_bytes,
             media_type="application/zip",
@@ -1859,6 +1863,10 @@ async def build_file_v2_endpoint(university_slug: str, path: str = "index.html")
             media_type = "image/svg+xml"
         elif ext == ".pdf":
             media_type = "application/pdf"
+        elif ext == ".woff2":
+            media_type = "font/woff2"
+        elif ext == ".woff":
+            media_type = "font/woff"
 
         if ext == ".html":
             html = target.read_text(encoding="utf-8")

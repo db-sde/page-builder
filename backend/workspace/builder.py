@@ -719,7 +719,7 @@ def build_website_v2(university_slug: str) -> dict:
     if src_downloads.exists():
         downloads_copied = _copy_dir_contents(src_downloads, build_dir / "assets" / "downloads")
 
-    # Copy V2 static assets (CSS/JS)
+    # Copy V2 static assets (CSS/JS/Fonts)
     static_v2_dir = Path(__file__).resolve().parent.parent / "static_v2"
     if static_v2_dir.exists():
         # Copy JS
@@ -732,6 +732,15 @@ def build_website_v2(university_slug: str) -> dict:
         css_dst.mkdir(parents=True, exist_ok=True)
         for css_file in (static_v2_dir / "assets" / "css").glob("*.css"):
             shutil.copy2(css_file, css_dst / css_file.name)
+
+        # Copy Fonts (WOFF2 + fonts.css) for local hosting
+        fonts_src = static_v2_dir / "assets" / "fonts"
+        if fonts_src.exists():
+            fonts_dst = build_dir / "assets" / "fonts"
+            fonts_dst.mkdir(parents=True, exist_ok=True)
+            for font_file in fonts_src.iterdir():
+                if font_file.is_file():
+                    shutil.copy2(font_file, fonts_dst / font_file.name)
 
     # ── Pass F: manifests ────────────────────────────────────────────────────
     kind_label = {

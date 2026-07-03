@@ -433,22 +433,23 @@ def compile_workspace_v2(university_slug: str) -> dict:
         parent_slug = record.get("parent_slug")
 
         try:
-            # Enforce validation of required images during compile
+            # Warn (but never skip) pages with missing images
             data = record.get("data", {})
-            if pt == "university":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
+            image_warnings = []
+            if pt == "university" and not data.get("hero_image_url"):
+                image_warnings.append("Missing hero_image_url — page will render without hero image")
             elif pt == "course":
                 if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
+                    image_warnings.append("Missing hero_image_url — page will render without hero image")
                 if not data.get("certificate_image_url"):
-                    raise ValueError("Missing required Degree Certificate Image (certificate_image_url)")
-            elif pt == "specialization":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
-            elif pt == "blog":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Article Hero Image (hero_image_url)")
+                    image_warnings.append("Missing certificate_image_url — page will render without certificate image")
+            elif pt == "specialization" and not data.get("hero_image_url"):
+                image_warnings.append("Missing hero_image_url — page will render without hero image")
+            elif pt == "blog" and not data.get("hero_image_url"):
+                image_warnings.append("Missing hero_image_url — page will render without article hero image")
+
+            for w in image_warnings:
+                errors.append({"page_type": pt, "slug": slug, "warning": w})
 
             enriched = _enrich_resolved(record, index)
             html = _render_page(enriched, render_mode="v2")

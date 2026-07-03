@@ -11,9 +11,7 @@
 {% if branding_favicon %}
 <link rel="icon" href="{{ branding_favicon }}">
 {% endif %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
 {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
 <meta property="og:title" content="{{ seo_title }}">
 <meta property="og:description" content="{{ meta_description }}">
@@ -21,6 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/blog.css">
+{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url }}" fetchpriority="high">{% endif %}
 </head>
 <body>
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
