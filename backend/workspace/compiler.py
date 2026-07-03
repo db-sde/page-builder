@@ -248,7 +248,7 @@ def _enrich_resolved(record: dict, index: dict) -> dict:
     }
 
 
-def _render_page(enriched: dict, render_mode: str = "v1") -> str:
+def _render_page(enriched: dict, render_mode: str = "v2") -> str:
     """Run the transformer + renderer on an enriched record and return HTML."""
     from renderer.engine import render_resolved
 
@@ -265,7 +265,7 @@ def _render_page(enriched: dict, render_mode: str = "v1") -> str:
     return render_resolved(resolved, standalone=standalone, render_mode=render_mode)
 
 
-def _auto_render_listing_pages(university_slug: str, index: dict, render_mode: str = "v1") -> list[dict]:
+def _auto_render_listing_pages(university_slug: str, index: dict, render_mode: str = "v2") -> list[dict]:
     """
     Automatically re-render the 3 system listing pages with fresh workspace data.
     Called after all user-content pages have been compiled in Pass 2.
@@ -364,7 +364,7 @@ def compile_workspace(university_slug: str) -> dict:
                     raise ValueError("Missing required Article Hero Image (hero_image_url)")
 
             enriched = _enrich_resolved(record, index)
-            html = _render_page(enriched)
+            html = _render_page(enriched, render_mode="v1")
 
             # Overwrite the .html file
             page_dir = resolve_page_dir(university_slug, pt, slug, parent_slug)
@@ -378,7 +378,7 @@ def compile_workspace(university_slug: str) -> dict:
             errors.append({"page_type": pt, "slug": slug, "error": str(e)})
 
     # After user content, auto-render all 3 system listing pages
-    listing_results = _auto_render_listing_pages(university_slug, index)
+    listing_results = _auto_render_listing_pages(university_slug, index, render_mode="v1")
     listing_compiled = sum(1 for r in listing_results if r.get("success"))
     listing_failed = sum(1 for r in listing_results if not r.get("success"))
     pages_compiled += listing_compiled

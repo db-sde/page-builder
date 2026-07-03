@@ -349,7 +349,7 @@ def clean_html_tables(html: str) -> str:
     return re.sub(r'(<table[^>]*>)(.*?)</table>', repl, html, flags=re.DOTALL | re.IGNORECASE)
 
 
-def render_resolved(resolved: dict, standalone: bool = False, render_mode: str = "v1") -> str:
+def render_resolved(resolved: dict, standalone: bool = False, render_mode: str = "v2") -> str:
     from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
 
     uni_slug = resolved.get("university_slug") or "nmims"
