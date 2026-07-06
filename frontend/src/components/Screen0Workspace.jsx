@@ -32,6 +32,11 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [brandingError, setBrandingError] = useState('');
   const [brandingSuccess, setBrandingSuccess] = useState('');
 
+  // SEO Settings States
+  const [primaryDomain, setPrimaryDomain] = useState('');
+  const [defaultOgImageFile, setDefaultOgImageFile] = useState(null);
+
+
   // Load available workspaces
   useEffect(() => {
     fetchWorkspaces();
@@ -70,12 +75,21 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     if (selectedSlug) {
       loadTree(selectedSlug);
       loadBuildStatus(selectedSlug);
+      const activeWorkspace = workspaces.find(w => (typeof w === 'string' ? w : w.slug) === selectedSlug);
+      if (activeWorkspace) {
+        setPrimaryDomain(activeWorkspace.site?.primary_domain || '');
+        setDefaultOgImageFile(null);
+        const ogInput = document.getElementById('og-image-upload-input');
+        if (ogInput) ogInput.value = '';
+      }
     } else {
       setTreeData(null);
       setBuildResult(null);
       setBuildError('');
+      setPrimaryDomain('');
+      setDefaultOgImageFile(null);
     }
-  }, [selectedSlug]);
+  }, [selectedSlug, workspaces]);
 
   const loadTree = async (slug) => {
     setTreeLoading(true);
@@ -201,25 +215,29 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     setBrandingError('');
     setBrandingSuccess('');
     try {
-      const res = await uploadBranding(selectedSlug, logoFile, faviconFile);
+      const res = await uploadBranding(selectedSlug, logoFile, faviconFile, primaryDomain, defaultOgImageFile);
       if (res.status === 'success') {
-        setBrandingSuccess('Branding uploaded and workspace re-compiled successfully!');
+        setBrandingSuccess('Branding & SEO Settings uploaded and workspace re-compiled successfully!');
         setLogoFile(null);
         setFaviconFile(null);
+        setDefaultOgImageFile(null);
         // Clear file inputs
         const logoInput = document.getElementById('logo-upload-input');
         if (logoInput) logoInput.value = '';
         const favInput = document.getElementById('favicon-upload-input');
         if (favInput) favInput.value = '';
+        const ogInput = document.getElementById('og-image-upload-input');
+        if (ogInput) ogInput.value = '';
         // Refresh workspace list
         await fetchWorkspaces();
       }
     } catch (err) {
-      setBrandingError(err.response?.data?.detail || err.message || 'Failed to upload branding.');
+      setBrandingError(err.response?.data?.detail || err.message || 'Failed to upload settings.');
     } finally {
       setBrandingUploading(false);
     }
   };
+
 
   const handleEditPage = async (pageType, slug, parentSlug = null) => {
     try {
@@ -586,38 +604,51 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                   </div>
                 </div>
               </div>
-              {/* Branding Settings Card */}
+              {/* Branding & SEO Settings Card */}
               <div className="card">
                 <div className="card-body" style={{ padding: 20 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>🎨</span> University Branding
+                    <span>🎨</span> Branding & SEO Settings
                   </div>
                   
-                  {/* Current Branding Status */}
-                  <div style={{ display: 'flex', gap: 16, marginBottom: 20, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  {/* Current Settings Status Previews */}
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 20, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 90, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase' }}>Current Logo</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', textAlign: 'center' }}>Logo</span>
                       {selectedWorkspace?.branding?.logo ? (
                         <img 
                           src={`http://localhost:8000${selectedWorkspace.branding.logo}`} 
                           alt="Logo Preview" 
-                          style={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
+                          style={{ maxHeight: 45, maxWidth: '100%', objectFit: 'contain' }} 
                         />
                       ) : (
-                        <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No Logo Uploaded</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>No Logo</span>
                       )}
                     </div>
 
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 90, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase' }}>Current Favicon</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', textAlign: 'center' }}>Favicon</span>
                       {selectedWorkspace?.branding?.favicon ? (
                         <img 
                           src={`http://localhost:8000${selectedWorkspace.branding.favicon}`} 
                           alt="Favicon Preview" 
-                          style={{ height: 32, width: 32, objectFit: 'contain' }} 
+                          style={{ height: 28, width: 28, objectFit: 'contain' }} 
                         />
                       ) : (
-                        <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No Favicon Uploaded</span>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>No Favicon</span>
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 90, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', marginBottom: 6, textTransform: 'uppercase', textAlign: 'center' }}>Social Image</span>
+                      {selectedWorkspace?.site?.default_og_image ? (
+                        <img 
+                          src={`http://localhost:8000${selectedWorkspace.site.default_og_image}`} 
+                          alt="OG Preview" 
+                          style={{ maxHeight: 45, maxWidth: '100%', objectFit: 'contain' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontStyle: 'italic' }}>No OG Image</span>
                       )}
                     </div>
                   </div>
@@ -655,6 +686,38 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                       </span>
                     </div>
 
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#33363f', marginBottom: 4 }}>
+                        Primary Domain <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(e.g. https://nmimsonline.co)</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        value={primaryDomain} 
+                        onChange={(e) => setPrimaryDomain(e.target.value)} 
+                        placeholder="https://yourdomain.com"
+                        style={{ fontSize: 12.5, width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4 }}
+                      />
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                        Used for generating absolute sitemap URLs, robots.txt references, and canonical/OG link headers.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#33363f', marginBottom: 4 }}>
+                        Default Social Image <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(Optional)</span>
+                      </label>
+                      <input 
+                        type="file" 
+                        id="og-image-upload-input"
+                        accept=".jpg,.jpeg,.png,.webp" 
+                        onChange={(e) => setDefaultOgImageFile(e.target.files?.[0] || null)}
+                        style={{ fontSize: 12.5, width: '100%' }}
+                      />
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                        1200x630 branded image. Used as a fallback share card image for pages without their own featured/hero image.
+                      </span>
+                    </div>
+
                     {brandingError && (
                       <div style={{ color: 'var(--color-error)', fontSize: 12, fontWeight: 600, background: 'var(--color-error-light)', padding: '8px 12px', borderRadius: 6 }}>
                         {brandingError}
@@ -670,14 +733,15 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                     <button 
                       type="submit" 
                       className="btn btn-primary"
-                      disabled={brandingUploading || (!logoFile && !faviconFile)}
+                      disabled={brandingUploading || (!logoFile && !faviconFile && !defaultOgImageFile && primaryDomain === (selectedWorkspace?.site?.primary_domain || ''))}
                       style={{ marginTop: 6, justifyContent: 'center' }}
                     >
-                      {brandingUploading ? '⏳ Uploading Branding…' : '📁 Save Branding'}
+                      {brandingUploading ? '⏳ Uploading Settings…' : '📁 Save Settings'}
                     </button>
                   </form>
                 </div>
               </div>
+
               {/* Build Status Panel */}
               <div className="card">
                 <div className="card-body" style={{ padding: 20 }}>

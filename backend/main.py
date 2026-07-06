@@ -1405,10 +1405,12 @@ async def compile_workspace_endpoint(university_slug: str = Form(...)):
 async def upload_branding_endpoint(
     university_slug: str,
     logo: UploadFile = File(None),
-    favicon: UploadFile = File(None)
+    favicon: UploadFile = File(None),
+    primary_domain: str = Form(None),
+    default_og_image: UploadFile = File(None)
 ):
     """
-    Upload university logo and/or favicon.
+    Upload university logo and/or favicon, or update SEO settings (domain, OG image).
     Updates workspace metadata.json and re-compiles pages immediately.
     """
     try:
@@ -1419,6 +1421,8 @@ async def upload_branding_endpoint(
         meta = ensure_metadata(university_slug)
         if "branding" not in meta:
             meta["branding"] = {"logo": "", "favicon": ""}
+        if "site" not in meta:
+            meta["site"] = {"primary_domain": "", "default_og_image": ""}
         
         # Validation: Logo is required either now or previously uploaded
         if not logo and not meta["branding"].get("logo"):
@@ -1469,6 +1473,33 @@ async def upload_branding_endpoint(
             shutil.copy2(logo_path, fav_path)
             meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
             
+        # Process SEO: primary_domain
+        if primary_domain is not None:
+            primary_domain_clean = primary_domain.strip()
+            if primary_domain_clean:
+                import re
+                if not re.match(r'^https?://', primary_domain_clean, re.IGNORECASE):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Primary Domain must start with http:// or https://"
+                    )
+                # Strip trailing slash
+                primary_domain_clean = primary_domain_clean.rstrip("/")
+            meta["site"]["primary_domain"] = primary_domain_clean
+            
+        # Process SEO: default_og_image
+        if default_og_image and default_og_image.filename:
+            og_ext = Path(default_og_image.filename).suffix.lower()
+            if not og_ext:
+                og_ext = ".png"
+            og_filename = f"branding-{university_slug}-og-default{og_ext}"
+            og_path = assets_dir / og_filename
+            
+            content = await default_og_image.read()
+            og_path.write_bytes(content)
+            
+            meta["site"]["default_og_image"] = f"/assets/images/{og_filename}"
+            
         # Save updated metadata
         meta_path = uni_dir / "metadata.json"
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -1479,6 +1510,7 @@ async def upload_branding_endpoint(
         return {
             "status": "success",
             "branding": meta["branding"],
+            "site": meta["site"],
             "compile_result": compile_result
         }
     except HTTPException as he:
@@ -1655,6 +1687,7 @@ async def list_workspaces_endpoint():
             "last_compiled_at": meta.get("last_compiled_at"),
             "created_at": meta.get("created_at"),
             "branding": meta.get("branding", {"logo": "", "favicon": ""}),
+            "site": meta.get("site", {"primary_domain": "", "default_og_image": ""}),
         })
     return {"workspaces": workspaces}
 

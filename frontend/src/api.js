@@ -223,10 +223,12 @@ export async function generateSpecializationStub(universitySlug, specName, paren
 /**
  * Upload university logo and/or favicon.
  */
-export async function uploadBranding(universitySlug, logoFile, faviconFile) {
+export async function uploadBranding(universitySlug, logoFile, faviconFile, primaryDomain = null, defaultOgImageFile = null) {
   const formData = new FormData();
   if (logoFile) formData.append('logo', logoFile);
   if (faviconFile) formData.append('favicon', faviconFile);
+  if (primaryDomain !== null) formData.append('primary_domain', primaryDomain);
+  if (defaultOgImageFile) formData.append('default_og_image', defaultOgImageFile);
   const res = await axios.post(`${BASE}/workspaces/${universitySlug}/branding`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

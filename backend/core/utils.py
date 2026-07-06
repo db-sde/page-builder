@@ -197,3 +197,33 @@ def normalize_specialization_name(raw_name: str, parent_program_name: str, unive
         current_name = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", current_name).strip()
 
     return current_name.title()
+
+
+def build_public_url(domain: str, slug: str, is_homepage: bool = False) -> str:
+    """
+    Format a public URL according to trailing-slash normalization rules.
+    - Always use www (for standard domains starting with http/https).
+    - Homepage keeps trailing slash: https://www.domain.com/
+    - All other pages must NOT have a trailing slash: https://www.domain.com/slug
+    """
+    domain = (domain or "").strip().rstrip("/")
+    if domain.startswith(("http://", "https://")):
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(domain)
+        netloc = parsed.netloc
+        if not netloc.startswith("www."):
+            # Check if netloc is localhost, loopback IP or integer IP to avoid prefixing www.
+            is_local = netloc.split(":")[0] in ("localhost", "127.0.0.1") or re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", netloc.split(":")[0])
+            if not is_local:
+                netloc = "www." + netloc
+        domain = urlunparse((parsed.scheme, netloc, "", "", "", "")).rstrip("/")
+
+    slug = (slug or "").strip()
+    # Check if this route represents the homepage
+    if is_homepage or not slug or slug == "/":
+        return domain + "/" if domain else "/"
+
+    # Format non-homepage route to be slashless
+    clean_slug = "/" + slug.strip("/")
+    return domain + clean_slug
+

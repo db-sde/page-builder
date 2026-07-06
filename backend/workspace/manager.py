@@ -132,6 +132,10 @@ def _default_metadata(university_slug: str) -> dict:
             "logo": "",
             "favicon": ""
         },
+        "site": {
+            "primary_domain": "",
+            "default_og_image": ""
+        },
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_compiled_at": None,
     }

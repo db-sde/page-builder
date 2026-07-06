@@ -393,6 +393,69 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                 pass
     ctx["branding_logo"] = branding_logo
     ctx["branding_favicon"] = branding_favicon
+
+    # Resolve SEO Settings (primary_domain and default_og_image)
+    primary_domain = ""
+    default_og_image = ""
+    meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
+    if meta_path.exists():
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta_json = json.load(f)
+                site_meta = meta_json.get("site") or {}
+                primary_domain = (site_meta.get("primary_domain") or meta_json.get("site_url") or meta_json.get("domain") or "").rstrip("/")
+                default_og_image = site_meta.get("default_og_image") or ""
+        except Exception:
+            pass
+
+    # Resolve Route and Canonical URL
+    slug = resolved.get("slug") or ""
+    if page_type == "university":
+        route = "/"
+    elif page_type == "programs_listing":
+        route = "/programs/"
+    elif page_type == "specializations_listing":
+        route = "/specializations/"
+    elif page_type == "blog_listing":
+        route = "/blog/"
+    elif page_type == "blog":
+        route = f"/blog/{slug}/"
+    else: # course or specialization
+        # Strip internal workspace numeric suffix from the URL slug.
+        # e.g. "nmims-2-nmims-online-mba" → "nmims-online-mba"
+        # The filesystem slug (directory name) is unchanged; only the URL is normalized.
+        import re as _re
+        _clean_prefix = _re.sub(r"-\d+$", "", uni_slug)  # "nmims-2" → "nmims"
+        _raw_prefix = uni_slug + "-"                      # "nmims-2-"
+        route_slug = slug
+        if _clean_prefix != uni_slug and route_slug.startswith(_raw_prefix):
+            # Strip the workspace prefix entirely; brand is already in remainder
+            # "nmims-2-nmims-online-mba" → "nmims-online-mba"
+            route_slug = route_slug[len(_raw_prefix):]
+        route = f"/{route_slug}/"
+
+    from core.utils import build_public_url
+    canonical_url = build_public_url(primary_domain, route, is_homepage=(page_type == "university"))
+
+    ctx["canonical_url"] = canonical_url
+
+    # Resolve Open Graph Image URL (priority: page-specific -> hero -> featured -> default og image -> logo)
+    raw_og_image = raw_dict.get("og_image_url") or raw_dict.get("featured_image_url") or ctx.get("og_image_url")
+    raw_hero = raw_dict.get("hero_image_url") or ctx.get("hero_image_url")
+    
+    og_image_candidate = raw_og_image or raw_hero or default_og_image or branding_logo
+    
+    if og_image_candidate:
+        if og_image_candidate.startswith("http://") or og_image_candidate.startswith("https://"):
+            og_image_url = og_image_candidate
+        elif primary_domain:
+            og_image_url = f"{primary_domain}/{og_image_candidate.lstrip('/')}"
+        else:
+            og_image_url = og_image_candidate
+    else:
+        og_image_url = ""
+
+    ctx["og_image_url"] = og_image_url
     ctx["homepage_href"] = f"{uni_slug}.dc.html"
     ctx["course_href"] = f"{uni_slug}-online-mba.dc.html"
     ctx["spec_href"] = f"{uni_slug}-mba-marketing.dc.html"
@@ -1088,4 +1151,92 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
     else:
         template = env.get_template(template_name)
         
-    return clean_html_tables(template.render(**ctx))
+    html_out = clean_html_tables(template.render(**ctx))
+
+    # SEO & Open Graph Post-Processor (only for V2 rendering mode)
+    if render_mode == "v2" and "</head>" in html_out.lower():
+        # Get existing meta/link tag helper
+        def get_meta_tag(html_str: str, name_or_prop: str) -> str | None:
+            m = re.search(
+                rf'<meta[^>]+(?:property|name)=["\']{re.escape(name_or_prop)}["\'][^>]*content=["\']([^"\']*)["\']',
+                html_str, re.IGNORECASE,
+            )
+            if m:
+                return m.group(1)
+            m = re.search(
+                rf'<meta[^>]+content=["\']([^"\']*)["\'][^>]+(?:property|name)=["\']{re.escape(name_or_prop)}["\']',
+                html_str, re.IGNORECASE,
+            )
+            return m.group(1) if m else None
+
+        def get_canonical_link(html_str: str) -> str | None:
+            m = re.search(
+                r'<link[^>]+rel=["\']canonical["\'][^>]*href=["\']([^"\']*)["\']',
+                html_str, re.IGNORECASE,
+            )
+            if m:
+                return m.group(1)
+            m = re.search(
+                r'<link[^>]+href=["\']([^"\']*)["\'][^>]+rel=["\']canonical["\']',
+                html_str, re.IGNORECASE,
+            )
+            return m.group(1) if m else None
+
+        # Determine target values
+        page_title = ctx.get("seo_title") or ctx.get("title") or ""
+        page_desc = ctx.get("meta_description") or ""
+        target_canonical = ctx.get("canonical_url") or ""
+        target_og_type = "article" if resolved.get("page_type") == "blog" else "website"
+        target_image = ctx.get("og_image_url") or ""
+
+        # Build missing tags
+        new_tags = []
+        
+        # 1. Canonical Link
+        if get_canonical_link(html_out) is None and target_canonical:
+            new_tags.append(f'  <link rel="canonical" href="{target_canonical}">')
+            
+        # 2. OG Url
+        if get_meta_tag(html_out, "og:url") is None and target_canonical:
+            new_tags.append(f'  <meta property="og:url" content="{target_canonical}">')
+            
+        # 3. OG Type
+        if get_meta_tag(html_out, "og:type") is None:
+            new_tags.append(f'  <meta property="og:type" content="{target_og_type}">')
+            
+        # 4. OG Title
+        if get_meta_tag(html_out, "og:title") is None and page_title:
+            new_tags.append(f'  <meta property="og:title" content="{page_title}">')
+            
+        # 5. OG Description
+        if get_meta_tag(html_out, "og:description") is None and page_desc:
+            new_tags.append(f'  <meta property="og:description" content="{page_desc}">')
+            
+        # 6. OG Image
+        if get_meta_tag(html_out, "og:image") is None and target_image:
+            new_tags.append(f'  <meta property="og:image" content="{target_image}">')
+            
+        # 7. Twitter Card
+        if get_meta_tag(html_out, "twitter:card") is None:
+            new_tags.append('  <meta name="twitter:card" content="summary_large_image">')
+            
+        # 8. Twitter Title
+        if get_meta_tag(html_out, "twitter:title") is None and page_title:
+            new_tags.append(f'  <meta name="twitter:title" content="{page_title}">')
+            
+        # 9. Twitter Description
+        if get_meta_tag(html_out, "twitter:description") is None and page_desc:
+            new_tags.append(f'  <meta name="twitter:description" content="{page_desc}">')
+            
+        # 10. Twitter Image
+        if get_meta_tag(html_out, "twitter:image") is None and target_image:
+            new_tags.append(f'  <meta name="twitter:image" content="{target_image}">')
+
+        if new_tags:
+            match = re.search(r"</head>", html_out, re.IGNORECASE)
+            if match:
+                idx = match.start()
+                block = "\n".join(new_tags) + "\n"
+                html_out = html_out[:idx] + block + html_out[idx:]
+
+    return html_out
