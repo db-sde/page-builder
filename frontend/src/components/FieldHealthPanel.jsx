@@ -37,10 +37,16 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField, imag
   const optionalPresent = present.filter(field => !field.required);
   const addableOptional = optionalMissing.filter(field => getFieldCategory(field) === 'optional' && field.key !== 'admission_steps');
   const requiredTotal = requiredPresent.length + requiredMissing.length;
-  const taskTotal = requiredTotal + 1;
-  const completedTasks = requiredPresent.length + (imageReady ? 1 : 0);
-  const score = Math.round((completedTasks / taskTotal) * 100);
+  // Score = text completion (0–90 pts) + image readiness (0–10 pts).
+  // This prevents the image from claiming 50% of the score when there is
+  // only one required text field (e.g. the university page).
+  const textScore = requiredTotal > 0
+    ? Math.round((requiredPresent.length / requiredTotal) * 90)
+    : 90;
+  const score = textScore + (imageReady ? 10 : 0);
   const ready = requiredMissing.length === 0 && imageReady;
+  // Distinct state: required content done but image still missing
+  const contentDoneImageMissing = requiredMissing.length === 0 && !imageReady;
 
   if (!requiredTotal && !optionalMissing.length && !templateDefaults.length) return null;
 
@@ -48,21 +54,25 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField, imag
     <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 24, overflow: 'hidden' }}>
       <div style={{
         padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-        background: ready ? '#f0fdf4' : '#fff8f8', borderBottom: '1px solid var(--border)',
+        background: ready ? '#f0fdf4' : contentDoneImageMissing ? '#fffbeb' : '#fff8f8', borderBottom: '1px solid var(--border)',
       }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--navy)' }}>Publishing readiness</div>
           <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3 }}>
             {ready
               ? 'All required content is ready. Optional enhancements do not affect publishing.'
-              : 'Complete the highlighted publishing tasks before publishing.'}
+              : contentDoneImageMissing
+                ? 'Content is ready — add the hero image below to finish.'
+                : 'Complete the highlighted publishing tasks before publishing.'}
           </div>
         </div>
         <div style={{
           minWidth: 118, textAlign: 'center', borderRadius: 9, padding: '8px 14px',
-          background: ready ? '#dcfce7' : '#fee2e2', color: ready ? '#166534' : '#991b1b', fontWeight: 800,
+          background: ready ? '#dcfce7' : contentDoneImageMissing ? '#fef9c3' : '#fee2e2',
+          color:      ready ? '#166534' : contentDoneImageMissing ? '#92400e' : '#991b1b',
+          fontWeight: 800,
         }}>
-          {score}% · {ready ? 'Ready' : 'Needs work'}
+          {score}% · {ready ? 'Ready ✓' : contentDoneImageMissing ? 'Image needed' : 'Needs work'}
         </div>
       </div>
 

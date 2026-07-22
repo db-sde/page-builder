@@ -502,8 +502,9 @@ def list_draft_data(university_slug: str) -> list[dict]:
         required = required_by_type.get(page_type, [])
         completed = sum(bool(data.get(key)) for key in required)
         has_hero = bool(images.get("hero_image_url") or data.get("hero_image_url"))
-        task_total = len(required) + 1
-        readiness = round(((completed + int(has_hero)) / task_total) * 100) if task_total else 100
+        task_total = len(required)
+        text_score = round((completed / task_total) * 90) if task_total else 90
+        readiness = text_score + (10 if has_hero else 0)
         publisher_meta = data.get("_meta") if isinstance(data.get("_meta"), dict) else {}
         title = data.get("title") or data.get("spec_name") or data.get("program_name") or \
             data.get("university_full_name") or data.get("university_name") or \

@@ -124,8 +124,6 @@ export const FIELD_SCHEMA = {
     { key: 'faculty_intro', label: 'Faculty Intro', required: false, section: 'Faculty', impact: 'Faculty intro will be hidden' },
     { key: 'placement_content', label: 'Placement Content', required: false, section: 'Placement', impact: 'Placement section will be hidden' },
     { key: 'facts', label: 'Facts', required: false, section: 'Repeater', impact: 'Facts section will be hidden' },
-    { key: 'accreditations', label: 'Accreditations', required: false, section: 'Repeater', impact: 'Accreditations section will be hidden' },
-    { key: 'programs_table', label: 'Programs Table', required: false, section: 'Repeater', impact: 'Workspace courses will be used when available' },
     { key: 'faculty_members', label: 'Faculty Members', required: false, section: 'Repeater', impact: 'Faculty section will be hidden' },
     { key: 'reviews', label: 'Reviews', required: false, section: 'Repeater', impact: 'Reviews section will be hidden' },
     { key: 'faqs', label: 'FAQs', required: false, section: 'Repeater', impact: 'FAQ section will be hidden' },

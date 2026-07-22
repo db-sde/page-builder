@@ -4,7 +4,7 @@ import FieldHealthPanel from './FieldHealthPanel';
 import AddFieldModal from './AddFieldModal';
 import RepeaterEditor from './RepeaterEditor';
 import StepListEditor from './StepListEditor';
-import { FIELD_SCHEMA, SYSTEM_FIELDS, getFieldCategory, getFieldPlaceholder, isPlaceholder } from '../fieldSchema';
+import { FIELD_SCHEMA, SYSTEM_FIELDS, REPEATER_FIELDS, getFieldCategory, getFieldPlaceholder, isPlaceholder } from '../fieldSchema';
 
 // Image slots required per page type
 const IMAGE_SLOTS = {
@@ -32,7 +32,6 @@ const LONG_TEXT_FIELDS = new Set([
 const REPEATER_PRIMARY_FIELDS = {
   highlights: 'highlight_title',
   facts: 'fact_title',
-  programs_table: 'program_name',
   accreditations: 'body_name',
   reviews: 'review_text',
   faculty_members: 'member_name',
@@ -93,9 +92,24 @@ function initFields(acf_data, page_type) {
   for (const field of schema) {
     if (excludedKeys.includes(field.key) || SYSTEM_FIELDS.has(field.key)) continue;
     const v = acf_data[field.key];
-    out[field.key] = isPlaceholder(v)
-      ? ''
-      : (typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v));
+    if (isPlaceholder(v)) {
+      out[field.key] = '';
+    } else if (REPEATER_FIELDS.has(field.key) && Array.isArray(v)) {
+      // One-time import filter: drop items that don't have the expected primary key
+      // (catches wrong-keyed data e.g. label/value instead of fact_title/fact_description,
+      // and backend-seeded empty rows). Runs only here so add/remove buttons work freely.
+      const primaryField = REPEATER_PRIMARY_FIELDS[field.key];
+      const meaningful = primaryField
+        ? v.filter(item => item && typeof item === 'object' &&
+            item[primaryField] !== '' && item[primaryField] !== null && item[primaryField] !== undefined)
+        : v.filter(item => item && typeof item === 'object' &&
+            Object.values(item).some(val => val !== '' && val !== null && val !== undefined));
+      out[field.key] = JSON.stringify(meaningful, null, 2);
+    } else if (typeof v === 'object' && v !== null) {
+      out[field.key] = JSON.stringify(v, null, 2);
+    } else {
+      out[field.key] = String(v);
+    }
   }
 
   // 2. Add other fields present in acf_data not in schema
@@ -730,14 +744,17 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
             <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Items stay collapsed so you can scan the page quickly.</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, alignItems: 'start' }}>
               {repeaterFields.map(field => {
+                // Filtering only happens once in initFields at import time.
+                // The render just parses whatever is in fields state — no re-filtering —
+                // so add/remove buttons work without items disappearing.
                 let items;
                 try {
                   const parsed = fields[field.key] ? JSON.parse(fields[field.key]) : [];
                   items = Array.isArray(parsed) ? parsed : [];
                 } catch {
-                  const rawValue = fields[field.key]?.trim();
-                  items = rawValue ? [{ [REPEATER_PRIMARY_FIELDS[field.key]]: rawValue }] : [];
+                  items = [];
                 }
+                if (items.length === 0) items = [{}];
                 return <RepeaterEditor key={field.key} fieldKey={field.key} label={field.label} items={items} onChange={itemsValue => handleRepeaterChange(field.key, itemsValue)} />;
               })}
             </div>
