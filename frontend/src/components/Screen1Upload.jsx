@@ -14,7 +14,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = (acf_data, detectedType, validationWarnings = [], tableWarnings = []) => {
+  const processPayload = (acf_data, detectedType, validationWarnings = [], tableWarnings = [], sourceFileName = '') => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType || pageType;
     
@@ -34,6 +34,24 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       else if (data.posts || data.content_html) page_type = 'blog';
       else page_type = 'course';
     }
+
+    const filenameTitle = sourceFileName
+      .replace(/\.docx$/i, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const documentTitle = data.title || data.spec_name || data.program_name ||
+      data.university_full_name || data.university_name || data.hero_title ||
+      filenameTitle || 'Untitled page';
+    const existingMeta = data._meta && typeof data._meta === 'object' && !Array.isArray(data._meta)
+      ? data._meta
+      : {};
+    data._meta = {
+      ...existingMeta,
+      document_title: documentTitle,
+      page_type,
+      generated_by: 'DegreeBaba Content Publisher',
+    };
 
     // Force university_slug to be the one selected/created in Step 1
     let university_slug = session.workspace?.slug;
@@ -115,7 +133,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         throw new Error('Failed to parse document or empty payload returned.');
       }
       await saveTempJson(res);
-      processPayload(res.payload, res.page_type || pageType, res.validation_warnings || [], res.table_warnings || []);
+      processPayload(res.payload, res.page_type || pageType, res.validation_warnings || [], res.table_warnings || [], file.name);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || err.message || 'Error occurred while calling the parser API.');
@@ -150,32 +168,32 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       <div className="topbar">
         <div className="topbar-left">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 className="topbar-title">Upload Data</h1>
+            <h1 className="topbar-title">Import Content</h1>
             {session.workspace && (
               <span className="badge badge--published" style={{ fontSize: 12, padding: '4px 10px', height: 'fit-content' }}>
                 📁 Workspace: {session.workspace.name}
               </span>
             )}
           </div>
-          <p className="topbar-subtitle">Upload a Word document or paste ACF JSON from the Degreebaba PageBuilder pipeline to generate the page.</p>
+          <p className="topbar-subtitle">Choose the page you are creating, then upload the writer's Word document.</p>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Import method */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <button
           onClick={() => { setActiveTab('docx'); setError(''); }}
           className={`btn ${activeTab === 'docx' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ flex: 1, padding: 14 }}
         >
-          📄 Parse Word Document (.docx)
+          📄 Import Word Document
         </button>
         <button
           onClick={() => { setActiveTab('json'); setError(''); }}
           className={`btn ${activeTab === 'json' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1, padding: 14 }}
+          style={{ padding: '14px 18px' }}
         >
-          ✏️ Paste ACF JSON
+          Developer import
         </button>
       </div>
 
@@ -205,15 +223,15 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
                 animation: 'spin 1s linear infinite',
                 marginBottom: 16
               }} />
-              <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 16 }}>Parsing Document...</div>
-              <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 4 }}>This may take 10-15 seconds for AI extraction</div>
+              <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 16 }}>Reading document...</div>
+              <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginTop: 4 }}>This may take 10–15 seconds</div>
             </div>
           )}
 
           {activeTab === 'docx' ? (
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16 }}>Word Document (.docx) Parser</div>
-              <label style={label}>Select Word Document</label>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 16 }}>Create a page from a Word document</div>
+              <label style={label}>Word document</label>
               
               {/* Drag & Drop Zone */}
               <div
@@ -317,7 +335,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
                 }}
               />
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8 }}>
-                This is the raw ACF output from the Degreebaba PageBuilder pipeline. Slug, page type, and metadata will be derived dynamically.
+                Developer-only import. Page identity and publisher metadata are filled automatically.
               </div>
             </div>
           )}

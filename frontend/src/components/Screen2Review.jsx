@@ -2,34 +2,30 @@ import { useState, useEffect } from 'react';
 import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree } from '../api';
 import FieldHealthPanel from './FieldHealthPanel';
 import AddFieldModal from './AddFieldModal';
-import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
+import RepeaterEditor from './RepeaterEditor';
+import { FIELD_SCHEMA, SYSTEM_FIELDS, getFieldCategory, isPlaceholder } from '../fieldSchema';
 
 // Image slots required per page type
 const IMAGE_SLOTS = {
   university: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Homepage Hero / Campus Banner', dims: '480 × 420px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'Homepage hero or campus banner', dims: '480 × 420px', required: true },
   ],
   course: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Right column of hero section — the main visual', dims: '480 × 420px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'The main visual at the top of the page', dims: '480 × 420px', required: true },
     { key: 'certificate_image_url', label: 'Degree Certificate Image', hint: 'Sample degree certificate visual shown in Placement section', dims: '320 × 240px' },
   ],
   specialization: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Right column of hero section — the main visual', dims: '480 × 420px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'The main visual at the top of the page', dims: '480 × 420px', required: true },
   ],
   blog: [
-    { key: 'hero_image_url', label: 'Article Hero Image', hint: 'Main article header banner image displayed on the right of the title', dims: '460 × 340px' },
+    { key: 'hero_image_url', label: 'Article Hero Image', hint: 'The main visual at the top of the article', dims: '460 × 340px', required: true },
   ],
 };
-
-const JSON_FIELDS = new Set([
-  '_meta', 'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
-  'accreditations', 'facts', 'programs_table', 'faculty_members', 'other_specs',
-]);
 
 const LONG_TEXT_FIELDS = new Set([
   'about_content', 'why_choose_content', 'eligibility_content', 'admission_steps',
   'syllabus_content', 'placement_content', 'emi_content', 'exam_content',
-  'certificate_description',
+  'certificate_description', 'content_html',
 ]);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -57,7 +53,7 @@ function initFields(acf_data, page_type) {
   const excludedKeys = [
     'slug', 'page_type', 'university_slug', 'parent_slug',
     'hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url',
-    'hero_image_alt'
+    'hero_image_alt', '_meta'
   ];
   const out = {};
   const schema = FIELD_SCHEMA[page_type] || [];
@@ -65,7 +61,7 @@ function initFields(acf_data, page_type) {
 
   // 1. Pre-populate all schema fields, converting placeholders to ''
   for (const field of schema) {
-    if (excludedKeys.includes(field.key)) continue;
+    if (excludedKeys.includes(field.key) || SYSTEM_FIELDS.has(field.key)) continue;
     const v = acf_data[field.key];
     out[field.key] = isPlaceholder(v)
       ? ''
@@ -74,7 +70,7 @@ function initFields(acf_data, page_type) {
 
   // 2. Add other fields present in acf_data not in schema
   for (const [k, v] of Object.entries(acf_data)) {
-    if (excludedKeys.includes(k)) continue;
+    if (excludedKeys.includes(k) || SYSTEM_FIELDS.has(k)) continue;
     if (schemaKeys.includes(k)) continue;
     out[k] = isPlaceholder(v)
       ? ''
@@ -224,37 +220,20 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   };
 
   const handleSaveField = (key, rawValue) => {
-    if (JSON_FIELDS.has(key)) {
-      // Parse and store directly in session.acf_data as a real array
-      try {
-        const parsed = JSON.parse(rawValue);
-        setFields(f => ({ ...f, [key]: JSON.stringify(parsed, null, 2) }));
-        updateSession({
-          acf_data: { ...session.acf_data, [key]: parsed }
-        });
-      } catch {
-        // If invalid JSON, store as string in fields and let backend handle it
-        setFields(f => ({ ...f, [key]: rawValue }));
-      }
-    } else {
-      // Simple fields go into the editable fields state as strings
-      setFields(f => ({ ...f, [key]: rawValue }));
-    }
+    setFields(f => ({ ...f, [key]: rawValue }));
     setModalField(null);
+  };
+
+  const handleRepeaterChange = (key, items) => {
+    setFields(current => ({ ...current, [key]: JSON.stringify(items) }));
   };
 
   // ── Generate preview ──────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
     
-    // Check validation of required images before proceeding
-      const requiredImages = {
-        university: ['hero_image_url'],
-        course: ['hero_image_url'],
-      specialization: ['hero_image_url'],
-      blog: ['hero_image_url'],
-    };
-    const needed = requiredImages[session.page_type] || [];
+    // Image Slots is the only authoring source for image fields.
+    const needed = slots.filter(slot => slot.required).map(slot => slot.key);
     const missingImgs = needed.filter(key => !imageUrls[key]);
     if (missingImgs.length > 0) {
       const labels = {
@@ -268,7 +247,19 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
 
     setLoading(true);
     try {
-      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), hero_image_alt: heroImageAlt };
+      const contentData = { ...session.acf_data, ...fieldsToAcf(fields), hero_image_alt: heroImageAlt };
+      const documentTitle = contentData.title || contentData.spec_name || contentData.program_name ||
+        contentData.university_full_name || contentData.university_name || contentData.hero_title ||
+        contentData._meta?.document_title || 'Untitled page';
+      const rebuilt = {
+        ...contentData,
+        _meta: {
+          ...(contentData._meta && typeof contentData._meta === 'object' ? contentData._meta : {}),
+          document_title: documentTitle,
+          page_type: session.page_type,
+          generated_by: 'DegreeBaba Content Publisher',
+        },
+      };
 
       // IMPORTANT: Always include metadata keys so the backend uses the correct
       // transformer. Without these, the backend auto-detects and can wrongly
@@ -315,8 +306,17 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     }
   };
 
-  // Split editable fields into simple vs complex
-  const simpleFields  = Object.entries(fields);
+  const schema = FIELD_SCHEMA[session.page_type] || [];
+  const schemaByKey = Object.fromEntries(schema.map(field => [field.key, field]));
+  const contentFields = Object.entries(fields)
+    .filter(([key]) => schemaByKey[key] && ['required', 'optional'].includes(getFieldCategory(schemaByKey[key])))
+    .map(([key, value]) => ({ ...schemaByKey[key], value }));
+  const contentGroups = contentFields.reduce((groups, field) => {
+    groups[field.section] = [...(groups[field.section] || []), field];
+    return groups;
+  }, {});
+  const repeaterFields = schema.filter(field => getFieldCategory(field) === 'repeater');
+  const templateFields = schema.filter(field => getFieldCategory(field) === 'template-default');
 
   const liveAcf = { ...session.acf_data, ...fieldsToAcf(fields), ...imageUrls };
 
@@ -335,14 +335,14 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
       <div className="topbar">
         <div className="topbar-left">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 className="topbar-title">Review &amp; Images</h1>
+            <h1 className="topbar-title">Edit Page</h1>
             {session.workspace && (
               <span className="badge badge--published" style={{ fontSize: 12, padding: '4px 10px', height: 'fit-content' }}>
                 📁 Workspace: {session.workspace.name}
               </span>
             )}
           </div>
-          <p className="topbar-subtitle">Check field health, edit extracted fields, and upload images before generating the page.</p>
+          <p className="topbar-subtitle">Review the imported content, add structured sections, and choose the page images.</p>
         </div>
       </div>
 
@@ -625,71 +625,80 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         </div>
       )}
 
-      {/* ── Simple text fields ── */}
-      {simpleFields.length > 0 && (
-
+      {/* ── Writer content ── */}
+      {contentFields.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-body" style={{ padding: 28 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Page Fields</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Edit any field before generating the page.</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {simpleFields.map(([key, val]) => {
-                const schema = FIELD_SCHEMA[session.page_type] || [];
-                const schemaField = schema.find(f => f.key === key);
-                const isRequired = schemaField ? schemaField.required : false;
-                const isFieldEmpty = val === '';
-                
-                return (
-                  <div key={key}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>{key}</label>
-                      {isRequired && <span style={{ fontSize: 11, color: '#c53030', fontWeight: 800 }}>Required</span>}
-                    </div>
-                    {(JSON_FIELDS.has(key) || LONG_TEXT_FIELDS.has(key)) ? (
-                      <textarea
-                        className="input"
-                        rows={JSON_FIELDS.has(key) ? 8 : 4}
-                        value={val}
-                        onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          resize: 'vertical',
-                          fontFamily: JSON_FIELDS.has(key) ? 'var(--font-code)' : undefined,
-                          borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
-                          background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
-                        }}
-                      />
-                    ) : (
-                      <input
-                        className="input"
-                        value={val}
-                        onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
-                          background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
-                        }}
-                      />
-                    )}
-                    {isFieldEmpty && (
-                      <div style={{ 
-                        color: isRequired ? '#c53030' : '#b45309', 
-                        fontSize: 11.5, 
-                        marginTop: 4, 
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}>
-                        <span>⚠</span> {isRequired ? 'Missing from uploaded document' : 'Not detected from source file'}
-                      </div>
-                    )}
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Page content</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 22 }}>Review the content extracted from the document and make any editorial changes.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {Object.entries(contentGroups).map(([section, sectionFields]) => (
+                <section key={section}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>{section}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                    {sectionFields.map(field => {
+                      const isFieldEmpty = field.value === '';
+                      return (
+                        <div key={field.key} style={{ gridColumn: LONG_TEXT_FIELDS.has(field.key) ? '1 / -1' : undefined }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{field.label}</label>
+                            {field.required && <span style={{ fontSize: 11, color: '#c53030', fontWeight: 800 }}>Required</span>}
+                          </div>
+                          {LONG_TEXT_FIELDS.has(field.key) ? (
+                            <textarea className="input" rows={4} value={field.value} onChange={event => setFields(current => ({ ...current, [field.key]: event.target.value }))} style={{ width: '100%', resize: 'vertical', borderColor: isFieldEmpty && field.required ? '#feb2b2' : undefined }} />
+                          ) : (
+                            <input className="input" value={field.value} onChange={event => setFields(current => ({ ...current, [field.key]: event.target.value }))} style={{ width: '100%', borderColor: isFieldEmpty && field.required ? '#feb2b2' : undefined }} />
+                          )}
+                          {isFieldEmpty && field.required && <div style={{ color: '#c53030', fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>Required content was not found in the document</div>}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {repeaterFields.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-body" style={{ padding: 28 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Structured content</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Add and edit page items using simple fields.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {repeaterFields.map(field => {
+                let items;
+                try {
+                  const parsed = fields[field.key] ? JSON.parse(fields[field.key]) : [];
+                  items = Array.isArray(parsed) ? parsed : [];
+                } catch {
+                  items = [];
+                }
+                return <RepeaterEditor key={field.key} fieldKey={field.key} label={field.label} items={items} onChange={itemsValue => handleRepeaterChange(field.key, itemsValue)} />;
               })}
             </div>
           </div>
         </div>
+      )}
+
+      {templateFields.length > 0 && (
+        <details className="card" style={{ marginBottom: 20 }}>
+          <summary style={{ padding: '18px 24px', cursor: 'pointer', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+            Advanced Customization · Section headings
+          </summary>
+          <div style={{ padding: '0 24px 24px' }}>
+            <p style={{ fontSize: 13, marginBottom: 16 }}>The page uses clear default headings. Only add an override when the wording needs to be different.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+              {templateFields.map(field => (
+                <div key={field.key}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>{field.label}</label>
+                  <input className="input" value={fields[field.key] || ''} placeholder="Use template default" onChange={event => setFields(current => ({ ...current, [field.key]: event.target.value }))} style={{ width: '100%' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
       )}
 
       {/* ── Image upload slots ── */}
@@ -709,7 +718,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
           <div className="card-body" style={{ padding: 28 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Image Slots</div>
             <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-              Upload images for this <strong>{session.page_type}</strong> page. All slots are optional — placeholders show if left empty.
+              Add the page visuals here. The image you choose is applied to the page automatically.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {slots.map(slot => (
@@ -718,7 +727,9 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
                   style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 20, display: 'grid', gridTemplateColumns: '1fr 200px', gap: 20, alignItems: 'center' }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 14.5 }}>{slot.label}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 14.5 }}>
+                      {slot.label}{slot.required && <span style={{ color: 'var(--color-error)', marginLeft: 5 }}>*</span>}
+                    </div>
                     <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3 }}>{slot.hint}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 3 }}>Recommended: {slot.dims}</div>
 

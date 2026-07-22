@@ -1,30 +1,13 @@
 import { useState } from 'react';
 
-// Fields that must be entered as a JSON array
-const JSON_FIELDS = new Set([
-  '_meta', 'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
-  'accreditations', 'facts', 'programs_table', 'faculty_members', 'other_specs',
-]);
-
 // Fields that accept long HTML content
 const HTML_FIELDS = new Set([
   'about_content', 'eligibility_content', 'admission_steps', 'syllabus_content',
   'placement_content', 'why_choose_content', 'emi_content', 'exam_content',
-  'certificate_description',
+  'certificate_description', 'content_html',
 ]);
 
 const PLACEHOLDERS = {
-  _meta:                 '{\n  "document_title": "",\n  "page_type": "",\n  "generated_by": "DegreeBaba Content Publisher"\n}',
-  highlights:            '[]',
-  fee_plans:             '[]',
-  job_profiles:          '[]',
-  faqs:                  '[]',
-  reviews:               '[]',
-  accreditations:        '[]',
-  facts:                 '[]',
-  programs_table:        '[]',
-  faculty_members:       '[]',
-  other_specs:           '[]',
   // HTML
   about_content:         '<p>Write the about section content here. Describe the program\'s highlights, history, and value proposition.</p>',
   eligibility_content:   '<p>A bachelor\'s degree with minimum 50% aggregate marks from a UGC-recognised university. Working professionals and fresh graduates are both eligible.</p>',
@@ -62,9 +45,8 @@ const DEFAULT_VALUES = {
 };
 
 export default function AddFieldModal({ field, onSave, onClose }) {
-  const isJson = JSON_FIELDS.has(field.key);
   const isHtml = HTML_FIELDS.has(field.key);
-  const isTextarea = isJson || isHtml;
+  const isTextarea = isHtml;
 
   const defaultVal = PLACEHOLDERS[field.key] ?? DEFAULT_VALUES[field.key] ?? '';
   const [value, setValue] = useState(defaultVal);
@@ -108,9 +90,6 @@ export default function AddFieldModal({ field, onSave, onClose }) {
                 {field.required ? 'Required' : 'Optional'}
               </span>
             </div>
-            <code style={{ color: '#9fb4cc', fontSize: 12, fontFamily: 'var(--font-code)', marginTop: 4, display: 'block' }}>
-              {field.key}
-            </code>
           </div>
           <button
             onClick={onClose}
@@ -142,18 +121,18 @@ export default function AddFieldModal({ field, onSave, onClose }) {
           <label style={{
             display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8,
           }}>
-            {isJson ? 'Enter as JSON array' : isHtml ? 'Enter as HTML' : 'Enter value'}
+            {isHtml ? 'Content' : field.label}
           </label>
 
           {isTextarea ? (
             <textarea
-              rows={isJson ? 10 : 6}
+              rows={6}
               value={value}
               onChange={e => setValue(e.target.value)}
               className="input"
               style={{
                 width: '100%',
-                fontFamily: isJson ? 'var(--font-code)' : 'inherit',
+                fontFamily: 'inherit',
                 resize: 'vertical',
                 lineHeight: 1.55,
               }}
@@ -170,14 +149,9 @@ export default function AddFieldModal({ field, onSave, onClose }) {
             />
           )}
 
-          {isJson && (
-            <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-              Must be a valid JSON array — use the pre-filled placeholder as a guide. Each object's keys must match what the transformer expects.
-            </div>
-          )}
           {isHtml && (
             <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-              HTML is allowed: &lt;p&gt;, &lt;strong&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;br&gt;. Content is rendered directly into the page.
+              Paragraphs, emphasis, and lists from the imported document are preserved.
             </div>
           )}
 

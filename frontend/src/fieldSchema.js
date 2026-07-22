@@ -148,6 +148,29 @@ export const FIELD_SCHEMA = {
   ],
 };
 
+// The data schema contains more than author-editable content. These helpers keep
+// the stored payload unchanged while letting the editor present a writer-first UI.
+export const REPEATER_FIELDS = new Set([
+  'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
+  'accreditations', 'facts', 'programs_table', 'faculty_members', 'other_specs',
+]);
+
+export const SYSTEM_FIELDS = new Set([
+  '_meta', 'linked_university', 'linked_course', 'course_name', 'read_time',
+]);
+
+export const ASSET_FIELDS = new Set([
+  'hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url',
+]);
+
+export function getFieldCategory(field) {
+  if (SYSTEM_FIELDS.has(field.key) || field.section === 'Relationship') return 'system';
+  if (ASSET_FIELDS.has(field.key)) return 'asset';
+  if (field.section === 'Headings' || field.key.endsWith('_heading')) return 'template-default';
+  if (REPEATER_FIELDS.has(field.key)) return 'repeater';
+  return field.required ? 'required' : 'optional';
+}
+
 const PLACEHOLDER_STRINGS = [
   'na', 'n/a', 'not available', 'not applicable', 'null', 'none', 'unknown',
   '-', '--', '---', '--------------', '—'
@@ -164,15 +187,25 @@ export function isPlaceholder(val) {
 
 /**
  * Diff ACF data against schema for a page type.
- * Returns { present, missing, requiredMissing, schema }
+ * Returns writer-content readiness plus template defaults; system and asset
+ * fields are intentionally excluded from the content score.
  */
 export function diffFields(acf_data, page_type) {
   const schema = FIELD_SCHEMA[page_type] || [];
   const present = [];
   const missing = [];
   const requiredMissing = [];
+  const optionalMissing = [];
+  const templateDefaults = [];
 
   for (const field of schema) {
+    const category = getFieldCategory(field);
+    if (category === 'system' || category === 'asset') continue;
+    if (category === 'template-default') {
+      templateDefaults.push(field);
+      continue;
+    }
+
     const val = acf_data[field.key];
     const isEmpty =
       val === undefined ||
@@ -184,11 +217,12 @@ export function diffFields(acf_data, page_type) {
 
     if (isEmpty) {
       missing.push(field);
-      if (field.required) requiredMissing.push(field);
+      if (category === 'required') requiredMissing.push(field);
+      else optionalMissing.push(field);
     } else {
       present.push(field);
     }
   }
 
-  return { present, missing, requiredMissing, schema };
+  return { present, missing, requiredMissing, optionalMissing, templateDefaults, schema };
 }

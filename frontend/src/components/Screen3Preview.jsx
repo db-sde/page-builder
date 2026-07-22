@@ -331,10 +331,7 @@ export default function Screen3Preview({ session, onBack }) {
     <div>
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.14em', color: 'var(--amber)', textTransform: 'uppercase' }}>Step 4</div>
-        <h1 
-          onDoubleClick={() => setShowAdvanced(!showAdvanced)} 
-          style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)', marginTop: 6, cursor: 'default', userSelect: 'none' }}
-        >
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)', marginTop: 6 }}>
           Preview &amp; Publish
         </h1>
         <p style={{ color: 'var(--muted)', fontSize: 15, marginTop: 6 }}>
@@ -347,6 +344,9 @@ export default function Screen3Preview({ session, onBack }) {
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={onBack} style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '12px 22px', border: '1.5px solid var(--border)', borderRadius: 9, cursor: 'pointer' }}>
             ← Back
+          </button>
+          <button onClick={() => setShowAdvanced(value => !value)} style={{ background: 'transparent', color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: 12.5, padding: '10px 14px', border: 'none', cursor: 'pointer' }}>
+            {showAdvanced ? 'Hide developer details' : 'Developer details'}
           </button>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>

@@ -34,12 +34,12 @@ export default function App() {
             <span style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>D</span>
           </div>
           <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">PageBuilder</span>
-            <span className="sidebar-brand-sub">Degreebaba Pipeline</span>
+            <span className="sidebar-brand-name">Content Studio</span>
+            <span className="sidebar-brand-sub">DegreeBaba</span>
           </div>
         </div>
 
-        <div className="sidebar-section-label">Pipeline Steps</div>
+        <div className="sidebar-section-label">Publishing workflow</div>
         <nav className="sidebar-nav">
           <button 
             onClick={() => step > 1 && setStep(1)}
@@ -47,7 +47,7 @@ export default function App() {
             style={{ cursor: step > 1 ? 'pointer' : 'default', border: 'none', background: 'none' }}
           >
             <span className="sidebar-nav-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>1</span>
-            <span>University Workspace</span>
+            <span>University</span>
           </button>
 
           <button 
@@ -57,7 +57,7 @@ export default function App() {
             disabled={step < 2}
           >
             <span className="sidebar-nav-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>2</span>
-            <span>Upload & Configure</span>
+            <span>Import Content</span>
           </button>
 
           <button 
@@ -67,7 +67,7 @@ export default function App() {
             disabled={step < 3}
           >
             <span className="sidebar-nav-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>3</span>
-            <span>Review & Images</span>
+            <span>Edit Page</span>
           </button>
 
           <button 
@@ -76,7 +76,7 @@ export default function App() {
             disabled={step < 4}
           >
             <span className="sidebar-nav-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>4</span>
-            <span>Preview & Download</span>
+            <span>Preview & Publish</span>
           </button>
         </nav>
 

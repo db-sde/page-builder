@@ -59,6 +59,13 @@ const FileIcon = () => (
   </svg>
 );
 
+function formatPageName(slug, universitySlug = '') {
+  return String(slug || '')
+    .replace(new RegExp(`^${universitySlug}-`), '')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [, setLoading] = useState(true);
@@ -334,7 +341,8 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const handleEditPage = async (pageType, slug, parentSlug = null) => {
     try {
       setError('');
-      const record = await getWorkspacePage(selectedSlug, pageType, slug, parentSlug);
+      const targetSlug = (pageType === 'university' && (!slug || slug === 'undefined')) ? selectedSlug : (slug || selectedSlug);
+      const record = await getWorkspacePage(selectedSlug, pageType, targetSlug, parentSlug);
       const acf_data = record.data || record;
       const data = { ...acf_data };
       delete data.slug;
@@ -345,7 +353,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       updateSession({
         workspace: selectedWorkspace,
         university_slug: selectedSlug,
-        slug: record.slug || slug,
+        slug: record.slug || targetSlug,
         page_type: record.page_type || pageType,
         parent_slug: record.parent_slug || parentSlug,
         acf_data: data,
@@ -362,16 +370,18 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
 
   const handleDeletePage = async (pageType, slug, parentSlug = null) => {
     setActiveMenuSlug(null);
-    if (!window.confirm(`Delete page "${slug}"?`)) return;
+    if (!window.confirm(`Permanently delete page "${slug}" from disk?`)) return;
 
     try {
       setTreeLoading(true);
       await deletePage(selectedSlug, pageType, slug, parentSlug);
-      addToast('success', 'Deleted', `${slug} removed.`);
+      addToast('success', 'Page Deleted', `${slug} removed from disk.`);
       const tree = await getWorkspaceTree(selectedSlug);
       setTreeData(tree);
+      loadBuildStatus(selectedSlug);
     } catch (err) {
-      addToast('error', 'Delete Failed', err.message || 'Failed to delete page.');
+      const msg = err.response?.data?.detail || err.message || 'Failed to delete page.';
+      addToast('error', 'Delete Failed', msg);
     } finally {
       setTreeLoading(false);
     }
@@ -535,16 +545,12 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
               const name = typeof ws === 'string' ? slug.replace(/-/g, ' ').toUpperCase() : (ws.name || slug.replace(/-/g, ' ').toUpperCase());
               return (
                 <option key={slug} value={slug}>
-                  {name} ({slug})
+                  {name}
                 </option>
               );
             })}
-            <option value="__CREATE_NEW__">+ New Workspace...</option>
+            <option value="__CREATE_NEW__">+ Add university...</option>
           </select>
-
-          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
-            Active: <code style={{ color: '#0f172a', fontWeight: 600 }}>{selectedSlug || 'none'}</code>
-          </span>
         </div>
 
         <button
@@ -561,7 +567,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
             cursor: 'pointer'
           }}
         >
-          + New Workspace
+          + Add University
         </button>
       </div>
 
@@ -613,7 +619,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
             opacity: selectedSlug ? 1 : 0.5
           }}
         >
-          Upload Documents
+          Create Page
         </button>
 
         {/* Preview (Ghost Button) */}
@@ -680,10 +686,10 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Explorer
+                Pages
               </span>
               <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
-                {totalPages} files
+                {totalPages} pages
               </span>
             </div>
 
@@ -724,7 +730,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           <div style={{ maxHeight: 580, overflowY: 'auto', paddingRight: 4 }}>
             {treeLoading ? (
               <div style={{ color: '#64748b', fontSize: 12.5, padding: '24px 0', textAlign: 'center' }}>
-                Scanning workspace files...
+                Loading pages...
               </div>
             ) : treeData ? (
               !hasTotalMatches ? (
@@ -756,22 +762,13 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
 
                     {expandedFolders.university && hasUniMatch && (
                       <div style={{ paddingLeft: 20 }}>
-                        <div className={`tree-row ${activeMenuSlug === 'uni' ? 'active-menu' : ''}`}>
-                          <div 
-                            onClick={() => handleEditPage('university', treeData.university.slug)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}
-                          >
+                        <div 
+                          onClick={() => handleEditPage('university', treeData.university?.slug || selectedSlug)}
+                          className={`tree-row ${activeMenuSlug === 'uni' ? 'active-menu' : ''}`}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                             <FileIcon />
-                            <span>{treeData.university?.slug || selectedSlug}.html (Homepage)</span>
-                          </div>
-
-                          <div className="tree-row-actions">
-                            <button 
-                              onClick={() => handleEditPage('university', treeData.university.slug)}
-                              className="tree-action-btn"
-                            >
-                              Edit
-                            </button>
+                            <span>University Homepage</span>
                           </div>
                         </div>
                       </div>
@@ -799,7 +796,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                             const isCourseExpanded = Boolean(expandedCourses[course.slug]);
                             return (
                               <div key={course.slug}>
-                                {/* Course Row */}
+                                {/* Course Folder Row */}
                                 <div className={`tree-row ${activeMenuSlug === course.slug ? 'active-menu' : ''}`}>
                                   <div 
                                     onClick={() => toggleCourse(course.slug)}
@@ -807,32 +804,18 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                                   >
                                     <ChevronIcon open={isCourseExpanded} />
                                     <FolderIcon open={isCourseExpanded} />
-                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{course.slug}</span>
+                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatPageName(course.slug, selectedSlug)}</span>
                                   </div>
 
-                                  <div className="tree-row-actions">
-                                    <button onClick={() => handleEditPage('course', course.slug)} className="tree-action-btn">
-                                      Edit
-                                    </button>
+                                  <div className="tree-row-actions" onClick={(e) => e.stopPropagation()}>
                                     <button 
-                                      onClick={() => setActiveMenuSlug(activeMenuSlug === course.slug ? null : course.slug)}
+                                      onClick={(e) => { e.stopPropagation(); handleDeletePage('course', course.slug); }} 
                                       className="tree-action-btn"
+                                      title="Delete Course folder and all contents from disk"
+                                      style={{ color: '#dc2626' }}
                                     >
-                                      ⋯
+                                      Delete
                                     </button>
-
-                                    {activeMenuSlug === course.slug && (
-                                      <div style={{
-                                        position: 'absolute', right: 0, top: 26, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: 4
-                                      }}>
-                                        <button 
-                                          onClick={() => handleDeletePage('course', course.slug)}
-                                          style={{ display: 'block', width: '100%', padding: '4px 8px', fontSize: 11, color: '#dc2626', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}
-                                        >
-                                          Delete Course
-                                        </button>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
 
@@ -840,38 +823,48 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                                 {isCourseExpanded && (
                                   <div style={{ paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     {/* Main Course Overview Page */}
-                                    <div className="tree-row">
-                                      <div 
-                                        onClick={() => handleEditPage('course', course.slug)}
-                                        style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}
-                                      >
+                                    <div 
+                                      onClick={() => handleEditPage('course', course.slug)}
+                                      className="tree-row"
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                                         <FileIcon />
-                                        <span style={{ color: '#64748b' }}>Overview ({course.slug}.html)</span>
+                                        <span style={{ color: '#64748b' }}>Course Overview</span>
                                       </div>
-                                      <div className="tree-row-actions">
-                                        <button onClick={() => handleEditPage('course', course.slug)} className="tree-action-btn">Edit</button>
+
+                                      <div className="tree-row-actions" onClick={(e) => e.stopPropagation()}>
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); handleDeletePage('course', course.slug); }} 
+                                          className="tree-action-btn"
+                                          title="Delete Course from disk"
+                                          style={{ color: '#dc2626' }}
+                                        >
+                                          Delete
+                                        </button>
                                       </div>
                                     </div>
 
                                     {/* Specialization Pages */}
                                     {course.specializations && course.specializations.filter(sp => matchesSearchAndType(sp.slug, 'specialization')).map(spec => (
-                                      <div key={spec.slug} className={`tree-row ${activeMenuSlug === spec.slug ? 'active-menu' : ''}`}>
-                                        <div 
-                                          onClick={() => handleEditPage('specialization', spec.slug, course.slug)}
-                                          style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}
-                                        >
+                                      <div 
+                                        key={spec.slug} 
+                                        onClick={() => handleEditPage('specialization', spec.slug, course.slug)}
+                                        className={`tree-row ${activeMenuSlug === spec.slug ? 'active-menu' : ''}`}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                                           <FileIcon />
-                                          <span style={{ color: '#334155' }}>{spec.slug.replace(`${selectedSlug}-`, '')}</span>
+                                          <span style={{ color: '#334155' }}>{formatPageName(spec.slug, selectedSlug)}</span>
                                         </div>
 
-                                        <div className="tree-row-actions">
-                                          <button onClick={() => handleEditPage('specialization', spec.slug, course.slug)} className="tree-action-btn">Edit</button>
-                                          <button onClick={() => setActiveMenuSlug(activeMenuSlug === spec.slug ? null : spec.slug)} className="tree-action-btn">⋯</button>
-                                          {activeMenuSlug === spec.slug && (
-                                            <div style={{ position: 'absolute', right: 0, top: 26, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 4, padding: 4 }}>
-                                              <button onClick={() => handleDeletePage('specialization', spec.slug, course.slug)} style={{ display: 'block', width: '100%', padding: '4px 8px', fontSize: 11, color: '#dc2626', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Delete</button>
-                                            </div>
-                                          )}
+                                        <div className="tree-row-actions" onClick={(e) => e.stopPropagation()}>
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDeletePage('specialization', spec.slug, course.slug); }} 
+                                            className="tree-action-btn"
+                                            title="Delete Specialization from disk"
+                                            style={{ color: '#dc2626' }}
+                                          >
+                                            Delete
+                                          </button>
                                         </div>
                                       </div>
                                     ))}
@@ -905,23 +898,25 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                       <div style={{ paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {treeData.blogs && treeData.blogs.length > 0 ? (
                           treeData.blogs.filter(b => matchesSearchAndType(b.slug, 'blog')).map(blog => (
-                            <div key={blog.slug} className={`tree-row ${activeMenuSlug === blog.slug ? 'active-menu' : ''}`}>
-                              <div 
-                                onClick={() => handleEditPage('blog', blog.slug)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}
-                              >
+                            <div 
+                              key={blog.slug} 
+                              onClick={() => handleEditPage('blog', blog.slug)}
+                              className={`tree-row ${activeMenuSlug === blog.slug ? 'active-menu' : ''}`}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                                 <FileIcon />
-                                <span style={{ color: '#334155' }}>{blog.slug}</span>
+                                <span style={{ color: '#334155' }}>{formatPageName(blog.slug, selectedSlug)}</span>
                               </div>
 
-                              <div className="tree-row-actions">
-                                <button onClick={() => handleEditPage('blog', blog.slug)} className="tree-action-btn">Edit</button>
-                                <button onClick={() => setActiveMenuSlug(activeMenuSlug === blog.slug ? null : blog.slug)} className="tree-action-btn">⋯</button>
-                                {activeMenuSlug === blog.slug && (
-                                  <div style={{ position: 'absolute', right: 0, top: 26, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 4, padding: 4 }}>
-                                    <button onClick={() => handleDeletePage('blog', blog.slug)} style={{ display: 'block', width: '100%', padding: '4px 8px', fontSize: 11, color: '#dc2626', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Delete</button>
-                                  </div>
-                                )}
+                              <div className="tree-row-actions" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleDeletePage('blog', blog.slug); }} 
+                                  className="tree-action-btn"
+                                  title="Delete Blog from disk"
+                                  style={{ color: '#dc2626' }}
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           ))
@@ -950,22 +945,24 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                       {expandedFolders.specializations && (
                         <div style={{ paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
                           {treeData.specializations.filter(sp => matchesSearchAndType(sp.slug, 'specialization')).map(sp => (
-                            <div key={sp.slug} className={`tree-row ${activeMenuSlug === sp.slug ? 'active-menu' : ''}`}>
-                              <div 
-                                onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}
-                              >
+                            <div 
+                              key={sp.slug} 
+                              onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)}
+                              className={`tree-row ${activeMenuSlug === sp.slug ? 'active-menu' : ''}`}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
                                 <FileIcon />
-                                <span style={{ color: '#334155' }}>{sp.slug}</span>
+                                <span style={{ color: '#334155' }}>{formatPageName(sp.slug, selectedSlug)}</span>
                               </div>
-                              <div className="tree-row-actions">
-                                <button onClick={() => handleEditPage('specialization', sp.slug, sp.parent_slug)} className="tree-action-btn">Edit</button>
-                                <button onClick={() => setActiveMenuSlug(activeMenuSlug === sp.slug ? null : sp.slug)} className="tree-action-btn">⋯</button>
-                                {activeMenuSlug === sp.slug && (
-                                  <div style={{ position: 'absolute', right: 0, top: 26, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 4, padding: 4 }}>
-                                    <button onClick={() => handleDeletePage('specialization', sp.slug, sp.parent_slug)} style={{ display: 'block', width: '100%', padding: '4px 8px', fontSize: 11, color: '#dc2626', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}>Delete</button>
-                                  </div>
-                                )}
+                              <div className="tree-row-actions" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleDeletePage('specialization', sp.slug, sp.parent_slug); }} 
+                                  className="tree-action-btn"
+                                  title="Delete Specialization from disk"
+                                  style={{ color: '#dc2626' }}
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1187,7 +1184,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Create Workspace</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Add University</h3>
               <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: 15, cursor: 'pointer', color: '#64748b' }}>✕</button>
             </div>
 
@@ -1204,17 +1201,6 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 2 }}>Workspace Slug</label>
-                <input
-                  type="text"
-                  placeholder="e.g. nmims"
-                  value={newUniSlug}
-                  readOnly
-                  style={{ width: '100%', height: 34, padding: '0 8px', fontSize: 12.5, border: '1px solid #e2e8f0', borderRadius: 4, background: '#f8fafc', color: '#64748b', fontWeight: 600 }}
-                />
-              </div>
-
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
                 <button
                   type="button"
@@ -1228,7 +1214,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                   disabled={!newUniSlug || creating}
                   style={{ height: 32, padding: '0 14px', fontSize: 12, fontWeight: 700, color: '#ffffff', background: '#F45D22', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                 >
-                  {creating ? 'Creating…' : 'Create & Open'}
+                  {creating ? 'Creating…' : 'Add University'}
                 </button>
               </div>
             </form>
@@ -1344,5 +1330,4 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     </div>
   );
 }
-
 
