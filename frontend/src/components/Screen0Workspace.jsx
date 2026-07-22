@@ -14,6 +14,8 @@ import {
   listDrafts,
   getDraft,
   deleteDraft,
+  saveDraft,
+  publishDraft,
 } from '../api';
 
 // Helper for relative timestamps ("Last built 5 mins ago")
@@ -75,6 +77,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [error, setError] = useState('');
   const [drafts, setDrafts] = useState([]);
   const [draftsLoading, setDraftsLoading] = useState(false);
+  const [publishingDraftKey, setPublishingDraftKey] = useState('');
   
   // Selection & Creation
   const [selectedSlug, setSelectedSlug] = useState(session.workspace?.slug || '');
@@ -369,6 +372,14 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       delete data.university_slug;
       delete data.parent_slug;
 
+      await saveDraft({
+        ...data,
+        slug: record.slug || targetSlug,
+        page_type: record.page_type || pageType,
+        university_slug: selectedSlug,
+        parent_slug: record.parent_slug || parentSlug,
+      }, {}, 'edit');
+
       updateSession({
         workspace: selectedWorkspace,
         university_slug: selectedSlug,
@@ -401,7 +412,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         acf_data: draft.data || {},
         raw_acf_data: draft.data || {},
         images: draft.images || {},
-        page_action: 'import',
+        page_action: draft.identity_mode || 'import',
       });
       setStep(3);
     } catch (err) {
@@ -418,6 +429,24 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       addToast('success', 'Draft deleted', 'The draft was removed.');
     } catch (err) {
       addToast('error', 'Delete failed', err.message || 'Could not delete the draft.');
+    }
+  };
+
+  const handlePublishDraft = async (draftSummary) => {
+    const key = `${draftSummary.page_type}:${draftSummary.slug}`;
+    setPublishingDraftKey(key);
+    try {
+      const result = await publishDraft(selectedSlug, draftSummary.page_type, draftSummary.slug);
+      if (result.status !== 'saved') {
+        throw new Error(result.error || 'Could not publish draft.');
+      }
+      setDrafts(current => current.filter(draft => `${draft.page_type}:${draft.slug}` !== key));
+      await Promise.all([loadTree(selectedSlug), loadBuildStatus(selectedSlug)]);
+      addToast('success', 'Published', `${draftSummary.title} is now in Pages.`);
+    } catch (err) {
+      addToast('error', 'Publish failed', err.response?.data?.detail || err.message || 'Could not publish draft.');
+    } finally {
+      setPublishingDraftKey('');
     }
   };
 
@@ -733,19 +762,38 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
               <article key={`${draft.page_type}:${draft.slug}`} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, background: '#f8fafc' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '.05em' }}>Draft · {draft.page_type}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginTop: 4 }}>{draft.page_type}</div>
                   </div>
                   <button type="button" onClick={() => handleDeleteDraft(draft)} aria-label={`Delete ${draft.title} draft`} style={{ border: 'none', background: 'none', color: '#94a3b8', fontSize: 15, padding: 2 }}>×</button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 11.5, color: '#64748b' }}>
-                  <span>{formatRelativeTime(draft.updated_at)}</span>
-                  <strong style={{ color: draft.readiness_percent === 100 ? '#166534' : '#92400e' }}>{draft.readiness_percent}% ready</strong>
+                <div style={{ marginTop: 10, fontSize: 12, fontWeight: 800, color: draft.status_label === 'Ready to Publish' ? '#166534' : '#92400e' }}>
+                  {draft.status_label || 'Draft'}
                 </div>
-                {draft.missing_image && <div style={{ fontSize: 11.5, color: '#b45309', marginTop: 5 }}>Hero image needed</div>}
-                <button type="button" onClick={() => handleContinueDraft(draft)} style={{ width: '100%', marginTop: 10, height: 31, border: 'none', borderRadius: 6, background: '#0f172a', color: '#fff', fontSize: 12, fontWeight: 700 }}>
-                  Continue Editing
-                </button>
+                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 5 }}>Updated {formatRelativeTime(draft.updated_at)}</div>
+                {draft.missing_items?.length > 0 && (
+                  <div style={{ fontSize: 11.5, color: '#b45309', marginTop: 8 }}>
+                    <strong>Needs:</strong>
+                    {draft.missing_items.map(item => (
+                      <div key={item}>• {item === 'hero_image_url' ? 'Hero Image' : item.replace(/_/g, ' ')}</div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button type="button" onClick={() => handleContinueDraft(draft)} style={{ flex: 1, height: 31, border: 'none', borderRadius: 6, background: '#0f172a', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                    Continue Editing
+                  </button>
+                  {draft.status_label === 'Ready to Publish' && (
+                    <button
+                      type="button"
+                      onClick={() => handlePublishDraft(draft)}
+                      disabled={publishingDraftKey === `${draft.page_type}:${draft.slug}`}
+                      style={{ height: 31, border: 'none', borderRadius: 6, background: '#166534', color: '#fff', fontSize: 12, fontWeight: 700, padding: '0 10px' }}
+                    >
+                      {publishingDraftKey === `${draft.page_type}:${draft.slug}` ? 'Publishing…' : 'Publish'}
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>

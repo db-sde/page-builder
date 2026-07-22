@@ -432,7 +432,15 @@ def _draft_file(university_slug: str, page_type: str, slug: str) -> Path:
     return base_dir / "generated" / "drafts" / university_slug / page_type / f"{slug}.json"
 
 
-def save_draft_data(university_slug: str, page_type: str, slug: str, parent_slug: str | None, data: dict, images: dict):
+def save_draft_data(
+    university_slug: str,
+    page_type: str,
+    slug: str,
+    parent_slug: str | None,
+    data: dict,
+    images: dict,
+    identity_mode: str = "import",
+):
     from datetime import datetime, timezone
     draft_file = _draft_file(university_slug, page_type, slug)
     draft_file.parent.mkdir(parents=True, exist_ok=True)
@@ -442,6 +450,7 @@ def save_draft_data(university_slug: str, page_type: str, slug: str, parent_slug
         "page_type": page_type,
         "slug": slug,
         "parent_slug": parent_slug,
+        "identity_mode": identity_mode,
         "data": data,
         "images": images,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -559,6 +568,33 @@ def _preserve_existing_images(acf_data: dict, existing_record: dict | None, imag
             acf_data[slot] = existing_data[slot]
 
 
+def _snapshot_page_files(page_dir: Path) -> dict[str, bytes]:
+    """Keep the target page's current files until publishing has compiled."""
+    if not page_dir.exists():
+        return {}
+    return {
+        path.name: path.read_bytes()
+        for path in page_dir.iterdir()
+        if path.is_file()
+    }
+
+
+def _restore_page_files(page_dir: Path, snapshot: dict[str, bytes]) -> None:
+    """Restore the target page after an unsuccessful publish attempt."""
+    if page_dir.exists():
+        for path in page_dir.iterdir():
+            if path.is_file() and path.name not in snapshot:
+                path.unlink()
+    for name, content in snapshot.items():
+        page_dir.mkdir(parents=True, exist_ok=True)
+        (page_dir / name).write_bytes(content)
+    if not snapshot:
+        try:
+            page_dir.rmdir()
+        except OSError:
+            pass
+
+
 def list_draft_data(university_slug: str) -> list[dict]:
     import re
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", university_slug):
@@ -586,11 +622,16 @@ def list_draft_data(university_slug: str) -> list[dict]:
         if page_type not in required_by_type:
             continue
         required = required_by_type.get(page_type, [])
-        completed = sum(bool(data.get(key)) for key in required)
+        missing_items = [key for key in required if not data.get(key)]
         has_hero = bool(images.get("hero_image_url") or data.get("hero_image_url"))
-        task_total = len(required)
-        text_score = round((completed / task_total) * 90) if task_total else 90
-        readiness = text_score + (10 if has_hero else 0)
+        if not has_hero:
+            missing_items.append("hero_image_url")
+        if not missing_items:
+            status = "Ready to Publish"
+        elif missing_items == ["hero_image_url"]:
+            status = "Needs Hero Image"
+        else:
+            status = "Needs Review"
         publisher_meta = data.get("_meta") if isinstance(data.get("_meta"), dict) else {}
         title = data.get("title") or data.get("spec_name") or data.get("program_name") or \
             data.get("university_full_name") or data.get("university_name") or \
@@ -603,8 +644,9 @@ def list_draft_data(university_slug: str) -> list[dict]:
             "parent_slug": record.get("parent_slug"),
             "title": title,
             "updated_at": record.get("updated_at"),
-            "readiness_percent": readiness,
-            "missing_image": not has_hero,
+            "status_label": status,
+            "missing_items": missing_items,
+            "identity_mode": record.get("identity_mode") or "import",
         })
     return sorted(drafts, key=lambda item: item.get("updated_at") or "", reverse=True)
 
@@ -623,7 +665,7 @@ async def save_draft_endpoint(req: RenderRequest):
             raise ValueError("Unsupported page identity mode")
         if req.identity_mode == "import":
             slug = resolve_import_slug(university_slug, page_type, slug, parent_slug, acf_data)
-        record = save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
+        record = save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images, req.identity_mode)
         return {"status": "saved", "slug": slug, "updated_at": record["updated_at"]}
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -658,6 +700,31 @@ async def delete_draft_endpoint(university_slug: str, page_type: str, slug: str)
         raise HTTPException(status_code=404, detail="Draft not found")
     return {"status": "deleted"}
 
+
+@app.post("/drafts/{university_slug}/{page_type}/{slug}/publish")
+async def publish_draft_endpoint(university_slug: str, page_type: str, slug: str):
+    """Publish a ready draft through the same validated workspace flow."""
+    try:
+        draft = load_draft_data(university_slug, page_type, slug)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    payload = {
+        **(draft.get("data") or {}),
+        "slug": draft.get("slug") or slug,
+        "page_type": draft.get("page_type") or page_type,
+        "university_slug": draft.get("university_slug") or university_slug,
+        "parent_slug": draft.get("parent_slug"),
+    }
+    request = SaveToWorkspaceRequest(
+        acf_data=payload,
+        images=draft.get("images") or {},
+        identity_mode=draft.get("identity_mode") or "import",
+    )
+    return await save_to_workspace(request)
+
 @app.post("/preview-html", response_class=HTMLResponse)
 async def preview_html(req: RenderRequest):
     """Render dynamically without database persistence — return HTML as text (for iframe preview)."""
@@ -665,7 +732,7 @@ async def preview_html(req: RenderRequest):
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         
         # Save draft data for GET preview-file endpoint to consume
-        save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
+        save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images, req.identity_mode)
         
         merged = {**acf_data, **req.images}
         
@@ -1518,7 +1585,12 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
         if req.metadata_overrides:
             ensure_metadata(university_slug, req.metadata_overrides)
 
-        # Save to workspace
+        # Keep the current live page intact until the updated workspace compiles.
+        page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
+        page_snapshot = _snapshot_page_files(page_dir)
+
+        # Save the candidate page, then compile the complete workspace before
+        # considering the publish successful.
         result = save_page(
             university_slug=university_slug,
             page_type=page_type,
@@ -1528,7 +1600,19 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             parent_slug=parent_slug,
         )
 
-        # Publishing completes the draft lifecycle for this page.
+        try:
+            compile_result = compile_workspace(university_slug)
+            if compile_result.get("pages_failed"):
+                raise RuntimeError("Workspace compilation failed")
+        except Exception:
+            _restore_page_files(page_dir, page_snapshot)
+            try:
+                compile_workspace(university_slug)
+            except Exception:
+                pass
+            raise
+
+        # Publishing completes the draft lifecycle only after compilation.
         try:
             delete_draft_data(university_slug, page_type, slug)
         except (OSError, ValueError):
@@ -1541,19 +1625,9 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             import logging
             logging.error(f"Failed to update university knowledge: {knowledge_err}")
 
-        # After saving user content, auto-re-render all 3 listing pages
-        # so they always reflect the latest workspace state.
-        try:
-            from workspace.compiler import _build_index, _auto_render_listing_pages
-            index = _build_index(university_slug)
-            _auto_render_listing_pages(university_slug, index)
-        except Exception as listing_err:
-            # Non-fatal: listing pages will be refreshed on next compile
-            import logging
-            logging.warning(f"Listing page re-render skipped: {listing_err}")
-
         return {
             "status": "saved",
+            "compile_result": compile_result,
             **result,
         }
     except HTTPException as he:

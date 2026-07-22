@@ -72,6 +72,11 @@ export async function deleteDraft(universitySlug, pageType, slug) {
   return res.data;
 }
 
+export async function publishDraft(universitySlug, pageType, slug) {
+  const res = await axios.post(`${BASE}/drafts/${universitySlug}/${pageType}/${slug}/publish`);
+  return res.data;
+}
+
 // ── Workspace API ─────────────────────────────────────────────────────────────
 
 /**

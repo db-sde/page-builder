@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
+import { saveToWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
 // Per-page-type transformer field descriptions for context comparison labels
 const TRANSFORMER_DOCS = {
@@ -293,10 +293,6 @@ export default function Screen3Preview({ session, onBack }) {
       );
       if (result.status === 'saved') {
         setWorkspaceSaveResult(result);
-        
-        if (session.university_slug) {
-          await compileWorkspace(session.university_slug);
-        }
       } else {
         setWorkspaceError(result.error || 'Unknown error saving to workspace.');
       }
