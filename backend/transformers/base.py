@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 from core.site_config import get_site_config
-from core.utils import format_fee
+from core.utils import build_public_route, format_fee
 import re
 
 class BaseTransformer(ABC):
@@ -37,6 +37,9 @@ class BaseTransformer(ABC):
     def build_breadcrumbs(self, crumbs: list[dict]) -> list[dict]:
         # Validates and returns the breadcrumbs list; template handles rendering.
         return crumbs
+
+    def public_route(self, page_type: str, slug: str = "") -> str:
+        return build_public_route(page_type, slug, self.university_slug)
 
     def build_pills(self, fields: list[tuple]) -> list[dict]:
         pills = []

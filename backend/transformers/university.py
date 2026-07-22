@@ -144,7 +144,7 @@ class UniversityTransformer(BaseTransformer):
                         "fee": c["data"].get("starting_fee", ""),
                         "eligibility": c["data"].get("eligibility_summary", ""),
                         "duration": c["data"].get("duration", ""),
-                        "href": f"/{c['slug']}"
+                        "href": self.public_route("course", c["slug"])
                     }
                     for c in my_courses
                 ]

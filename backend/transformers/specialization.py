@@ -96,8 +96,8 @@ class SpecializationTransformer(BaseTransformer):
             # --- Breadcrumbs ---
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
-                ([{"label": uni_name, "href": f"/{self.university_slug}"}] if uni_name else []) +
-                ([{"label": parent_program_name, "href": f"/{self.parent_slug}"}] if self.parent_slug else []) +
+                ([{"label": uni_name, "href": self.public_route("university")}] if uni_name else []) +
+                ([{"label": parent_program_name, "href": self.public_route("course", self.parent_slug)}] if self.parent_slug else []) +
                 ([{"label": raw.get("spec_name"), "href": None}] if raw.get("spec_name") else [])
             ),
 
@@ -159,7 +159,7 @@ class SpecializationTransformer(BaseTransformer):
                 {
                     "name": s["data"].get("spec_name", ""),
                     "fee": self.format_fee(s["data"].get("total_fee", "")),
-                    "href": f"{s['slug']}.html",
+                    "href": self.public_route("specialization", s["slug"]),
                     "slug": s.get("slug")
                 }
                 for s in siblings

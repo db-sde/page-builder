@@ -1,6 +1,6 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from core.router import get_transformer
-from core.utils import format_fee as clean_fee
+from core.utils import build_public_route, build_public_url, format_fee as clean_fee
 from workspace.manager import WORKSPACES_ROOT
 import os
 from pathlib import Path
@@ -93,6 +93,160 @@ TEMPLATE_MAP = {
     "specializations_listing": "specializations_listing.html",
     "blog_listing": "blog_listing.html",
 }
+
+
+def _plain_text(value) -> str:
+    """Collapse simple HTML content to plain text for JSON-LD values."""
+    if value is None:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", str(value))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _schema_price(value) -> str:
+    """Extract an INR numeric price without inventing a value."""
+    match = re.search(r"\d[\d,]*(?:\.\d+)?", str(value or ""))
+    return match.group(0).replace(",", "") if match else ""
+
+
+def _build_structured_data(ctx: dict, resolved: dict, raw: dict, primary_domain: str) -> list[dict]:
+    """Build reusable, page-appropriate structured data from rendered content."""
+    page_type = resolved.get("page_type") or ""
+    slug = resolved.get("slug") or ""
+    university_slug = resolved.get("university_slug") or ""
+    canonical_url = ctx.get("canonical_url") or build_public_url(
+        primary_domain,
+        build_public_route(page_type, slug, university_slug),
+        is_homepage=(page_type == "university"),
+    )
+    homepage_url = build_public_url(primary_domain, "/", is_homepage=True)
+    university_name = (
+        raw.get("university_name")
+        or ctx.get("university_name")
+        or university_slug.replace("-", " ").title()
+    )
+    graph: list[dict] = []
+
+    if page_type == "university":
+        organization = {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": f"{homepage_url}#organization",
+            "name": university_name,
+            "url": homepage_url,
+        }
+        logo = ctx.get("branding_logo") or ""
+        if logo:
+            organization["logo"] = build_public_url(primary_domain, logo)
+        graph.append(organization)
+
+    page_name = (
+        raw.get("program_name")
+        or raw.get("course_name")
+        or raw.get("spec_name")
+        or raw.get("title")
+        or ctx.get("seo_title")
+        or slug.replace("-", " ").title()
+    )
+
+    crumbs = [{"name": "Home", "url": homepage_url}]
+    if page_type == "blog_listing":
+        crumbs.append({"name": "Blog", "url": canonical_url})
+    elif page_type == "programs_listing":
+        crumbs.append({"name": "Programs", "url": canonical_url})
+    elif page_type == "specializations_listing":
+        crumbs.append({"name": "Specializations", "url": canonical_url})
+    elif page_type == "blog":
+        crumbs.append({
+            "name": "Blog",
+            "url": build_public_url(primary_domain, build_public_route("blog_listing")),
+        })
+        crumbs.append({"name": page_name, "url": canonical_url})
+    elif page_type == "course":
+        crumbs.append({
+            "name": "Programs",
+            "url": build_public_url(primary_domain, build_public_route("programs_listing")),
+        })
+        crumbs.append({"name": page_name, "url": canonical_url})
+    elif page_type == "specialization":
+        parent_slug = resolved.get("parent_slug") or ""
+        parent = raw.get("_workspace_parent") or {}
+        parent_data = parent.get("data") or {}
+        parent_name = (
+            parent_data.get("program_name")
+            or parent_data.get("course_name")
+            or parent_slug.replace("-", " ").title()
+        )
+        if parent_slug:
+            crumbs.append({
+                "name": parent_name,
+                "url": build_public_url(
+                    primary_domain,
+                    build_public_route("course", parent_slug, university_slug),
+                ),
+            })
+        crumbs.append({"name": page_name, "url": canonical_url})
+
+    graph.append({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": position,
+                "name": crumb["name"],
+                "item": crumb["url"],
+            }
+            for position, crumb in enumerate(crumbs, start=1)
+        ],
+    })
+
+    if page_type in ("course", "specialization"):
+        course = {
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "@id": f"{canonical_url}#course",
+            "url": canonical_url,
+            "name": page_name,
+            "description": _plain_text(raw.get("hero_description") or ctx.get("meta_description")),
+            "provider": {
+                "@type": "Organization",
+                "name": university_name,
+                "url": homepage_url,
+            },
+        }
+        price = _schema_price(raw.get("total_fee") or raw.get("starting_fee"))
+        if price:
+            course["offers"] = {
+                "@type": "Offer",
+                "price": price,
+                "priceCurrency": "INR",
+                "url": canonical_url,
+            }
+        graph.append(course)
+
+    faqs = ctx.get("faqs") or raw.get("faqs") or []
+    faq_entities = []
+    if page_type in ("course", "specialization", "blog"):
+        for faq in faqs:
+            if not isinstance(faq, dict):
+                continue
+            question = _plain_text(faq.get("question") or faq.get("q"))
+            answer = _plain_text(faq.get("answer") or faq.get("a"))
+            if question and answer:
+                faq_entities.append({
+                    "@type": "Question",
+                    "name": question,
+                    "acceptedAnswer": {"@type": "Answer", "text": answer},
+                })
+    if faq_entities:
+        graph.append({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faq_entities,
+        })
+
+    return graph
 
 def load_env():
     env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -408,33 +562,9 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         except Exception:
             pass
 
-    # Resolve Route and Canonical URL
+    # Resolve Route and Canonical URL from the shared public-route implementation.
     slug = resolved.get("slug") or ""
-    if page_type == "university":
-        route = "/"
-    elif page_type == "programs_listing":
-        route = "/programs/"
-    elif page_type == "specializations_listing":
-        route = "/specializations/"
-    elif page_type == "blog_listing":
-        route = "/blog/"
-    elif page_type == "blog":
-        route = f"/blog/{slug}/"
-    else: # course or specialization
-        # Strip internal workspace numeric suffix from the URL slug.
-        # e.g. "nmims-2-nmims-online-mba" → "nmims-online-mba"
-        # The filesystem slug (directory name) is unchanged; only the URL is normalized.
-        import re as _re
-        _clean_prefix = _re.sub(r"-\d+$", "", uni_slug)  # "nmims-2" → "nmims"
-        _raw_prefix = uni_slug + "-"                      # "nmims-2-"
-        route_slug = slug
-        if _clean_prefix != uni_slug and route_slug.startswith(_raw_prefix):
-            # Strip the workspace prefix entirely; brand is already in remainder
-            # "nmims-2-nmims-online-mba" → "nmims-online-mba"
-            route_slug = route_slug[len(_raw_prefix):]
-        route = f"/{route_slug}/"
-
-    from core.utils import build_public_url
+    route = build_public_route(page_type, slug, uni_slug)
     canonical_url = build_public_url(primary_domain, route, is_homepage=(page_type == "university"))
 
     ctx["canonical_url"] = canonical_url
@@ -449,20 +579,20 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         if og_image_candidate.startswith("http://") or og_image_candidate.startswith("https://"):
             og_image_url = og_image_candidate
         elif primary_domain:
-            og_image_url = f"{primary_domain}/{og_image_candidate.lstrip('/')}"
+            og_image_url = build_public_url(primary_domain, og_image_candidate)
         else:
             og_image_url = og_image_candidate
     else:
         og_image_url = ""
 
     ctx["og_image_url"] = og_image_url
-    ctx["homepage_href"] = f"{uni_slug}.dc.html"
-    ctx["course_href"] = f"{uni_slug}-online-mba.dc.html"
-    ctx["spec_href"] = f"{uni_slug}-mba-marketing.dc.html"
-    ctx["blog_href"] = f"{uni_slug}-blog.dc.html"
-    ctx["programs_listing_href"] = "programs_listing.html"
-    ctx["specs_listing_href"] = "specializations_listing.html"
-    ctx["blog_listing_href"] = "blog_listing.html"
+    ctx["homepage_href"] = build_public_route("university")
+    ctx["course_href"] = build_public_route("course", f"{uni_slug}-online-mba", uni_slug)
+    ctx["spec_href"] = build_public_route("specialization", f"{uni_slug}-mba-marketing", uni_slug)
+    ctx["blog_href"] = build_public_route("blog_listing")
+    ctx["programs_listing_href"] = build_public_route("programs_listing")
+    ctx["specs_listing_href"] = build_public_route("specializations_listing")
+    ctx["blog_listing_href"] = build_public_route("blog_listing")
 
     # 2. Program Display Name
     prog_name = None
@@ -643,7 +773,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                 "course_name": course_name,
                 "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
                 "d": data.get("hero_description") or data.get("description") or "",
-                "href": f"{sp_slug}.html",
+                "href": build_public_route("specialization", sp_slug, uni_slug),
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             })
         ctx["specs_json"] = json.dumps(spec_list, ensure_ascii=False)
@@ -817,12 +947,13 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         "slug": current_slug
     })
     for s in siblings:
+        sibling_slug = s.get("slug") or ""
         other_specs_list.append({
             "name": s.get("name") or "",
             "fee": clean_fee(s.get("fee") or ""),
             "cur": False,
-            "href": f"{s.get('slug')}.html" if s.get('slug') else "",
-            "slug": s.get("slug") or ""
+            "href": build_public_route("specialization", sibling_slug, uni_slug) if sibling_slug else "",
+            "slug": sibling_slug,
         })
     if len(other_specs_list) <= 1:
         other_specs_list = resolve_list(raw_dict, knowledge, "other_specs")
@@ -832,7 +963,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                     "name": s.get("name") or s.get("other_spec_name") or "",
                     "fee": clean_fee(s.get("fee") or ""),
                     "cur": False,
-                    "href": f"{s.get('slug')}.html" if s.get('slug') else "",
+                    "href": build_public_route("specialization", s.get("slug"), uni_slug) if s.get("slug") else "",
                     "slug": s.get("slug") or ""
                 }
                 for s in other_specs_list
@@ -932,7 +1063,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or "") or "₹2,00,000",
                 "feeUnit": "total course",
                 "d": data.get("hero_description") or "Industry-aligned specializations, taught by expert faculty.",
-                "href": f"{slug}.html",
+                "href": build_public_route("course", slug, uni_slug),
                 "featured": i == 0,
                 "mode": data.get("mode") or "100% Online",
             })
@@ -967,6 +1098,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         programs_list_data.append({
             "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
             "slug": slug,
+            "href": build_public_route("course", slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             "duration": data.get("duration") or "2 Years",
             "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
@@ -995,6 +1127,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         spec_groups_map[parent]["specs"].append({
             "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
             "slug": sp_slug,
+            "href": build_public_route("specialization", sp_slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or ""),
             "duration": data.get("duration") or "2 Years",
             "description": data.get("hero_description") or "",
@@ -1014,7 +1147,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
             data = b.get("data", {})
             b_slug = b.get("slug", "")
             # Determine the blog page href — relative path to the blog detail HTML
-            blog_href = f"{b_slug}.html"
+            blog_href = build_public_route("blog", b_slug, uni_slug)
             img_url = data.get("hero_image_url") or ""
             blog_posts.append({
                 "tag": data.get("category") or data.get("tag") or "Article",
@@ -1116,6 +1249,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                     break
             specs_data.append({
                 "slug": sp_slug,
+                "href": build_public_route("specialization", sp_slug, uni_slug),
                 "course_name": course_name,
                 "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
                 "description": data.get("hero_description") or data.get("description") or "",
@@ -1153,8 +1287,8 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         
     html_out = clean_html_tables(template.render(**ctx))
 
-    # SEO & Open Graph Post-Processor (only for V2 rendering mode)
-    if render_mode == "v2" and "</head>" in html_out.lower():
+    # SEO & Open Graph post-processor for every supported render mode.
+    if "</head>" in html_out.lower():
         # Get existing meta/link tag helper
         def get_meta_tag(html_str: str, name_or_prop: str) -> str | None:
             m = re.search(
@@ -1238,5 +1372,18 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
                 idx = match.start()
                 block = "\n".join(new_tags) + "\n"
                 html_out = html_out[:idx] + block + html_out[idx:]
+
+    if "</head>" in html_out.lower():
+        structured_data = _build_structured_data(ctx, resolved, raw_dict, primary_domain)
+        if structured_data:
+            scripts = "\n".join(
+                '<script type="application/ld+json">'
+                + json.dumps(item, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+                + "</script>"
+                for item in structured_data
+            )
+            match = re.search(r"</head>", html_out, re.IGNORECASE)
+            if match:
+                html_out = html_out[:match.start()] + scripts + "\n" + html_out[match.start():]
 
     return html_out

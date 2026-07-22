@@ -111,7 +111,7 @@
       {% for sp in specs %}
         {% set fee_raw = sp.fee | default('') %}
         {% set fee_fmt = fee_raw if fee_raw.startswith('₹') else ('₹' + fee_raw if fee_raw else 'Contact for fee') %}
-        {% set sp_href = (sp.slug ~ '.html') if sp.slug else '#' %}
+        {% set sp_href = sp.href if sp.href else '#' %}
         <a href="{{ sp_href }}" class="spec-card">
           <span style="align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;background:#EFEBF8;color:#6B4FC9;margin-bottom:12px">{{ sp.course_name }}</span>
           <div style="width:44px;height:44px;border-radius:11px;background:#FFE7E0;color:#E0431F;display:flex;align-items:center;justify-content:center;font-size:20px">◑</div>

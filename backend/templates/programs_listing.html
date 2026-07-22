@@ -111,7 +111,7 @@
       {% for p in programs %}
         {% set fee_raw = p.fee | default('') %}
         {% set fee_fmt = fee_raw if fee_raw.startswith('₹') else ('₹' + fee_raw if fee_raw else 'Contact for fee') %}
-        {% set p_href = (p.slug ~ '.html') if p.slug else '#' %}
+        {% set p_href = p.href if p.href else '#' %}
         <a href="{{ p_href }}" class="prog-card">
           <span style="align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;background:#FFE7E0;color:#E0431F">Online Degree</span>
           <div style="font-size:24px;font-weight:800;margin-top:16px;color:#1C1B22">{{ p.name | default('') }}</div>

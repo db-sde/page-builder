@@ -81,7 +81,7 @@ class CourseTransformer(BaseTransformer):
                     "name": s["data"].get("spec_name", ""),
                     "description": s["data"].get("hero_description", "")[:80] + "..." if s["data"].get("hero_description") else "",
                     "fee": self.format_fee(s["data"].get("total_fee", "")),
-                    "href": f"/{s['slug']}"
+                    "href": self.public_route("specialization", s["slug"])
                 })
 
         naac = self.resolve("naac_grade")
@@ -146,7 +146,7 @@ class CourseTransformer(BaseTransformer):
             # --- Breadcrumbs ---
             "breadcrumbs": self.build_breadcrumbs(
                 [{"label": "Home", "href": "/"}] +
-                ([{"label": uni_name, "href": f"/{self.university_slug}"}] if uni_name else []) +
+                ([{"label": uni_name, "href": self.public_route("university")}] if uni_name else []) +
                 ([{"label": raw.get("program_name"), "href": None}] if raw.get("program_name") else [])
             ),
 

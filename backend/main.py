@@ -1751,6 +1751,9 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
         build_dir = WORKSPACES_ROOT / slug / "build"
         # Normalise and prevent path traversal outside build/
         target = (build_dir / path).resolve()
+        if target.exists() and target.is_dir():
+            target = target / "index.html"
+            
         try:
             target.relative_to(build_dir.resolve())
         except ValueError:
@@ -1803,6 +1806,8 @@ document.addEventListener('click', function(e) {{
       var path = href.substring(1);
       if (!path || path.endsWith('/')) {{
         path += 'index.html';
+      }} else if (!path.includes('.') && !path.endsWith('/index.html')) {{
+        path += '/index.html';
       }}
       var url = '/build-file?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
       window.location.href = url;
@@ -1863,6 +1868,9 @@ async def build_file_v2_endpoint(university_slug: str, path: str = "index.html")
         build_dir = WORKSPACES_ROOT / slug / "build_v2"
         # Normalise and prevent path traversal outside build_v2/
         target = (build_dir / path).resolve()
+        if target.exists() and target.is_dir():
+            target = target / "index.html"
+            
         try:
             target.relative_to(build_dir.resolve())
         except ValueError:
@@ -1915,6 +1923,8 @@ document.addEventListener('click', function(e) {{
       var path = href.substring(1);
       if (!path || path.endsWith('/')) {{
         path += 'index.html';
+      }} else if (!path.includes('.') && !path.endsWith('/index.html')) {{
+        path += '/index.html';
       }}
       var url = '/build-file-v2?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
       window.location.href = url;

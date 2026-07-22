@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from core.utils import build_public_route
 
 class BlogListingTransformer:
     """
@@ -33,7 +34,7 @@ class BlogListingTransformer:
                 "read_time": data.get("read_time") or "5 min read",
                 "date": data.get("date") or "",
                 "meta": f"{data.get('read_time', '5 min')} · {data.get('date', '')}".strip(" ·"),
-                "href": f"{slug}.html",
+                "href": build_public_route("blog", slug, self.university_slug),
                 "hero_image_url": data.get("hero_image_url") or "",
             })
 
@@ -58,7 +59,7 @@ class BlogListingTransformer:
 
         return {
             "seo_title": f"{uni_name} Blog — MBA Guides & Career Insights",
-            "meta_description": f"Guides, career advice and program insights from {uni_name} to help you choose and complete your online MBA.",
+            "meta_description": f"Read {uni_name} online degree guides covering fees, admissions, program comparisons and career choices to make a confident higher-education decision.",
             "university_name": uni_name,
             "featured_post": featured,
             "blog_posts": blog_posts,

@@ -1,4 +1,5 @@
 import re
+from core.utils import build_public_route
 
 def clean_fee(amount_str: str) -> str:
     if not amount_str:
@@ -54,11 +55,13 @@ class SpecializationsListingTransformer:
                 groups_map[parent] = {
                     "course_name": course_names.get(parent, parent.replace("-", " ").title()),
                     "course_slug": parent,
+                    "course_href": build_public_route("course", parent, self.university_slug),
                     "specs": [],
                 }
             groups_map[parent]["specs"].append({
                 "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
                 "slug": sp_slug,
+                "href": build_public_route("specialization", sp_slug, self.university_slug),
                 "fee": clean_fee(data.get("total_fee") or ""),
                 "duration": data.get("duration") or "2 Years",
                 "description": data.get("hero_description") or "",
@@ -72,6 +75,7 @@ class SpecializationsListingTransformer:
                 flat_specs.append({
                     "name": sp["name"],
                     "slug": sp["slug"],
+                    "href": sp["href"],
                     "fee": sp["fee"],
                     "duration": sp["duration"],
                     "description": sp["description"],
@@ -80,7 +84,7 @@ class SpecializationsListingTransformer:
 
         return {
             "seo_title": f"{uni_name} Specializations",
-            "meta_description": f"Browse all online specializations available at {uni_name}. Choose from marketing, finance, HR, analytics and more.",
+            "meta_description": f"Compare {uni_name} online specializations in marketing, finance, HR, analytics, technology and operations to find the curriculum that matches your career goals.",
             "university_name": uni_name,
             "spec_groups": spec_groups,
             "specs": flat_specs,

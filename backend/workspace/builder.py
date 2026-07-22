@@ -48,7 +48,7 @@ from workspace.manager import (
     WORKSPACES_ROOT,
 )
 from workspace.compiler import _build_index
-from core.utils import build_public_url
+from core.utils import build_public_route, build_public_url
 
 
 # Top-level reserved route segments — course/specialization slugs may
@@ -63,47 +63,6 @@ def with_build_v2_lock(func):
         with _build_v2_lock:
             return func(*args, **kwargs)
     return wrapper
-
-
-def _normalize_route_slug(slug: str, university_slug: str) -> str:
-    """
-    Strip internal workspace numeric suffixes from public-facing URL slugs.
-
-    Workspaces are often created with incremental names like ``nmims-2``.
-    When the workspace slug is used as a URL-prefix for courses/specs it
-    produces ugly double-brand paths such as::
-
-        /nmims-2-nmims-online-mba/
-
-    This function rewrites that to::
-
-        /nmims-online-mba/
-
-    Strategy
-    --------
-    1. Strip any trailing ``-<digits>`` suffix from *university_slug* to get
-       the **clean brand prefix** (e.g. ``nmims-2`` → ``nmims``).
-    2. If the slug starts with ``{university_slug}-`` (the raw workspace
-       prefix), strip that prefix entirely — the brand name is already
-       embedded in the remainder of the slug.
-    3. Otherwise return the slug unchanged (already clean or manually set).
-
-    The filesystem slug (directory name / source.json key) is never
-    modified — only the in-memory route string is affected.
-    """
-    if not university_slug:
-        return slug
-    # Strip trailing numeric suffix: "nmims-2" → "nmims", "uni-10" → "uni"
-    clean_prefix = re.sub(r"-\d+$", "", university_slug)
-    if clean_prefix == university_slug:
-        # No numeric suffix — nothing to normalize
-        return slug
-    raw_prefix = university_slug + "-"   # e.g. "nmims-2-"
-    if slug.startswith(raw_prefix):
-        # Strip the workspace prefix entirely; brand is already in the remainder
-        # "nmims-2-nmims-online-mba" → "nmims-online-mba"
-        return slug[len(raw_prefix):]
-    return slug
 
 
 # ── Path helpers ──────────────────────────────────────────────────────────────
@@ -170,7 +129,7 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
     for slug, _rec in index["course"].items():
         if not slug:
             continue
-        route_slug = _normalize_route_slug(slug, university_slug)
+        route_slug = build_public_route("course", slug, university_slug).lstrip("/")
         if route_slug in _RESERVED_SEGMENTS:
             errors.append({
                 "route": f"/{route_slug}",
@@ -188,12 +147,12 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
             continue
         seen_top[route_slug] = "course"
         # Key uses raw filesystem slug; route uses normalized URL slug
-        route_map[f"course:{slug}"] = f"/{route_slug}"
+        route_map[f"course:{slug}"] = build_public_route("course", slug, university_slug)
 
     for slug, _rec in index["specialization"].items():
         if not slug:
             continue
-        route_slug = _normalize_route_slug(slug, university_slug)
+        route_slug = build_public_route("specialization", slug, university_slug).lstrip("/")
         if route_slug in _RESERVED_SEGMENTS:
             errors.append({
                 "route": f"/{route_slug}",
@@ -210,13 +169,13 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
             })
             continue
         seen_top[route_slug] = "specialization"
-        route_map[f"specialization:{slug}"] = f"/{route_slug}"
+        route_map[f"specialization:{slug}"] = build_public_route("specialization", slug, university_slug)
 
     # Blogs live under /blog/<slug> — never collide with top-level.
     for slug, _rec in index["blog"].items():
         if not slug:
             continue
-        route_map[f"blog:{slug}"] = f"/blog/{slug}"
+        route_map[f"blog:{slug}"] = build_public_route("blog", slug, university_slug)
 
     return route_map, errors
 
@@ -312,6 +271,22 @@ def _rewrite_html(
       • JSON blob:  "{slug}.html"    → "{route}/"
       • generic:    {slug}.dc.html   → {route}/               (fallback specs)
     """
+    # Insert Google tag (gtag.js) only for nmims-2
+    if university_slug == "nmims-2":
+        gtag_script = """<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-B2N0SZPDFD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-B2N0SZPDFD');
+</script>"""
+        if "<head>" in html:
+            html = html.replace("<head>", f"<head>\n{gtag_script}")
+        elif "<HEAD>" in html:
+            html = html.replace("<HEAD>", f"<HEAD>\n{gtag_script}")
+
     # 1. Runtime support script — make it root-absolute so it loads from
     #    /assets/support.js regardless of page depth.
     html = html.replace('src="./support.js"', 'src="/assets/support.js"')
@@ -346,8 +321,12 @@ def _rewrite_html(
         route = rewrite_map[slug]
         html = html.replace(f'href="{slug}.html"', f'href="{route}"')
         html = html.replace(f'href="{slug}.dc.html"', f'href="{route}"')
+        html = html.replace(f'href="/{slug}"', f'href="{route}"')
+        html = html.replace(f'href="/{slug}/"', f'href="{route}"')
         html = html.replace(f'"href": "{slug}.html"', f'"href": "{route}"')
         html = html.replace(f'"href":"{slug}.html"', f'"href":"{route}"')
+        html = html.replace(f'"href": "/{slug}"', f'"href": "{route}"')
+        html = html.replace(f'"href":"/{slug}"', f'"href":"{route}"')
 
     return html
 
@@ -471,7 +450,7 @@ def _write_robots_txt(
         except Exception:
             pass
 
-    sitemap_url = f"{base_domain}/sitemap.xml" if base_domain else "/sitemap.xml"
+    sitemap_url = build_public_url(base_domain, "/sitemap.xml")
     content = (
         "User-agent: *\n"
         "Allow: /\n\n"
@@ -580,15 +559,19 @@ def build_website(university_slug: str) -> dict:
     for slug, rec in index["course"].items():
         if slug in _RESERVED_SEGMENTS:
             continue  # already reported as collision
+        route_key = f"course:{slug}"
+        build_rel_dir = route_map.get(route_key, build_public_route("course", slug, university_slug)).lstrip("/")
         html_path = ws_root / "Courses" / slug / _HTML_FILENAME["course"]
-        _export(html_path, slug, "course", slug)
+        _export(html_path, build_rel_dir, "course", slug)
 
     # Specializations
     for slug, rec in index["specialization"].items():
         if slug in _RESERVED_SEGMENTS:
             continue
+        route_key = f"specialization:{slug}"
+        build_rel_dir = route_map.get(route_key, build_public_route("specialization", slug, university_slug)).lstrip("/")
         html_path = ws_root / "Specializations" / slug / _HTML_FILENAME["specialization"]
-        _export(html_path, slug, "specialization", slug)
+        _export(html_path, build_rel_dir, "specialization", slug)
 
     # Blogs
     for slug, rec in index["blog"].items():

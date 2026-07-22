@@ -1,4 +1,4 @@
-from core.utils import format_fee as clean_fee
+from core.utils import build_public_route, format_fee as clean_fee
 
 class ProgramsListingTransformer:
     """
@@ -21,6 +21,7 @@ class ProgramsListingTransformer:
             programs.append({
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
                 "slug": slug,
+                "href": build_public_route("course", slug, self.university_slug),
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
                 "duration": data.get("duration") or "2 Years",
                 "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
@@ -31,7 +32,7 @@ class ProgramsListingTransformer:
 
         return {
             "seo_title": f"{uni_name} Online Programs",
-            "meta_description": f"Explore all online degree programs offered by {uni_name}. UGC-entitled, fully online courses.",
+            "meta_description": f"Compare all online degree programs, eligibility, duration, fees and specializations offered by {uni_name} to choose the flexible course for your goals.",
             "university_name": uni_name,
             "programs": programs,
         }

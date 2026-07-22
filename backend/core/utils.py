@@ -202,21 +202,11 @@ def normalize_specialization_name(raw_name: str, parent_program_name: str, unive
 def build_public_url(domain: str, slug: str, is_homepage: bool = False) -> str:
     """
     Format a public URL according to trailing-slash normalization rules.
-    - Always use www (for standard domains starting with http/https).
+    - Preserve the workspace's configured primary domain.
     - Homepage keeps trailing slash: https://www.domain.com/
     - All other pages must NOT have a trailing slash: https://www.domain.com/slug
     """
     domain = (domain or "").strip().rstrip("/")
-    if domain.startswith(("http://", "https://")):
-        from urllib.parse import urlparse, urlunparse
-        parsed = urlparse(domain)
-        netloc = parsed.netloc
-        if not netloc.startswith("www."):
-            # Check if netloc is localhost, loopback IP or integer IP to avoid prefixing www.
-            is_local = netloc.split(":")[0] in ("localhost", "127.0.0.1") or re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", netloc.split(":")[0])
-            if not is_local:
-                netloc = "www." + netloc
-        domain = urlunparse((parsed.scheme, netloc, "", "", "", "")).rstrip("/")
 
     slug = (slug or "").strip()
     # Check if this route represents the homepage
@@ -227,3 +217,37 @@ def build_public_url(domain: str, slug: str, is_homepage: bool = False) -> str:
     clean_slug = "/" + slug.strip("/")
     return domain + clean_slug
 
+
+def normalize_public_slug(slug: str, university_slug: str = "") -> str:
+    """Return the public slug for a workspace-backed page."""
+    slug = (slug or "").strip().strip("/")
+    university_slug = (university_slug or "").strip().strip("/")
+    if not slug or not university_slug:
+        return slug
+
+    # Numeric workspace suffixes are internal collision-avoidance details.
+    # ``nmims-2-nmims-online-mba`` therefore publishes as
+    # ``nmims-online-mba`` while an ordinary workspace slug is untouched.
+    if re.search(r"-\d+$", university_slug):
+        raw_prefix = university_slug + "-"
+        if slug.startswith(raw_prefix):
+            return slug[len(raw_prefix):]
+    return slug
+
+
+def build_public_route(page_type: str, slug: str = "", university_slug: str = "") -> str:
+    """Build the canonical root-relative route for every supported page type."""
+    page_type = (page_type or "").strip().lower()
+    if page_type in ("homepage", "university"):
+        return "/"
+    if page_type == "programs_listing":
+        return "/programs"
+    if page_type == "specializations_listing":
+        return "/specializations"
+    if page_type == "blog_listing":
+        return "/blog"
+
+    public_slug = normalize_public_slug(slug, university_slug)
+    if page_type == "blog":
+        return f"/blog/{public_slug}" if public_slug else "/blog"
+    return f"/{public_slug}" if public_slug else "/"
