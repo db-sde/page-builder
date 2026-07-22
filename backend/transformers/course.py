@@ -38,12 +38,7 @@ class CourseTransformer(BaseTransformer):
         raw["about_content"] = about_content_val
 
         # ── Fallback: admission_steps ───────────────────────────────────────────────
-        admission_steps_val = self.resolve("admission_steps", (
-            "<p><strong>Step 1.</strong> Visit the official university online admission portal and register.</p>"
-            "<p><strong>Step 2.</strong> Fill in personal, contact, and academic details in the application form.</p>"
-            "<p><strong>Step 3.</strong> Upload scanned copies of required documents (graduation marksheet, ID proof, photograph).</p>"
-            "<p><strong>Step 4.</strong> Pay the program admission fee online to confirm your enrollment.</p>"
-        ))
+        admission_steps_val = self.resolve("admission_steps")
         raw["admission_steps"] = admission_steps_val
 
         spec_desc_map = {
@@ -93,6 +88,8 @@ class CourseTransformer(BaseTransformer):
         placement_content = self.resolve("placement_content")
         certificate_description = self.resolve("certificate_description")
         eligibility_content = self.resolve("eligibility_content")
+        if not eligibility_content and raw.get("eligibility_summary"):
+            eligibility_content = f"<p>{raw['eligibility_summary']}</p>"
         syllabus_content = self.resolve("syllabus_content")
         emi_amount = self.resolve("emi_amount")
         highlights = self.resolve_list("highlights")
@@ -116,6 +113,19 @@ class CourseTransformer(BaseTransformer):
             "hero_image_alt": hero_image_alt,
             "og_image_url": raw.get("og_image_url") or raw.get("hero_image_url"),
             "certificate_image_url": raw.get("certificate_image_url"),
+            "headings": {
+                "about": raw.get("about_heading") or f"About the {raw.get('program_name', '')}",
+                "highlights": raw.get("highlights_heading") or "Program Highlights",
+                "accreditations": raw.get("accreditations_heading") or "Approvals & Accreditations",
+                "specializations": raw.get("specializations_heading") or "Specializations",
+                "fees": raw.get("fee_heading") or "Fee Structure",
+                "eligibility": raw.get("eligibility_heading") or "Eligibility",
+                "admission": raw.get("admission_heading") or "Admission Process",
+                "syllabus": raw.get("syllabus_heading") or "Syllabus",
+                "placement": raw.get("placement_heading") or "Placement & Certificate",
+                "jobs": raw.get("jobs_heading") or "Job Profiles After Graduation",
+                "faqs": raw.get("faqs_heading") or "Frequently Asked Questions",
+            },
 
             # --- SEO ---
             "seo_title": raw.get("seo_title", ""),
@@ -157,6 +167,7 @@ class CourseTransformer(BaseTransformer):
                 (naac and f"NAAC {naac}", "Accreditation"),
                 (ugc_display, "Approval"),
                 (self.format_fee(total_fee_val), "Total Fee"),
+                (self.format_fee(raw.get("starting_fee")), "Starting Fee"),
                 (str(raw.get("num_specializations", "")), "Specializations"),
             ]),
 
@@ -165,7 +176,7 @@ class CourseTransformer(BaseTransformer):
                 ("about", "About", about_content_val),
                 ("highlights", "Highlights", highlights),
                 ("accreditations", "Accreditations", naac or ugc_display),
-                ("specializations", "Specializations", my_specs),
+                ("specializations", "Specializations", my_specs or raw.get("specializations_intro")),
                 ("fees", "Fee Structure", raw.get("fee_plans")),
                 ("eligibility", "Eligibility", eligibility_content),
                 ("admission", "Admission", admission_steps_val),
@@ -196,11 +207,12 @@ class CourseTransformer(BaseTransformer):
 
             # Specializations grid — from DB if available
             "specializations": {
-                "intro": raw.get("specializations_intro", "Choose your specialization at the start of year two."),
+                "intro": raw.get("specializations_intro", ""),
                 "items": spec_items
-            } if spec_items else None,
+            } if (spec_items or raw.get("specializations_intro")) else None,
 
             "eligibility": eligibility_content,
+            "eligibility_summary": self.clean_str(raw.get("eligibility_summary")),
 
             # Fees
             "fees": {
@@ -219,7 +231,8 @@ class CourseTransformer(BaseTransformer):
             "placement": {
                 "content": placement_content,
                 "certificate": certificate_description,
-            } if (placement_content or certificate_description) else None,
+                "validity": self.clean_str(raw.get("validity")),
+            } if (placement_content or certificate_description or self.clean_str(raw.get("validity"))) else None,
 
             # Sticky bar
             "sticky_bar": {

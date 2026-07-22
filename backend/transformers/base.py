@@ -86,12 +86,16 @@ class BaseTransformer(ABC):
         for item in reviews:
             if not isinstance(item, dict):
                 continue
-            parsed = self.build_reviewer(item.get("reviewer_label", ""))
+            reviewer_name = self.clean_str(item.get("reviewer_name"))
+            reviewer_label = self.clean_str(item.get("reviewer_label")) or ""
+            parsed = self.build_reviewer(reviewer_label)
+            name = reviewer_name or parsed["name"]
+            role = reviewer_label if reviewer_name else parsed["role"]
             enriched.append({
                 "q": item.get("review_text", ""),
-                "name": parsed["name"],
-                "role": parsed["role"],
-                "initial": parsed["initial"]
+                "name": name,
+                "role": role,
+                "initial": name[0].upper() if name else ""
             })
         return enriched
 
@@ -120,7 +124,7 @@ class BaseTransformer(ABC):
         # Ensure ₹ prefix
         if not clean.startswith("₹"):
             clean = f"₹{clean}"
-        return f"No-cost EMI from approximately {clean} · Semester-wise payment lets you start with just ₹50,000."
+        return f"EMI from {clean}."
 
     @abstractmethod
     def transform(self) -> dict:

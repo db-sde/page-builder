@@ -30,7 +30,7 @@ class UniversityTransformer(BaseTransformer):
                 ]
 
         naac = self.resolve("naac_grade")
-        ugc = self.resolve("ugc_status")
+        ugc = self.resolve("ugc_approved") or self.resolve("ugc_status")
         nirf = self.resolve("nirf_rank")
         uni_name = self.resolve("university_name", "")
         uni_full_name = self.resolve("university_full_name", "")
@@ -60,6 +60,7 @@ class UniversityTransformer(BaseTransformer):
         placement_content = self.resolve("placement_content")
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
+        faculty_members = self.resolve_list("faculty_members")
 
         hero_image_alt = self.resolve("hero_image_alt", "")
         if not hero_image_alt:
@@ -71,6 +72,21 @@ class UniversityTransformer(BaseTransformer):
             "og_image_url": self.resolve("og_image_url") or self.resolve("hero_image_url"),
             "naac_grade": naac,
             "ugc_approved": ugc,
+            "established_year": established_year,
+            "headings": {
+                "about": raw.get("about_heading") or f"About {uni_name}",
+                "why_choose": raw.get("why_choose_heading") or f"Why Choose {uni_name}?",
+                "facts": raw.get("facts_heading") or "Quick Facts",
+                "accreditations": raw.get("accreditations_heading") or "Accreditations & Rankings",
+                "programs": raw.get("programs_heading") or "Explore Our Online Programs",
+                "admission": raw.get("admission_heading") or "Admission Process",
+                "emi": raw.get("emi_heading") or "Financial Assistance & EMI Options",
+                "exam": raw.get("exam_heading") or "Examination Process",
+                "faculty": raw.get("faculty_heading") or "Faculty Members",
+                "placement": raw.get("placement_heading") or "Placement & Career Services",
+                "reviews": raw.get("reviews_heading") or "Student Testimonials",
+                "faqs": raw.get("faqs_heading") or "Frequently Asked Questions",
+            },
 
             # --- SEO ---
             "seo_title": raw.get("seo_title", ""),
@@ -133,6 +149,10 @@ class UniversityTransformer(BaseTransformer):
             "why_choose": why_choose_content,
             "facts": facts or None,
             "accreditations": accreditations or None,
+            "faculty_intro": self.resolve("faculty_intro"),
+            "faculty_members": faculty_members or None,
+            "programs_intro": self.resolve("programs_intro"),
+            "admission_fee_note": self.clean_str(raw.get("admission_fee_note")),
 
             # Programs table — from DB if courses exist, fallback to raw table
             "programs": {

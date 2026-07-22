@@ -104,6 +104,8 @@ def _get_workspace_course_slugs(university_slug: str) -> list[str]:
 
 
 def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None, dict]:
+    import re
+
     # Check if this is a wrapped record (has a "payload" or "data" field)
     if "payload" in payload and isinstance(payload["payload"], dict):
         data = payload["payload"].copy()
@@ -128,6 +130,12 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
     for k in ["slug", "page_type", "university_slug", "parent_slug"]:
         data.pop(k, None)
 
+    # The Content Publisher carries page type inside its tracking envelope.
+    # Keep the envelope in stored source data, but use it for routing.
+    publisher_meta = data.get("_meta")
+    if not page_type and isinstance(publisher_meta, dict):
+        page_type = publisher_meta.get("page_type")
+
     # If page_type is not provided, derive it
     if not page_type:
         if "spec_name" in data:
@@ -143,14 +151,21 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
 
     # If university_slug is not provided, derive it
     if not university_slug:
-        uni_name = data.get("university_name") or data.get("university_full_name") or "unknown"
-        university_slug = uni_name.lower().replace(" online", "").replace("'", "").replace(" ", "-").strip()
+        linked_university = data.get("linked_university")
+        if isinstance(linked_university, dict):
+            university_slug = linked_university.get("slug")
+        elif isinstance(linked_university, str):
+            university_slug = linked_university.strip()
+        if university_slug and not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", university_slug):
+            university_slug = None
+        if not university_slug:
+            uni_name = data.get("university_name") or data.get("university_full_name") or "unknown"
+            university_slug = uni_name.lower().replace(" online", "").replace("'", "").replace(" ", "-").strip()
 
     # If slug is not provided, derive it
     if not slug:
         name = data.get("spec_name") or data.get("program_name") or data.get("university_name") or data.get("hero_title") or data.get("title")
         if name:
-            import re
             clean_name = name.lower().replace(" ", "-").replace("_", "-")
             clean_name = re.sub(r"[^a-z0-9\-]", "", clean_name)
             clean_name = re.sub(r"-+", "-", clean_name)
@@ -166,7 +181,18 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
         # 1. Check if it was embedded in the data block
         parent_slug = data.get("parent_slug")
 
-        # 2. If still missing, use heuristic detection against workspace course slugs
+        # 2. Reuse an explicit publisher relationship when it identifies an
+        # existing workspace course. Unknown IDs remain untouched in source
+        # data and are resolved by the editor instead of being guessed.
+        linked_course = data.get("linked_course")
+        if isinstance(linked_course, dict):
+            linked_course = linked_course.get("slug")
+        if isinstance(linked_course, str) and linked_course.strip():
+            candidate = linked_course.strip()
+            if candidate in _get_workspace_course_slugs(university_slug):
+                parent_slug = candidate
+
+        # 3. If still missing, use heuristic detection against workspace course slugs
         if not parent_slug and university_slug and slug:
             known_courses = _get_workspace_course_slugs(university_slug)
             parent_slug = _heuristic_detect_parent(slug, university_slug, known_courses)
@@ -205,6 +231,11 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
             if "title" in data["hero"] and isinstance(data["hero"]["title"], str) and data["hero"]["title"].strip():
                 data["hero"]["title"] = normalize_specialization_name(data["hero"]["title"], parent_program_name, uni_name)
 
+
+    # Apply the same schema adapter to pasted JSON, preview requests and saved
+    # workspace data—not only to DOCX responses from the Micro App.
+    from ingestion.adapter import adapt_schema
+    data = adapt_schema(data, page_type)
 
     return slug, page_type, university_slug, parent_slug, data
 
@@ -889,9 +920,10 @@ async def parse_docx_endpoint(
                     result["payload"] = merged_payload
                     result["validation_warnings"] = warnings
 
-        # Collect table warnings from cleaned_blocks
+        # Collect table warnings from blocks or cleaned_blocks
         table_warnings = []
-        for b in cleaned_blocks:
+        target_blocks = cleaned_blocks if is_blog_or_generic else blocks
+        for b in target_blocks:
             if b.get("type") == "table" and b.get("warning"):
                 info = b.get("warning_info") or {}
                 table_warnings.append({
@@ -1174,6 +1206,34 @@ class SaveToWorkspaceRequest(BaseModel):
     metadata_overrides: Optional[dict[str, Any]] = None
 
 
+def _missing_publish_fields(
+    page_type: str,
+    university_slug: str,
+    parent_slug: str | None,
+    acf_data: dict,
+    images: dict,
+) -> list[str]:
+    """Return only fields that cannot be omitted from a publishable page."""
+    required_by_type = {
+        "university": ["university_name"],
+        "course": ["program_name", "university_name"],
+        "specialization": ["spec_name", "university_name"],
+        "blog": ["title", "content_html"],
+    }
+    missing = [
+        field for field in required_by_type.get(page_type, [])
+        if not acf_data.get(field)
+    ]
+    if not university_slug or university_slug == "unknown":
+        missing.append("university_slug")
+    if page_type == "specialization" and not parent_slug:
+        missing.append("linked_course")
+    if page_type in {"university", "course", "specialization", "blog"}:
+        if not (images.get("hero_image_url") or acf_data.get("hero_image_url")):
+            missing.append("hero_image_url")
+    return missing
+
+
 @app.post("/save-to-workspace")
 async def save_to_workspace(req: SaveToWorkspaceRequest):
     """
@@ -1189,29 +1249,19 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         acf_data.pop("detected_specializations", None)
-        
-        # 1. Validate required images before compile/save
-        required_slots = {
-            "university": ["hero_image_url"],
-            "course": ["hero_image_url", "certificate_image_url"],
-            "specialization": ["hero_image_url"],
-            "blog": ["hero_image_url"]
-        }
-        
-        if page_type in required_slots:
-            for slot in required_slots[page_type]:
-                val_in_images = req.images.get(slot)
-                val_in_acf = acf_data.get(slot)
-                if not val_in_images and not val_in_acf:
-                    labels = {
-                        "hero_image_url": "Hero Image",
-                        "certificate_image_url": "Degree Certificate Image"
-                    }
-                    slot_name = labels.get(slot, slot.replace("_", " ").title())
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Missing required image: {slot_name}"
-                    )
+
+        # 1. Report all genuinely required user inputs in one actionable error.
+        missing_fields = _missing_publish_fields(
+            page_type, university_slug, parent_slug, acf_data, req.images
+        )
+        if missing_fields:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Missing required fields",
+                    "fields": missing_fields,
+                },
+            )
 
         # 2. Process and save base64 images to local Assets/images/ directory
         assets_dir = WORKSPACES_ROOT / university_slug / "Assets" / "images"

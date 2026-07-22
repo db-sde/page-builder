@@ -23,11 +23,11 @@ class ProgramsListingTransformer:
                 "slug": slug,
                 "href": build_public_route("course", slug, self.university_slug),
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
-                "duration": data.get("duration") or "2 Years",
-                "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
+                "duration": data.get("duration") or "",
+                "eligibility": data.get("eligibility_summary") or "",
                 "description": data.get("hero_description") or "",
                 "naac": data.get("naac_grade") or "",
-                "mode": data.get("mode") or "100% Online",
+                "mode": data.get("mode") or "",
             })
 
         return {

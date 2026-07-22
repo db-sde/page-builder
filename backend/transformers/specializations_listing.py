@@ -63,7 +63,7 @@ class SpecializationsListingTransformer:
                 "slug": sp_slug,
                 "href": build_public_route("specialization", sp_slug, self.university_slug),
                 "fee": clean_fee(data.get("total_fee") or ""),
-                "duration": data.get("duration") or "2 Years",
+                "duration": data.get("duration") or "",
                 "description": data.get("hero_description") or "",
             })
 

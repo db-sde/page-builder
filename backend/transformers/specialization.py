@@ -48,6 +48,8 @@ class SpecializationTransformer(BaseTransformer):
         about_content = self.resolve("about_content")
         highlights = self.resolve_list("highlights")
         eligibility_content = self.resolve("eligibility_content")
+        if not eligibility_content and raw.get("eligibility_summary"):
+            eligibility_content = f"<p>{raw['eligibility_summary']}</p>"
         syllabus_content = self.resolve("syllabus_content")
         exam_content = self.resolve("exam_content")
         admission_steps = self.resolve("admission_steps")
@@ -66,6 +68,20 @@ class SpecializationTransformer(BaseTransformer):
             "hero_image_url": raw.get("hero_image_url"),
             "hero_image_alt": hero_image_alt,
             "og_image_url": raw.get("og_image_url") or raw.get("hero_image_url"),
+            "headings": {
+                "about": raw.get("about_heading") or f"About {raw.get('spec_name', '')}",
+                "highlights": raw.get("highlights_heading") or "Specialization Highlights",
+                "eligibility": raw.get("eligibility_heading") or "Eligibility",
+                "fees": raw.get("fee_heading") or "Fee Structure",
+                "other_specs": raw.get("other_specs_heading") or "Compare Other Specializations",
+                "syllabus": raw.get("syllabus_heading") or "Syllabus",
+                "exam": raw.get("exam_heading") or "Examination Process",
+                "admission": raw.get("admission_heading") or "Admission Process",
+                "placement": raw.get("placement_heading") or "Placement Assistance",
+                "jobs": raw.get("jobs_heading") or "Job Profiles After Graduation",
+                "certificate": raw.get("certificate_heading") or "Degree Certification",
+                "faqs": raw.get("faqs_heading") or "Frequently Asked Questions",
+            },
 
             # --- SEO ---
             "seo_title": raw.get("seo_title", ""),
@@ -133,6 +149,7 @@ class SpecializationTransformer(BaseTransformer):
             "about": about_content,
             "highlights": highlights or None,
             "eligibility": eligibility_content,
+            "eligibility_summary": self.clean_str(raw.get("eligibility_summary")),
             "syllabus": syllabus_content,
             "exam": exam_content,
             "admission": {
@@ -163,7 +180,7 @@ class SpecializationTransformer(BaseTransformer):
                     "slug": s.get("slug")
                 }
                 for s in siblings
-            ] or None,
+            ] or raw.get("other_specs") or None,
 
             # --- Job profiles ---
             "jobs": raw.get("job_profiles") or None,

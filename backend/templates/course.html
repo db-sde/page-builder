@@ -152,7 +152,7 @@
     <main>
       {% if about %}
       <section id="about" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">About the {{ hero.title }}</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.about }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
           <input type="checkbox" id="rm-about" class="readmore-toggle">
@@ -164,7 +164,7 @@
 
       {% if highlights %}
       <section id="highlights" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Program Highlights</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.highlights }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;flex-direction:column;gap:14px">
           {% for h in highlights %}
@@ -179,7 +179,7 @@
 
       {% if accreditations %}
       <section id="accreditations" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Approvals &amp; Accreditations</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.accreditations }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="placement-cert-grid">
           {% for acc in accreditations %}
@@ -192,20 +192,20 @@
       </section>
       {% endif %}
 
-      {% if specs %}
+      {% if specializations %}
       <section id="specializations" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Specializations</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.specializations }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <p style="font-size:14.5px;margin-bottom:16px">Choose your specialization at the start of year two. Each track replaces semester 3 and 4 electives with domain-focused courses and a specialization capstone.</p>
-        {% if specs | length > 6 %}
+        {% if specializations.intro %}<p style="font-size:14.5px;margin-bottom:16px">{{ specializations.intro }}</p>{% endif %}
+        {% if specializations['items'] | length > 6 %}
         <div style="max-height:300px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#D9CFF0 transparent">
         {% endif %}
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          {% for sp in specs %}
+          {% for sp in specializations['items'] %}
             <a href="{{ sp.href }}" class="spec-card" style="display:flex;flex-direction:column;height:100%;min-height:120px;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px;font-weight:700;color:#1C1B22">{{ sp.t }}<small style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#6E6A78;margin-top:4px">{{ sp.d }}</small></a>
           {% endfor %}
         </div>
-        {% if specs | length > 6 %}
+        {% if specializations['items'] | length > 6 %}
         </div>
         {% endif %}
       </section>
@@ -227,7 +227,7 @@
 
       {% if fees %}
       <section id="fees" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Fee Structure</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.fees }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
           <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
@@ -245,9 +245,10 @@
 
       {% if eligibility %}
       <section id="eligibility" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Eligibility</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.eligibility }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="rich-content readmore-wrap">
+          {% if eligibility_summary %}<p style="font-size:14px;font-weight:700;color:#6B4FC9;margin-bottom:10px">{{ eligibility_summary }}</p>{% endif %}
           <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
           <div class="readmore-body content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
           <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
@@ -257,7 +258,7 @@
 
       {% if admission %}
       <section id="admission" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Admission Process</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.admission }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;flex-direction:column;gap:4px">
           {% for st in steps %}
@@ -267,13 +268,16 @@
             </div>
           {% endfor %}
         </div>
+        {% if admission.fee_note %}<p style="font-size:13px;color:#6E6A78;margin-top:12px">{{ admission.fee_note }}</p>{% endif %}
 
       </section>
       {% endif %}
 
+      {% if syllabus %}
       <section id="syllabus" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.syllabus }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
+        {% if syllabus_years %}
         <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
           {% for tab in syllabusTabs %}
             <button type="button" class="syllabus-tab" data-syllabus-tab="{{ loop.index0 }}" style="background:{{ tab.bg }};color:{{ tab.color }};border-color:{{ tab.border }}">{{ tab.label }}</button>
@@ -293,6 +297,9 @@
             {% endfor %}
           </div>
         {% endfor %}
+        {% else %}
+        <div class="content-body" style="font-size:14.5px">{{ syllabus | safe }}</div>
+        {% endif %}
       </section>
 
       <script>
@@ -324,10 +331,11 @@
         });
       });
       </script>
+      {% endif %}
 
       {% if placement %}
       <section id="placement" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Placement &amp; Certificate</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.placement }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% if placement.content %}
         <div class="rich-content readmore-wrap" style="margin-bottom:12px">
@@ -357,12 +365,15 @@
           </div>
         </div>
         {% endif %}
+        {% if placement.validity %}
+        <p style="font-size:13px;color:#6E6A78;margin-top:12px">{{ placement.validity }}</p>
+        {% endif %}
       </section>
       {% endif %}
 
       {% if jobs %}
       <section id="jobs" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Job Profiles After Graduation</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.jobs }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
           {% for j in jobs %}
@@ -399,7 +410,7 @@
 
       {% if faqs %}
       <section id="faq" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
-        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Frequently Asked Questions</h2>
+        <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.faqs }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% for fq in faqs %}
           <div style="border-bottom:1px solid #E9E5F2">
@@ -470,7 +481,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-text-info">{% if sticky_bar.fee %}<b style="font-size:17px">{{ sticky_bar.fee }}</b>{% endif %}{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">EMI from {{ sticky_bar.emi }}</small>{% endif %}</div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>

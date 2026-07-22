@@ -61,7 +61,7 @@ const FileIcon = () => (
 
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Selection & Creation
@@ -91,7 +91,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [building, setBuilding] = useState(false);
   const [buildResult, setBuildResult] = useState(null);
   const [buildError, setBuildError] = useState('');
-  const [buildTime, setBuildTime] = useState(null);
+  const [, setBuildTime] = useState(null);
   const [buildStatusData, setBuildStatusData] = useState(null);
 
   // Accordions & Modals inside Inspector
@@ -104,8 +104,8 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [logoFile, setLogoFile] = useState(null);
   const [faviconFile, setFaviconFile] = useState(null);
   const [defaultOgImageFile, setDefaultOgImageFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [favPreview, setFavPreview] = useState(null);
+  const [, setLogoPreview] = useState(null);
+  const [, setFavPreview] = useState(null);
   const [primaryDomain, setPrimaryDomain] = useState('');
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [brandingUploading, setBrandingUploading] = useState(false);
@@ -123,6 +123,8 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
 
   useEffect(() => {
     fetchWorkspaces();
+    // The initial fetch intentionally runs once; later refreshes are explicit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchWorkspaces() {
@@ -1342,6 +1344,5 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     </div>
   );
 }
-
 
 

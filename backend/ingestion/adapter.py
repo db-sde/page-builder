@@ -49,6 +49,16 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
 
     # 1. Page-type specific field name mappings
     if page_type == "course":
+        # The Micro App normally emits these canonical names after its alias
+        # pass. Normalize the KV aliases as well so direct/intermediate imports
+        # cannot create two competing fields.
+        if not adapted.get("ugc_status") and adapted.get("ugc_approved"):
+            adapted["ugc_status"] = adapted["ugc_approved"]
+        adapted.pop("ugc_approved", None)
+        if not adapted.get("mode") and adapted.get("mode_of_learning"):
+            adapted["mode"] = adapted["mode_of_learning"]
+        adapted.pop("mode_of_learning", None)
+
         # program_name / course_name normalization
         c_name = adapted.get("course_name")
         p_name = adapted.get("program_name")
@@ -63,6 +73,13 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
             adapted["total_fee"] = adapted["fee"]
 
     elif page_type == "specialization":
+        if not adapted.get("ugc_status") and adapted.get("ugc_approved"):
+            adapted["ugc_status"] = adapted["ugc_approved"]
+        adapted.pop("ugc_approved", None)
+        if not adapted.get("mode") and adapted.get("mode_of_learning"):
+            adapted["mode"] = adapted["mode_of_learning"]
+        adapted.pop("mode_of_learning", None)
+
         # spec_name / specialization_name / title mapping
         s_name = adapted.get("specialization_name") or adapted.get("title")
         if s_name and not adapted.get("spec_name"):
@@ -73,6 +90,13 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
             adapted["total_fee"] = adapted["fees"]
 
     elif page_type == "university":
+        if not adapted.get("ugc_approved") and adapted.get("ugc_status"):
+            adapted["ugc_approved"] = adapted["ugc_status"]
+        adapted.pop("ugc_status", None)
+        if not adapted.get("mode_of_learning") and adapted.get("mode"):
+            adapted["mode_of_learning"] = adapted["mode"]
+        adapted.pop("mode", None)
+
         # university_name / university_full_name mapping
         if adapted.get("university_full_name") and not adapted.get("university_name"):
             adapted["university_name"] = adapted["university_full_name"]

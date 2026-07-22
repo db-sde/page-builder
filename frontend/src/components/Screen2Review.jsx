@@ -21,6 +21,17 @@ const IMAGE_SLOTS = {
   ],
 };
 
+const JSON_FIELDS = new Set([
+  '_meta', 'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
+  'accreditations', 'facts', 'programs_table', 'faculty_members', 'other_specs',
+]);
+
+const LONG_TEXT_FIELDS = new Set([
+  'about_content', 'why_choose_content', 'eligibility_content', 'admission_steps',
+  'syllabus_content', 'placement_content', 'emi_content', 'exam_content',
+  'certificate_description',
+]);
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 /** Convert the fields state (all strings) to a proper acf_data dict. */
@@ -56,15 +67,18 @@ function initFields(acf_data, page_type) {
   for (const field of schema) {
     if (excludedKeys.includes(field.key)) continue;
     const v = acf_data[field.key];
-    out[field.key] = isPlaceholder(v) ? '' : String(v);
+    out[field.key] = isPlaceholder(v)
+      ? ''
+      : (typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v));
   }
 
   // 2. Add other fields present in acf_data not in schema
   for (const [k, v] of Object.entries(acf_data)) {
     if (excludedKeys.includes(k)) continue;
     if (schemaKeys.includes(k)) continue;
-    if (typeof v === 'object' && v !== null) continue; // exclude structured fields
-    out[k] = isPlaceholder(v) ? '' : String(v);
+    out[k] = isPlaceholder(v)
+      ? ''
+      : (typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v));
   }
 
   return out;
@@ -209,17 +223,12 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     setModalField(field);
   };
 
-  const JSON_ARRAY_FIELDS = [
-    'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
-    'accreditations', 'facts', 'programs_table', 'posts', 'categories',
-    'programs_list', 'other_specs'
-  ];
-
   const handleSaveField = (key, rawValue) => {
-    if (JSON_ARRAY_FIELDS.includes(key)) {
+    if (JSON_FIELDS.has(key)) {
       // Parse and store directly in session.acf_data as a real array
       try {
         const parsed = JSON.parse(rawValue);
+        setFields(f => ({ ...f, [key]: JSON.stringify(parsed, null, 2) }));
         updateSession({
           acf_data: { ...session.acf_data, [key]: parsed }
         });
@@ -239,9 +248,9 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     setError('');
     
     // Check validation of required images before proceeding
-    const requiredImages = {
-      university: ['hero_image_url'],
-      course: ['hero_image_url', 'certificate_image_url'],
+      const requiredImages = {
+        university: ['hero_image_url'],
+        course: ['hero_image_url'],
       specialization: ['hero_image_url'],
       blog: ['hero_image_url'],
     };
@@ -636,16 +645,32 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
                       <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>{key}</label>
                       {isRequired && <span style={{ fontSize: 11, color: '#c53030', fontWeight: 800 }}>Required</span>}
                     </div>
-                    <input
-                      className="input"
-                      value={val}
-                      onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                      style={{ 
-                        width: '100%',
-                        borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
-                        background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
-                      }}
-                    />
+                    {(JSON_FIELDS.has(key) || LONG_TEXT_FIELDS.has(key)) ? (
+                      <textarea
+                        className="input"
+                        rows={JSON_FIELDS.has(key) ? 8 : 4}
+                        value={val}
+                        onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          resize: 'vertical',
+                          fontFamily: JSON_FIELDS.has(key) ? 'var(--font-code)' : undefined,
+                          borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
+                          background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
+                        }}
+                      />
+                    ) : (
+                      <input
+                        className="input"
+                        value={val}
+                        onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
+                          background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
+                        }}
+                      />
+                    )}
                     {isFieldEmpty && (
                       <div style={{ 
                         color: isRequired ? '#c53030' : '#b45309', 

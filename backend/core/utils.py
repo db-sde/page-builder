@@ -100,6 +100,17 @@ def normalize_specialization_name(raw_name: str, parent_program_name: str, unive
     name = re.sub(r"\s+", " ", name)
     parent = re.sub(r"\s+", " ", parent)
 
+    # A publisher payload may already contain only the specialization name
+    # (for example, "Banking & Insurance"). In that case there is no course
+    # prefix to remove. Continuing into parent-token stripping would erase
+    # legitimate words that also appear in a parent course title.
+    prefix_tokens = (
+        r"\b(online|mba|emba|bba|mca|bca|pgdm|pgdbm|bsc|msc|btech|mtech|"
+        r"specialization|specialisation|program|course|track|pathway)\b"
+    )
+    if not re.search(prefix_tokens, name, flags=re.IGNORECASE):
+        return name
+
     # 2. Generate candidates to remove from the specialization name
     candidates = set()
 

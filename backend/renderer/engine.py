@@ -791,12 +791,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for f in fee_plans
     ]
-    if not fee_list:
-        fee_list = [
-            {"plan": "Semester-wise", "amt": "₹50,000 / semester", "total": "₹2,00,000", "bg": "#fff"},
-            {"plan": "Annual", "amt": "₹96,000 / year", "total": "₹1,92,000", "bg": "#F6F4FB"},
-            {"plan": "One-time (Full Program)", "amt": "₹1,80,000 once", "total": "₹1,80,000", "bg": "#fff"}
-        ]
     ctx["fees_json"] = json.dumps(fee_list, ensure_ascii=False)
     
     # 6. Admission Steps
@@ -805,13 +799,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         steps_raw = resolve_field(raw_dict, knowledge, "admission_steps")
         if steps_raw:
             steps_list = parse_admission_html(steps_raw)
-        else:
-            steps_list = [
-                {"n": "1", "t": "Register on the university portal and verify your mobile number."},
-                {"n": "2", "t": "Complete the application form and choose Online MBA with your preferred specialization."},
-                {"n": "3", "t": "Upload graduation marksheets, photo ID and a passport-size photograph."},
-                {"n": "4", "t": "Pay the first installment online — enrollment and LMS access follow within 7 working days."}
-            ]
     ctx["steps_json"] = json.dumps(steps_list, ensure_ascii=False)
     
     # 7. Job profiles
@@ -833,15 +820,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for j in jobs_raw
     ]
-    if not job_list:
-        job_list = [
-            {"t": "Marketing Manager", "s": "₹12.5 LPA"},
-            {"t": "Financial Analyst", "s": "₹9.8 LPA"},
-            {"t": "HR Business Partner", "s": "₹10.2 LPA"},
-            {"t": "Operations Manager", "s": "₹11.4 LPA"},
-            {"t": "Business Analyst", "s": "₹10.8 LPA"},
-            {"t": "Product Manager", "s": "₹16.5 LPA"}
-        ]
     ctx["jobs_json"] = json.dumps(job_list, ensure_ascii=False)
     
     # 8. Reviews
@@ -859,16 +837,13 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     review_list = [
         {
             "q": r.get("q") or r.get("review_text", ""),
-            "a": r.get("a") or r.get("reviewer_label", "")
+            "a": r.get("a") or ", ".join(filter(None, [
+                r.get("name") or r.get("reviewer_name", ""),
+                r.get("role") or r.get("reviewer_label", ""),
+            ]))
         }
         for r in reviews_raw
     ]
-    if not review_list:
-        review_list = [
-            {"q": "\"Weekend live classes fit perfectly around my job. The electives were genuinely hands-on.\"", "a": "— Sneha Kulkarni, Online MBA (2024)"},
-            {"q": "\"The capstone project with an industry mentor was the highlight — it became the centerpiece of my promotion case.\"", "a": "— Rohit Verma, Online MBA (2023)"},
-            {"q": "\"Transparent fees, easy EMI, responsive support team. Exactly what I needed as a working parent.\"", "a": "— Deepa Krishnan, Online MBA (2025)"}
-        ]
     ctx["reviews_json"] = json.dumps(review_list, ensure_ascii=False)
     
     # 9. FAQs
@@ -892,35 +867,10 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for f in faqs_raw
     ]
-    if not faq_list:
-        faq_list = [
-            {"q": "Is the Online MBA equivalent to a regular MBA?", "a": "Yes. Under UGC regulations, online degrees from entitled universities are equivalent to on-campus degrees for employment and higher education.", "sign": "+", "disp": "none"},
-            {"q": "When can I choose my specialization?", "a": "Specializations are selected at the end of year one, before semester 3 begins.", "sign": "+", "disp": "none"},
-            {"q": "How are exams conducted?", "a": "Term-end exams are online and remotely proctored. Internal assignments contribute 30% and term-end exams 70% of your grade.", "sign": "+", "disp": "none"},
-            {"q": "Is there any campus immersion?", "a": "Campus immersion is optional. Convocation is held on-campus, but no visit is mandatory.", "sign": "+", "disp": "none"},
-            {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission.", "sign": "+", "disp": "none"}
-        ]
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
  
     # 10. Syllabus Semester 1 & 2 / Semester 3 & 4
     syllabus_years = parse_syllabus_html(ctx.get("syllabus") or resolve_field(raw_dict, knowledge, "syllabus_content", ""))
-    if not syllabus_years:
-        syllabus_years = [
-            {
-                "label": "Year I",
-                "semesters": [
-                    { "title": "Semester I", "subjects": ["Management Theory & Practice", "Organisational Behaviour", "Marketing Management", "Business Economics", "Financial Accounting & Analysis", "Information Systems for Managers"] },
-                    { "title": "Semester II", "subjects": ["Business Communication", "Essentials of HRM", "Business Law", "Strategic Management", "Operations Management", "Decision Science & Analytics"] }
-                ]
-            },
-            {
-                "label": "Year II",
-                "semesters": [
-                    { "title": "Semester III (Specialization Electives)", "subjects": ["Specialization Course I", "Specialization Course II", "Specialization Course III", "Research Methodology", "International Business", "Cost & Management Accounting"] },
-                    { "title": "Semester IV (Specialization + Capstone)", "subjects": ["Specialization Course IV", "Specialization Course V", "Business Ethics & CSR", "Entrepreneurship", "Capstone Project"] }
-                ]
-            }
-        ]
     ctx["syllabus_years_json"] = json.dumps(syllabus_years, ensure_ascii=False)
  
     # Specialization specific other specs list
@@ -932,18 +882,19 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     stat_value = stat_card.get("value") or ""
     current_slug = ctx.get("slug") or ""
     
-    other_specs_list.append({
-        "name": hero_title,
-        "fee": clean_fee(stat_value),
-        "cur": True,
-        "href": "",
-        "slug": current_slug
-    })
+    if siblings:
+        other_specs_list.append({
+            "name": hero_title,
+            "fee": clean_fee(stat_value),
+            "cur": True,
+            "href": "",
+            "slug": current_slug
+        })
     for s in siblings:
         sibling_slug = s.get("slug") or ""
         other_specs_list.append({
-            "name": s.get("name") or "",
-            "fee": clean_fee(s.get("fee") or ""),
+            "name": s.get("name") or s.get("other_spec_name") or "",
+            "fee": clean_fee(s.get("fee") or s.get("other_spec_fee") or ""),
             "cur": False,
             "href": build_public_route("specialization", sibling_slug, uni_slug) if sibling_slug else "",
             "slug": sibling_slug,
@@ -954,22 +905,12 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             other_specs_list = [
                 {
                     "name": s.get("name") or s.get("other_spec_name") or "",
-                    "fee": clean_fee(s.get("fee") or ""),
+                    "fee": clean_fee(s.get("fee") or s.get("other_spec_fee") or ""),
                     "cur": False,
                     "href": build_public_route("specialization", s.get("slug"), uni_slug) if s.get("slug") else "",
                     "slug": s.get("slug") or ""
                 }
                 for s in other_specs_list
-            ]
-        else:
-            other_specs_list = [
-                {"name": "Marketing Management", "fee": "₹2,00,000", "cur": True, "href": "", "slug": ""},
-                {"name": "Financial Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Human Resource Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Operations & Supply Chain", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Business Analytics", "fee": "₹2,16,000", "cur": False, "href": "", "slug": ""},
-                {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
             ]
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
     other_specs_formatted = []
@@ -978,7 +919,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         name = f"{item['name']} (you are here)" if cur else item["name"]
         other_specs_formatted.append({
             "name": name,
-            "fee": item.get("fee") or "Contact for fee",
+            "fee": item.get("fee") or "",
             "cur": cur,
             "href": item.get("href") or "",
             "bg": "#FFF0EB" if cur else ("#F6F4FB" if i % 2 == 1 else "#fff"),
@@ -994,18 +935,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
  
     # University specific features, recruiters, financing, testimonials
     features_list = resolve_list(raw_dict, knowledge, "features")
-    if not features_list:
-        features_list = [
-            {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
-            {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
-            {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
-            {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
-        ]
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
     
     recruiters_list = resolve_list(raw_dict, knowledge, "recruiters")
-    if not recruiters_list:
-        recruiters_list = ["Tata", "Indiamart", "Wockhardt", "Zalaris", "Milkbasket", "Shopx"]
     ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
     
     # testimonials is reviews mapped for homepage
@@ -1014,24 +946,16 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         testimonials.append({
             "q": r["q"],
             "name": r["a"].replace("—", "").split(",")[0].strip(),
-            "role": r["a"].replace("—", "").split(",")[1].strip() if "," in r["a"] else "Online MBA",
+            "role": r["a"].replace("—", "").split(",")[1].strip() if "," in r["a"] else "",
             "initial": r["a"].replace("—", "").strip()[0].upper() if r["a"] else "S"
         })
     ctx["testimonials_json"] = json.dumps(testimonials, ensure_ascii=False)
     
     # financing for homepage
     financing_list = resolve_list(raw_dict, knowledge, "financing")
-    if not financing_list:
-        financing_list = [
-            {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
-            {"stat": "3–12 months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
-            {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
-        ]
     ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
     
     banks_list = resolve_list(raw_dict, knowledge, "banks")
-    if not banks_list:
-        banks_list = ['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra']
     ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
 
     # Programs list for homepage (enriched from workspace courses if available)
@@ -1052,21 +976,33 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             uni_programs.append({
                 "level": level,
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
-                "dur": data.get("duration") or "2 Years · 4 Sem",
-                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or "") or "₹2,00,000",
+                "dur": data.get("duration") or "",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
                 "feeUnit": "total course",
-                "d": data.get("hero_description") or "Industry-aligned specializations, taught by expert faculty.",
+                "d": data.get("hero_description") or "",
                 "href": build_public_route("course", slug, uni_slug),
                 "featured": i == 0,
-                "mode": data.get("mode") or "100% Online",
+                "mode": data.get("mode") or "",
+            })
+    elif raw_dict.get("programs_table"):
+        uni_programs = []
+        for p in raw_dict["programs_table"]:
+            if not isinstance(p, dict):
+                continue
+            uni_programs.append({
+                "level": "Program",
+                "name": p.get("program_name") or "",
+                "dur": "",
+                "fee": clean_fee(p.get("program_fee") or ""),
+                "feeUnit": "total course",
+                "elig": p.get("program_eligibility") or "",
+                "d": p.get("program_eligibility") or "",
+                "href": ctx["programs_listing_href"],
+                "featured": False,
+                "mode": resolve_field(raw_dict, knowledge, "mode_of_learning", ""),
             })
     else:
-        dur_val = resolve_field({}, knowledge, "duration", "2 Years · 4 Sem")
-        fee_val = (ctx.get("sticky_bar") or {}).get("fee") or clean_fee(resolve_field({}, knowledge, "starting_fee", "")) or "₹2,00,000"
-        mode_val = resolve_field({}, knowledge, "mode", "100% Online")
-        uni_programs = [
-            {"level": "Postgraduate", "name": "Online MBA", "dur": dur_val, "fee": fee_val, "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": mode_val}
-        ]
+        uni_programs = []
 
     # Map mk(p) styling attributes for homepage cards
     for p in uni_programs:
@@ -1093,10 +1029,10 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": slug,
             "href": build_public_route("course", slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
-            "duration": data.get("duration") or "2 Years",
-            "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
+            "duration": data.get("duration") or "",
+            "eligibility": data.get("eligibility_summary") or "",
             "description": data.get("hero_description") or "",
-            "mode": data.get("mode") or "100% Online",
+            "mode": data.get("mode") or "",
         })
     ctx["programs_list_json"] = json.dumps(programs_list_data, ensure_ascii=False)
 
@@ -1122,7 +1058,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": sp_slug,
             "href": build_public_route("specialization", sp_slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or ""),
-            "duration": data.get("duration") or "2 Years",
+            "duration": data.get("duration") or "",
             "description": data.get("hero_description") or "",
         })
     ctx["spec_groups_json"] = json.dumps(list(spec_groups_map.values()), ensure_ascii=False)
@@ -1151,13 +1087,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "image": img_url,
                 "hero_image_url": img_url,
             })
-    else:
-        # Demo fallback — only shown when workspace contains no blogs
-        blog_posts = [
-            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
-            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
-            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": "", "hero_image_url": ""},
-        ]
     ctx["posts"] = blog_posts[:3]
     ctx["blog_posts"] = blog_posts
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)

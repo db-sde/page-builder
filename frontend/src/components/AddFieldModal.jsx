@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
 // Fields that must be entered as a JSON array
-const JSON_FIELDS = new Set([]);
+const JSON_FIELDS = new Set([
+  '_meta', 'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
+  'accreditations', 'facts', 'programs_table', 'faculty_members', 'other_specs',
+]);
 
 // Fields that accept long HTML content
 const HTML_FIELDS = new Set([
@@ -11,6 +14,17 @@ const HTML_FIELDS = new Set([
 ]);
 
 const PLACEHOLDERS = {
+  _meta:                 '{\n  "document_title": "",\n  "page_type": "",\n  "generated_by": "DegreeBaba Content Publisher"\n}',
+  highlights:            '[]',
+  fee_plans:             '[]',
+  job_profiles:          '[]',
+  faqs:                  '[]',
+  reviews:               '[]',
+  accreditations:        '[]',
+  facts:                 '[]',
+  programs_table:        '[]',
+  faculty_members:       '[]',
+  other_specs:           '[]',
   // HTML
   about_content:         '<p>Write the about section content here. Describe the program\'s highlights, history, and value proposition.</p>',
   eligibility_content:   '<p>A bachelor\'s degree with minimum 50% aggregate marks from a UGC-recognised university. Working professionals and fresh graduates are both eligible.</p>',

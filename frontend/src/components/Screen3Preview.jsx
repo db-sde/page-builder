@@ -217,6 +217,14 @@ function ImagePreviewPanel({ session }) {
   );
 }
 
+function apiErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+  if (detail && typeof detail === 'object' && Array.isArray(detail.fields)) {
+    return `${detail.message || 'Missing required fields'}: ${detail.fields.join(', ')}`;
+  }
+  return error.response?.data?.error || detail || error.message || fallback;
+}
+
 export default function Screen3Preview({ session, onBack }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewWidth, setPreviewWidth] = useState('100%');
@@ -288,7 +296,7 @@ export default function Screen3Preview({ session, onBack }) {
         setWorkspaceError(result.error || 'Unknown error saving to workspace.');
       }
     } catch (e) {
-      setWorkspaceError(e.response?.data?.error || e.message || String(e));
+      setWorkspaceError(apiErrorMessage(e, 'Failed to save to workspace.'));
     } finally {
       setWorkspaceSaving(false);
     }
@@ -309,7 +317,7 @@ export default function Screen3Preview({ session, onBack }) {
         setBuildError(result.error || 'Build failed with no output.');
       }
     } catch (e) {
-      setBuildError(e.response?.data?.error || e.message || String(e));
+      setBuildError(apiErrorMessage(e, 'Website build failed.'));
     } finally {
       setBuilding(false);
     }
