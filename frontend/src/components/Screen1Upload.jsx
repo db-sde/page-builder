@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { parseDocx, saveTempJson } from '../api';
+import { parseDocx, saveDraft, saveTempJson } from '../api';
 
 export default function Screen1Upload({ session, updateSession, onNext }) {
   const [activeTab, setActiveTab] = useState('docx'); // 'docx' or 'json'
@@ -14,7 +14,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = (acf_data, detectedType, validationWarnings = [], tableWarnings = [], sourceFileName = '') => {
+  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], sourceFileName = '') => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType || pageType;
     
@@ -88,6 +88,14 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     delete data.university_slug;
     delete data.parent_slug;
 
+    await saveDraft({
+      ...data,
+      slug,
+      page_type,
+      university_slug,
+      parent_slug,
+    });
+
     updateSession({
       acf_data: data,
       slug,
@@ -100,7 +108,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     onNext();
   };
 
-  const handleNextJson = () => {
+  const handleNextJson = async () => {
     setError('');
     let parsed;
     try {
@@ -112,7 +120,11 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     
     let payload = parsed.payload || parsed.data || parsed;
     let page_type = parsed.page_type || parsed._meta?.page_type || null;
-    processPayload(payload, page_type);
+    try {
+      await processPayload(payload, page_type);
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Could not create a draft. Please try again.');
+    }
   };
 
   const handleNextDocx = async () => {
@@ -133,7 +145,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         throw new Error('Failed to parse document or empty payload returned.');
       }
       await saveTempJson(res);
-      processPayload(res.payload, res.page_type || pageType, res.validation_warnings || [], res.table_warnings || [], file.name);
+      await processPayload(res.payload, res.page_type || pageType, res.validation_warnings || [], res.table_warnings || [], file.name);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || err.message || 'Error occurred while calling the parser API.');
@@ -356,7 +368,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
             disabled={!file || !pageType || parsing}
             className="btn btn-primary btn-lg"
           >
-            {parsing ? 'Parsing Document…' : 'Parse & Import Document →'}
+            {parsing ? 'Creating Draft…' : 'Import & Create Draft →'}
           </button>
         ) : (
           <button

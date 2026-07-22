@@ -10,7 +10,10 @@ import {
   uploadBranding, 
   getWorkspacePage, 
   deletePage, 
-  deleteWorkspace 
+  deleteWorkspace,
+  listDrafts,
+  getDraft,
+  deleteDraft,
 } from '../api';
 
 // Helper for relative timestamps ("Last built 5 mins ago")
@@ -70,6 +73,8 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [workspaces, setWorkspaces] = useState([]);
   const [, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [drafts, setDrafts] = useState([]);
+  const [draftsLoading, setDraftsLoading] = useState(false);
   
   // Selection & Creation
   const [selectedSlug, setSelectedSlug] = useState(session.workspace?.slug || '');
@@ -174,6 +179,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     if (selectedSlug) {
       loadTree(selectedSlug);
       loadBuildStatus(selectedSlug);
+      loadDraftList(selectedSlug);
       const activeWorkspace = workspaces.find(w => (typeof w === 'string' ? w : w.slug) === selectedSlug);
       if (activeWorkspace) {
         queueMicrotask(() => {
@@ -193,6 +199,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         setTreeData(null);
         setBuildResult(null);
         setBuildError('');
+        setDrafts([]);
         setPrimaryDomain('');
         setIsUnsaved(false);
       });
@@ -235,6 +242,18 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     } catch (err) {
       console.warn('Failed to load build status', err);
       setBuildStatusData({ exists: false });
+    }
+  }
+
+  async function loadDraftList(slug) {
+    setDraftsLoading(true);
+    try {
+      const result = await listDrafts(slug);
+      setDrafts(result.drafts || []);
+    } catch {
+      setDrafts([]);
+    } finally {
+      setDraftsLoading(false);
     }
   }
 
@@ -368,6 +387,38 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     }
   };
 
+  const handleContinueDraft = async (draftSummary) => {
+    try {
+      setError('');
+      const draft = await getDraft(selectedSlug, draftSummary.page_type, draftSummary.slug);
+      updateSession({
+        workspace: selectedWorkspace,
+        university_slug: selectedSlug,
+        slug: draft.slug,
+        page_type: draft.page_type,
+        parent_slug: draft.parent_slug,
+        acf_data: draft.data || {},
+        raw_acf_data: draft.data || {},
+        images: draft.images || {},
+      });
+      setStep(3);
+    } catch (err) {
+      const message = err.response?.data?.detail || err.message || 'Could not open this draft.';
+      addToast('error', 'Draft unavailable', message);
+    }
+  };
+
+  const handleDeleteDraft = async (draftSummary) => {
+    if (!window.confirm(`Delete the draft “${draftSummary.title}”?`)) return;
+    try {
+      await deleteDraft(selectedSlug, draftSummary.page_type, draftSummary.slug);
+      setDrafts(current => current.filter(draft => draft.slug !== draftSummary.slug || draft.page_type !== draftSummary.page_type));
+      addToast('success', 'Draft deleted', 'The draft was removed.');
+    } catch (err) {
+      addToast('error', 'Delete failed', err.message || 'Could not delete the draft.');
+    }
+  };
+
   const handleDeletePage = async (pageType, slug, parentSlug = null) => {
     setActiveMenuSlug(null);
     if (!window.confirm(`Permanently delete page "${slug}" from disk?`)) return;
@@ -427,7 +478,6 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const totalBlogs = treeData?.blogs?.length || 0;
   const totalPages = buildStatusData?.pages_compiled || (treeData ? (1 + (treeData.pages?.length || 0) + totalCourses + totalSpecs + totalBlogs) : 0);
   const totalImages = buildStatusData?.images_copied ?? 0;
-  const totalRoutes = buildStatusData?.routes_count ?? totalPages;
 
   // Folder & Course Toggles
   const toggleFolder = (folderKey) => {
@@ -666,6 +716,39 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           Download ZIP
         </button>
       </div>
+
+      {(draftsLoading || drafts.length > 0) && (
+        <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: drafts.length ? 12 : 0 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>Drafts</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Continue where you left off. Changes are saved automatically.</div>
+            </div>
+            {draftsLoading && <span style={{ fontSize: 12, color: '#64748b' }}>Loading…</span>}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+            {drafts.map(draft => (
+              <article key={`${draft.page_type}:${draft.slug}`} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '.05em' }}>Draft · {draft.page_type}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.title}</div>
+                  </div>
+                  <button type="button" onClick={() => handleDeleteDraft(draft)} aria-label={`Delete ${draft.title} draft`} style={{ border: 'none', background: 'none', color: '#94a3b8', fontSize: 15, padding: 2 }}>×</button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 11.5, color: '#64748b' }}>
+                  <span>{formatRelativeTime(draft.updated_at)}</span>
+                  <strong style={{ color: draft.readiness_percent === 100 ? '#166534' : '#92400e' }}>{draft.readiness_percent}% ready</strong>
+                </div>
+                {draft.missing_image && <div style={{ fontSize: 11.5, color: '#b45309', marginTop: 5 }}>Hero image needed</div>}
+                <button type="button" onClick={() => handleContinueDraft(draft)} style={{ width: '100%', marginTop: 10, height: 31, border: 'none', borderRadius: 6, background: '#0f172a', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                  Continue Editing
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── 3. MAIN WORKSPACE GRID (70% Explorer Panel / 30% Inspector Sidebar Panel) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 20, alignItems: 'start', marginTop: 4 }}>
@@ -1030,11 +1113,6 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Routes</span>
-                <strong>{totalRoutes}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Last Build</span>
                 <strong style={{ color: '#0f172a' }}>{formatRelativeTime(buildStatusData?.built_at)}</strong>
               </div>
@@ -1330,4 +1408,3 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     </div>
   );
 }
-

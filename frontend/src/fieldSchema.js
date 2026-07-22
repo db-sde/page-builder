@@ -171,6 +171,53 @@ export function getFieldCategory(field) {
   return field.required ? 'required' : 'optional';
 }
 
+const FIELD_PLACEHOLDERS = {
+  program_name: 'Example: Online Master of Business Administration',
+  spec_name: 'Example: MBA in Marketing Management',
+  university_name: 'Example: NMIMS Online',
+  university_full_name: 'Example: Narsee Monjee Institute of Management Studies',
+  title: 'Write a clear, specific article title.',
+  excerpt: 'Summarize the article in one or two sentences.',
+  hero_description: 'Write a 2–3 sentence introduction summarizing the page.',
+  duration: 'Example: 2 years',
+  mode: 'Example: 100% Online',
+  mode_of_learning: 'Example: Live and recorded online classes',
+  established_year: 'Example: 1981',
+  naac_grade: 'Example: A+',
+  ugc_status: 'Example: UGC Entitled',
+  ugc_approved: 'Example: UGC Approved',
+  total_fee: 'Example: ₹2,00,000 total',
+  starting_fee: 'Example: ₹50,000 per semester',
+  num_programs: 'Example: 8',
+  num_specializations: 'Example: 5',
+  about_content: 'Describe the institution or program, its history, recognition, and learning experience.',
+  why_choose_content: 'Explain why students should choose this university.',
+  specializations_intro: 'Introduce the available specializations and who they suit.',
+  programs_intro: 'Introduce the available programs and study options.',
+  eligibility_content: 'Explain the academic qualifications and other eligibility requirements.',
+  eligibility_summary: 'Example: Graduation with at least 50% marks',
+  admission_fee_note: 'Add any application fee or payment note.',
+  syllabus_content: 'Summarize the curriculum, subjects, and learning structure.',
+  exam_content: 'Explain the examination format, schedule, and evaluation process.',
+  emi_content: 'Explain available EMI, loan, or payment options.',
+  placement_content: 'Describe placement support, career services, and employer access.',
+  certificate_description: 'Explain the qualification students receive after completion.',
+  validity: 'Explain where the degree is recognized and valid.',
+  emi_amount: 'Example: ₹8,334 per month',
+  faculty_intro: 'Introduce the faculty, their experience, and teaching approach.',
+  seo_title: 'Example: NMIMS Online MBA Admission 2026 | Fees & Eligibility',
+  meta_description: 'Summarize the page for search results in about 150–160 characters.',
+  content_html: 'Write or review the complete article body.',
+  tag: 'Example: Admissions',
+  author: 'Example: DegreeBaba Editorial Team',
+  author_role: 'Example: Education Content Writer',
+  date: 'Example: 22 July 2026',
+};
+
+export function getFieldPlaceholder(field) {
+  return FIELD_PLACEHOLDERS[field.key] || `Add ${field.label.toLowerCase()}…`;
+}
+
 const PLACEHOLDER_STRINGS = [
   'na', 'n/a', 'not available', 'not applicable', 'null', 'none', 'unknown',
   '-', '--', '---', '--------------', '—'

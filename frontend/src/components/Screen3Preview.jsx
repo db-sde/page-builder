@@ -363,17 +363,17 @@ export default function Screen3Preview({ session, onBack }) {
         </div>
       </div>
 
-      {/* ── SAVE PAGE SECTION ── */}
+      {/* ── PUBLISH PAGE SECTION ── */}
       <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 20 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Save Page</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>Publish Page</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ flex: 1, minWidth: 280 }}>
             {workspaceSaving ? (
-              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Saving your changes...</p>
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Publishing the page...</p>
             ) : !workspaceSaveResult ? (
-              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>This page has not yet been saved to your workspace.</p>
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Your draft is saved. Publish when the preview is ready.</p>
             ) : (
-              <p style={{ color: 'var(--color-success)', fontSize: 14, fontWeight: 600, margin: 0 }}>✓ Saved To Workspace (Last saved successfully)</p>
+              <p style={{ color: 'var(--color-success)', fontSize: 14, fontWeight: 600, margin: 0 }}>✓ Page published successfully</p>
             )}
           </div>
           <button
@@ -390,7 +390,7 @@ export default function Screen3Preview({ session, onBack }) {
               cursor: workspaceSaving ? 'not-allowed' : 'pointer'
             }}
           >
-            {workspaceSaving ? 'Saving…' : !workspaceSaveResult ? 'Save To Workspace' : 'Save Changes'}
+            {workspaceSaving ? 'Publishing…' : !workspaceSaveResult ? 'Publish Page' : 'Publish Updates'}
           </button>
         </div>
         {workspaceError && (

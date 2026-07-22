@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getFieldPlaceholder } from '../fieldSchema';
 
 // Fields that accept long HTML content
 const HTML_FIELDS = new Set([
@@ -7,49 +8,11 @@ const HTML_FIELDS = new Set([
   'certificate_description', 'content_html',
 ]);
 
-const PLACEHOLDERS = {
-  // HTML
-  about_content:         '<p>Write the about section content here. Describe the program\'s highlights, history, and value proposition.</p>',
-  eligibility_content:   '<p>A bachelor\'s degree with minimum 50% aggregate marks from a UGC-recognised university. Working professionals and fresh graduates are both eligible.</p>',
-  admission_steps:       '<p>1. Register online at the Degreebaba portal<br>2. Fill the application form<br>3. Upload required documents<br>4. Pay first installment</p>',
-  syllabus_content:      '<p><strong>Year 1:</strong> Core management subjects including Marketing, Finance, HRM, Operations.<br><strong>Year 2:</strong> Specialization electives and capstone project.</p>',
-  placement_content:     '<p>Degreebaba Career Services offers virtual placement drives, a dedicated job board, employer webinars and one-on-one career coaching.</p>',
-  why_choose_content:    '<p>Describe why students should choose this university — legacy, rankings, industry connections, etc.</p>',
-  emi_content:           '<p>No-cost EMI from ₹8,334/month over 24 months. Education loans available via NBFC partners.</p>',
-  exam_content:          '<p>Online proctored examinations conducted at designated centres. Results published within 4 weeks of exam date.</p>',
-  certificate_description: '<p>On successful completion you receive a degree certificate identical to the on-campus program, valid for all jobs, higher studies, and government roles.</p>',
-};
-
-const DEFAULT_VALUES = {
-  program_name: 'Degreebaba Online MBA',
-  university_name: '',
-  spec_name: '',
-  hero_description: '',
-  duration: '2 Years',
-  mode: 'Online',
-  total_fee: '2,00,000',
-  naac_grade: 'A+',
-  ugc_status: 'UGC Entitled',
-  ugc_approved: 'UGC Approved',
-  seo_title: '',
-  meta_description: '',
-  emi_amount: '₹8,334/mo',
-  num_specializations: '5',
-  established_year: '1981',
-  starting_fee: '50,000',
-  num_programs: '8',
-  hero_title: '',
-  counselling_hours: 'Mon–Sat · 9 AM – 8 PM',
-  avg_response: 'Within 1 working hour',
-  admissions_status: 'Open for 2026 batch',
-};
-
 export default function AddFieldModal({ field, onSave, onClose }) {
   const isHtml = HTML_FIELDS.has(field.key);
   const isTextarea = isHtml;
 
-  const defaultVal = PLACEHOLDERS[field.key] ?? DEFAULT_VALUES[field.key] ?? '';
-  const [value, setValue] = useState(defaultVal);
+  const [value, setValue] = useState('');
   const [error, setError] = useState('');
 
   const handleSave = () => {
@@ -128,6 +91,7 @@ export default function AddFieldModal({ field, onSave, onClose }) {
             <textarea
               rows={6}
               value={value}
+              placeholder={getFieldPlaceholder(field)}
               onChange={e => setValue(e.target.value)}
               className="input"
               style={{
@@ -141,6 +105,7 @@ export default function AddFieldModal({ field, onSave, onClose }) {
             <input
               type="text"
               value={value}
+              placeholder={getFieldPlaceholder(field)}
               onChange={e => setValue(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
               className="input"

@@ -1,24 +1,25 @@
 import { useState } from 'react';
-import { diffFields } from '../fieldSchema';
+import { diffFields, getFieldCategory } from '../fieldSchema';
 
-function FieldRow({ field, missing = false, onAdd }) {
+function FieldRow({ field, missing = false, optional = false, onAdd }) {
+  const missingColor = optional ? '#2563eb' : '#c53030';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px',
       background: missing ? '#fff' : '#f8fafc', borderRadius: 8,
-      border: `1px solid ${missing ? '#fed7d7' : '#e2e8f0'}`,
+      border: `1px solid ${missing ? (optional ? '#bfdbfe' : '#fed7d7') : '#e2e8f0'}`,
     }}>
       <div style={{
         width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: missing ? '#fff5f5' : '#e7f7ee',
-        color: missing ? '#c53030' : '#1a9d57', fontWeight: 800,
+        background: missing ? (optional ? '#eff6ff' : '#fff5f5') : '#e7f7ee',
+        color: missing ? missingColor : '#1a9d57', fontWeight: 800,
       }}>
         {missing ? '!' : '✓'}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>{field.label}</div>
-        {missing && <div style={{ fontSize: 12.5, color: '#8a3a3a', marginTop: 2 }}>{field.impact}</div>}
+        {missing && <div style={{ fontSize: 12.5, color: optional ? '#64748b' : '#8a3a3a', marginTop: 2 }}>{optional ? 'Optional enhancement' : field.impact}</div>}
       </div>
       {missing && onAdd && (
         <button type="button" onClick={onAdd} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12.5 }}>
@@ -29,14 +30,17 @@ function FieldRow({ field, missing = false, onAdd }) {
   );
 }
 
-export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
+export default function FieldHealthPanel({ acf_data, page_type, onAddField, imageReady, imageLabel = 'Hero image' }) {
   const [showOptional, setShowOptional] = useState(false);
   const { present, requiredMissing, optionalMissing, templateDefaults } = diffFields(acf_data, page_type);
   const requiredPresent = present.filter(field => field.required);
   const optionalPresent = present.filter(field => !field.required);
+  const addableOptional = optionalMissing.filter(field => getFieldCategory(field) === 'optional' && field.key !== 'admission_steps');
   const requiredTotal = requiredPresent.length + requiredMissing.length;
-  const score = requiredTotal ? Math.round((requiredPresent.length / requiredTotal) * 100) : 100;
-  const ready = requiredMissing.length === 0;
+  const taskTotal = requiredTotal + 1;
+  const completedTasks = requiredPresent.length + (imageReady ? 1 : 0);
+  const score = Math.round((completedTasks / taskTotal) * 100);
+  const ready = requiredMissing.length === 0 && imageReady;
 
   if (!requiredTotal && !optionalMissing.length && !templateDefaults.length) return null;
 
@@ -51,7 +55,7 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
           <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3 }}>
             {ready
               ? 'All required content is ready. Optional enhancements do not affect publishing.'
-              : `${requiredMissing.length} required ${requiredMissing.length === 1 ? 'item needs' : 'items need'} attention.`}
+              : 'Complete the highlighted publishing tasks before publishing.'}
           </div>
         </div>
         <div style={{
@@ -62,18 +66,25 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
         </div>
       </div>
 
-      {requiredMissing.length > 0 && (
-        <div style={{ padding: '16px 24px', background: '#fff8f8', borderBottom: '1px solid #fed7d7' }}>
-          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#c53030', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>
-            Required content
-          </div>
+      <div style={{ padding: '13px 24px', background: requiredMissing.length ? '#fff8f8' : '#fff', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: requiredMissing.length ? '#c53030' : '#166534', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: requiredMissing.length ? 10 : 0 }}>
+          Required content · {requiredMissing.length ? `${requiredMissing.length} missing` : '✓ Complete'}
+        </div>
+        {requiredMissing.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {requiredMissing.map(field => (
               <FieldRow key={field.key} field={field} missing onAdd={() => onAddField(field)} />
             ))}
           </div>
+        )}
+      </div>
+
+      <div style={{ padding: '13px 24px', background: imageReady ? '#fff' : '#fffbeb', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: imageReady ? '#166534' : '#92400e', textTransform: 'uppercase', letterSpacing: '.07em' }}>
+          Images · {imageReady ? '✓ Complete' : `⚠ Missing ${imageLabel}`}
         </div>
-      )}
+        {!imageReady && <span style={{ fontSize: 12.5, color: '#92400e' }}>Add it in Image Slots below</span>}
+      </div>
 
       <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border)' }}>
         <button type="button" onClick={() => setShowOptional(value => !value)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--color-text-secondary)', fontSize: 13, fontWeight: 700 }}>
@@ -86,6 +97,7 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {optionalPresent.map(field => <FieldRow key={field.key} field={field} />)}
+              {addableOptional.map(field => <FieldRow key={field.key} field={field} missing optional onAdd={() => onAddField(field)} />)}
             </div>
           </div>
         )}
@@ -93,8 +105,8 @@ export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
 
       {templateDefaults.length > 0 && (
         <div style={{ padding: '13px 24px', background: '#f8fafc', fontSize: 12.5, color: 'var(--color-text-secondary)' }}>
-          <strong style={{ color: 'var(--color-text-primary)' }}>Template defaults:</strong>{' '}
-          Section headings are supplied automatically. They never reduce publishing readiness and can be overridden in Advanced Customization.
+          <strong style={{ color: 'var(--color-text-primary)' }}>Template defaults · Using defaults.</strong>{' '}
+          Section headings can be overridden in Advanced Customization.
         </div>
       )}
     </div>

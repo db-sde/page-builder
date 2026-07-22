@@ -48,6 +48,30 @@ export async function saveTempJson(data) {
   }
 }
 
+// ── Draft API ────────────────────────────────────────────────────────────────
+
+export async function saveDraft(acf_data, images = {}) {
+  const res = await axios.post(`${BASE}/drafts`, { acf_data, images });
+  return res.data;
+}
+
+export async function listDrafts(universitySlug) {
+  const res = await axios.get(`${BASE}/drafts`, {
+    params: { university_slug: universitySlug },
+  });
+  return res.data;
+}
+
+export async function getDraft(universitySlug, pageType, slug) {
+  const res = await axios.get(`${BASE}/drafts/${universitySlug}/${pageType}/${slug}`);
+  return res.data;
+}
+
+export async function deleteDraft(universitySlug, pageType, slug) {
+  const res = await axios.delete(`${BASE}/drafts/${universitySlug}/${pageType}/${slug}`);
+  return res.data;
+}
+
 // ── Workspace API ─────────────────────────────────────────────────────────────
 
 /**

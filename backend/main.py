@@ -416,26 +416,42 @@ async def ingest_acf(req: IngestRequest):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-# Helper to save draft preview JSON
-def save_draft_data(university_slug: str, page_type: str, slug: str, parent_slug: str | None, data: dict, images: dict):
+# Drafts use the existing preview cache format as durable editor persistence.
+def _draft_file(university_slug: str, page_type: str, slug: str) -> Path:
+    import re
+    valid_page_types = {
+        "university", "course", "specialization", "blog",
+        "programs_listing", "specializations_listing", "blog_listing",
+    }
+    slug_pattern = r"[a-z0-9]+(?:-[a-z0-9]+)*"
+    if page_type not in valid_page_types:
+        raise ValueError("Unsupported draft page type")
+    if not re.fullmatch(slug_pattern, university_slug) or not re.fullmatch(slug_pattern, slug):
+        raise ValueError("Invalid draft identifier")
     base_dir = Path(__file__).resolve().parent
-    draft_dir = base_dir / "generated" / "drafts" / university_slug / page_type
-    draft_dir.mkdir(parents=True, exist_ok=True)
-    draft_file = draft_dir / f"{slug}.json"
+    return base_dir / "generated" / "drafts" / university_slug / page_type / f"{slug}.json"
+
+
+def save_draft_data(university_slug: str, page_type: str, slug: str, parent_slug: str | None, data: dict, images: dict):
+    from datetime import datetime, timezone
+    draft_file = _draft_file(university_slug, page_type, slug)
+    draft_file.parent.mkdir(parents=True, exist_ok=True)
     draft_record = {
+        "status": "draft",
         "university_slug": university_slug,
         "page_type": page_type,
         "slug": slug,
         "parent_slug": parent_slug,
         "data": data,
-        "images": images
+        "images": images,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     draft_file.write_text(json.dumps(draft_record, indent=2, ensure_ascii=False), encoding="utf-8")
+    return draft_record
 
 # Helper to load draft preview JSON
 def load_draft_data(university_slug: str, page_type: str, slug: str) -> dict | None:
-    base_dir = Path(__file__).resolve().parent
-    draft_file = base_dir / "generated" / "drafts" / university_slug / page_type / f"{slug}.json"
+    draft_file = _draft_file(university_slug, page_type, slug)
     if draft_file.exists():
         try:
             return json.loads(draft_file.read_text(encoding="utf-8"))
@@ -443,9 +459,112 @@ def load_draft_data(university_slug: str, page_type: str, slug: str) -> dict | N
             return None
     return None
 
+
+def delete_draft_data(university_slug: str, page_type: str, slug: str) -> bool:
+    draft_file = _draft_file(university_slug, page_type, slug)
+    if not draft_file.exists():
+        return False
+    draft_file.unlink()
+    for parent in [draft_file.parent, draft_file.parent.parent]:
+        try:
+            parent.rmdir()
+        except OSError:
+            break
+    return True
+
+
+def list_draft_data(university_slug: str) -> list[dict]:
+    import re
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", university_slug):
+        raise ValueError("Invalid university identifier")
+    base_dir = Path(__file__).resolve().parent
+    university_dir = base_dir / "generated" / "drafts" / university_slug
+    if not university_dir.exists():
+        return []
+
+    required_by_type = {
+        "university": ["university_name"],
+        "course": ["program_name"],
+        "specialization": ["spec_name"],
+        "blog": ["title", "excerpt", "content_html"],
+    }
+    drafts = []
+    for path in university_dir.glob("*/*.json"):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        data = record.get("data") or {}
+        images = record.get("images") or {}
+        page_type = record.get("page_type") or path.parent.name
+        if page_type not in required_by_type:
+            continue
+        required = required_by_type.get(page_type, [])
+        completed = sum(bool(data.get(key)) for key in required)
+        has_hero = bool(images.get("hero_image_url") or data.get("hero_image_url"))
+        task_total = len(required) + 1
+        readiness = round(((completed + int(has_hero)) / task_total) * 100) if task_total else 100
+        publisher_meta = data.get("_meta") if isinstance(data.get("_meta"), dict) else {}
+        title = data.get("title") or data.get("spec_name") or data.get("program_name") or \
+            data.get("university_full_name") or data.get("university_name") or \
+            publisher_meta.get("document_title") or record.get("slug")
+        drafts.append({
+            "status": "draft",
+            "university_slug": university_slug,
+            "page_type": page_type,
+            "slug": record.get("slug") or path.stem,
+            "parent_slug": record.get("parent_slug"),
+            "title": title,
+            "updated_at": record.get("updated_at"),
+            "readiness_percent": readiness,
+            "missing_image": not has_hero,
+        })
+    return sorted(drafts, key=lambda item: item.get("updated_at") or "", reverse=True)
+
 class RenderRequest(BaseModel):
     acf_data: dict[str, Any]
     images: dict[str, str] = {}
+
+
+@app.post("/drafts")
+async def save_draft_endpoint(req: RenderRequest):
+    """Create or update a durable editor draft without publish validation."""
+    try:
+        slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        record = save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
+        return {"status": "saved", "updated_at": record["updated_at"]}
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.get("/drafts")
+async def list_drafts_endpoint(university_slug: str):
+    try:
+        return {"drafts": list_draft_data(university_slug)}
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.get("/drafts/{university_slug}/{page_type}/{slug}")
+async def get_draft_endpoint(university_slug: str, page_type: str, slug: str):
+    try:
+        record = load_draft_data(university_slug, page_type, slug)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if not record:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return record
+
+
+@app.delete("/drafts/{university_slug}/{page_type}/{slug}")
+async def delete_draft_endpoint(university_slug: str, page_type: str, slug: str):
+    try:
+        deleted = delete_draft_data(university_slug, page_type, slug)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return {"status": "deleted"}
 
 @app.post("/preview-html", response_class=HTMLResponse)
 async def preview_html(req: RenderRequest):
@@ -1306,6 +1425,12 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             rendered_html=html,
             parent_slug=parent_slug,
         )
+
+        # Publishing completes the draft lifecycle for this page.
+        try:
+            delete_draft_data(university_slug, page_type, slug)
+        except (OSError, ValueError):
+            pass
 
         try:
             from workspace.knowledge import update_university_knowledge
