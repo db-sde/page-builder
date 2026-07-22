@@ -1,5 +1,5 @@
 /* fonts.css — locally-hosted font faces (replaces Google Fonts CDN requests)
-   Loaded via <link rel="stylesheet" href="/assets/fonts/fonts.css"> in all V2 templates.
+   Loaded via <link rel="stylesheet" href="/assets/fonts/fonts.css"> in all templates.
    Eliminates two render-blocking network round-trips to fonts.googleapis.com */
 
 /* ── Poppins ────────────────────────────────────────────────────────────────── */

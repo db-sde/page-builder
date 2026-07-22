@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listWorkspaces, getWorkspaceTree, compileWorkspace, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage, deletePage, deleteWorkspace, downloadBuildV2, buildFileUrlV2 } from '../api';
+import { listWorkspaces, getWorkspaceTree, createWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, uploadBranding, getWorkspacePage, deletePage, deleteWorkspace } from '../api';
 
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -42,7 +42,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     fetchWorkspaces();
   }, []);
 
-  const fetchWorkspaces = async () => {
+  async function fetchWorkspaces() {
     setLoading(true);
     setError('');
     try {
@@ -55,7 +55,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // Helper to slugify university name in real-time
   const handleNameChange = (val) => {
@@ -72,26 +72,34 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
 
   // Load Tree when a workspace is selected
   useEffect(() => {
+    let cancelled = false;
     if (selectedSlug) {
       loadTree(selectedSlug);
       loadBuildStatus(selectedSlug);
       const activeWorkspace = workspaces.find(w => (typeof w === 'string' ? w : w.slug) === selectedSlug);
       if (activeWorkspace) {
-        setPrimaryDomain(activeWorkspace.site?.primary_domain || '');
-        setDefaultOgImageFile(null);
-        const ogInput = document.getElementById('og-image-upload-input');
-        if (ogInput) ogInput.value = '';
+        queueMicrotask(() => {
+          if (cancelled) return;
+          setPrimaryDomain(activeWorkspace.site?.primary_domain || '');
+          setDefaultOgImageFile(null);
+          const ogInput = document.getElementById('og-image-upload-input');
+          if (ogInput) ogInput.value = '';
+        });
       }
     } else {
-      setTreeData(null);
-      setBuildResult(null);
-      setBuildError('');
-      setPrimaryDomain('');
-      setDefaultOgImageFile(null);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setTreeData(null);
+        setBuildResult(null);
+        setBuildError('');
+        setPrimaryDomain('');
+        setDefaultOgImageFile(null);
+      });
     }
+    return () => { cancelled = true; };
   }, [selectedSlug, workspaces]);
 
-  const loadTree = async (slug) => {
+  async function loadTree(slug) {
     setTreeLoading(true);
     // No-op
     try {
@@ -103,9 +111,9 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     } finally {
       setTreeLoading(false);
     }
-  };
+  }
 
-  const loadBuildStatus = async (slug) => {
+  async function loadBuildStatus(slug) {
     setBuildResult(null);
     setBuildStatusData(null);
     setBuildError('');
@@ -128,7 +136,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       console.warn('Failed to load build status', err);
       setBuildStatusData({ exists: false });
     }
-  };
+  }
 
   const handleCreateWorkspace = async (e) => {
     e.preventDefault();
@@ -509,11 +517,11 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                   </div>
 
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>V2 (Next-Gen Templates)</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Website Package</div>
                     <button
                       onClick={() => {
                         if (buildResult) {
-                          window.open(buildFileUrlV2(selectedSlug, 'index.html'), '_blank');
+                          window.open(buildFileUrl(selectedSlug, 'index.html'), '_blank');
                         }
                       }}
                       disabled={!buildResult || building}
@@ -525,13 +533,13 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                         cursor: buildResult ? 'pointer' : 'not-allowed'
                       }}
                     >
-                      📂 Preview V2 Site ↗
+                      📂 Preview Site ↗
                     </button>
                     
                     <button
                       onClick={() => {
                         if (buildResult) {
-                          downloadBuildV2(selectedSlug);
+                          downloadBuild(selectedSlug);
                         }
                       }}
                       disabled={!buildResult || building}
@@ -544,44 +552,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                         marginBottom: 6
                       }}
                     >
-                      ⬇ Download V2 ZIP
-                    </button>
-
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2, marginTop: 6 }}>V1 (Legacy Templates)</div>
-                    <button
-                      onClick={() => {
-                        if (buildResult) {
-                          window.open(buildFileUrl(selectedSlug, 'index.html'), '_blank');
-                        }
-                      }}
-                      disabled={!buildResult || building}
-                      className="btn btn-secondary"
-                      style={{
-                        width: '100%',
-                        justifyContent: 'center',
-                        opacity: buildResult ? 1 : 0.5,
-                        cursor: buildResult ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      📂 Preview V1 Site ↗
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (buildResult) {
-                          downloadBuild(selectedSlug);
-                        }
-                      }}
-                      disabled={!buildResult || building}
-                      className="btn btn-secondary"
-                      style={{
-                        width: '100%',
-                        justifyContent: 'center',
-                        opacity: buildResult ? 1 : 0.5,
-                        cursor: buildResult ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      ⬇ Download V1 ZIP
+                      ⬇ Download ZIP
                     </button>
 
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dotted #fda4af' }}>

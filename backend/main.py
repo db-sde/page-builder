@@ -5,8 +5,8 @@ from renderer.engine import render_resolved
 from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
 )
-from workspace.compiler import compile_workspace, compile_workspace_v2, get_workspace_tree
-from workspace.builder import build_website, build_website_v2, get_build_status, zip_build, zip_build_v2
+from workspace.compiler import compile_workspace, get_workspace_tree
+from workspace.builder import build_website, get_build_status, zip_build
 import asyncio
 import json
 from pathlib import Path
@@ -266,17 +266,12 @@ async def get_asset_image(filename: str):
             return "image/x-icon"
         return "image/jpeg"
 
-    # 1. Search build_v2/assets/images first (V2 builds)
-    for p in WORKSPACES_ROOT.glob(f"*/build_v2/assets/images/{filename}"):
-        if p.exists():
-            return FileResponse(p, media_type=get_media_type(p))
-
-    # 2. Search build/assets/images (V1 builds fallback)
+    # Prefer optimized build assets.
     for p in WORKSPACES_ROOT.glob(f"*/build/assets/images/{filename}"):
         if p.exists():
             return FileResponse(p, media_type=get_media_type(p))
 
-    # 3. Search raw Assets/images source folder
+    # Fall back to source images before a build exists
     for p in WORKSPACES_ROOT.glob(f"*/Assets/images/{filename}"):
         if p.exists():
             return FileResponse(p, media_type=get_media_type(p))
@@ -297,32 +292,8 @@ async def get_build_asset(path: str, request: Request):
 
     if uni_slug:
         uni_slug = uni_slug.lower().strip()
-        # Look in targeted workspace first
-        for prefix in ("build_v2", "build"):
-            p = WORKSPACES_ROOT / uni_slug / prefix / "assets" / path
-            if p.exists() and p.is_file():
-                ext = p.suffix.lower()
-                media_type = "application/octet-stream"
-                if ext == ".js":
-                    media_type = "application/javascript"
-                elif ext == ".css":
-                    media_type = "text/css"
-                elif ext == ".png":
-                    media_type = "image/png"
-                elif ext in (".jpg", ".jpeg"):
-                    media_type = "image/jpeg"
-                elif ext == ".webp":
-                    media_type = "image/webp"
-                elif ext == ".gif":
-                    media_type = "image/gif"
-                elif ext == ".svg":
-                    media_type = "image/svg+xml"
-                elif ext == ".pdf":
-                    media_type = "application/pdf"
-                return FileResponse(p, media_type=media_type)
-
-    # General fallback globally across workspaces
-    for p in WORKSPACES_ROOT.glob(f"*/build_v2/assets/{path}"):
+        # Look in the targeted workspace first.
+        p = WORKSPACES_ROOT / uni_slug / "build" / "assets" / path
         if p.exists() and p.is_file():
             ext = p.suffix.lower()
             media_type = "application/octet-stream"
@@ -344,7 +315,7 @@ async def get_build_asset(path: str, request: Request):
                 media_type = "application/pdf"
             return FileResponse(p, media_type=media_type)
 
-    # Fallback to build/assets
+    # Fall back globally across workspace builds.
     for p in WORKSPACES_ROOT.glob(f"*/build/assets/{path}"):
         if p.exists() and p.is_file():
             ext = p.suffix.lower()
@@ -366,25 +337,8 @@ async def get_build_asset(path: str, request: Request):
             elif ext == ".pdf":
                 media_type = "application/pdf"
             return FileResponse(p, media_type=media_type)
-    
-    if path == "support.js":
-        return await get_support_js()
-        
-    raise HTTPException(status_code=404, detail="Asset not found")
 
-@app.get("/support.js")
-async def get_support_js():
-    from fastapi.responses import FileResponse
-    base_dir = Path(__file__).resolve().parent
-    search_paths = [
-        base_dir / "support.js",
-        base_dir.parent / "support.js",
-        base_dir.parent / "frontend" / "public" / "support.js",
-    ]
-    for p in search_paths:
-        if p.exists():
-            return FileResponse(p, media_type="application/javascript")
-    raise HTTPException(status_code=404, detail="support.js not found")
+    raise HTTPException(status_code=404, detail="Asset not found")
 
 class SaveTempRequest(BaseModel):
     data: dict[str, Any]
@@ -499,7 +453,7 @@ async def preview_html(req: RenderRequest):
             "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
-        html = render_resolved(resolved, standalone=standalone, render_mode="v2")
+        html = render_resolved(resolved, standalone=standalone)
         return HTMLResponse(content=html)
     except Exception as e:
         import traceback
@@ -550,55 +504,6 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
         }
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone)
-        return HTMLResponse(content=html)
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/preview-file-v2", response_class=HTMLResponse)
-async def preview_file_v2(university_slug: str, page_type: str, slug: str):
-    """Serve dynamic preview from GET query params using V2 templates."""
-    try:
-        from workspace.compiler import _build_index, _enrich_resolved
-        index = _build_index(university_slug)
-
-        draft = load_draft_data(university_slug, page_type, slug)
-        if draft:
-            parent_slug = draft.get("parent_slug")
-            merged = {**(draft.get("data") or {}), **(draft.get("images") or {})}
-        else:
-            if page_type in index and slug in index[page_type]:
-                record = index[page_type][slug]
-                parent_slug = record.get("parent_slug")
-                merged = record.get("data") or {}
-            else:
-                raise HTTPException(status_code=404, detail="Preview data not found")
-
-        draft_record = {
-            "university_slug": university_slug,
-            "page_type": page_type,
-            "slug": slug,
-            "parent_slug": parent_slug,
-            "data": merged
-        }
-        if page_type in index:
-            index[page_type][slug] = draft_record
-            
-        enriched_record = _enrich_resolved(draft_record, index)
-        
-        resolved = {
-            "slug": slug,
-            "page_type": page_type,
-            "university_slug": university_slug,
-            "parent_slug": parent_slug,
-            "raw": enriched_record["raw"]
-        }
-        standalone = page_type in ("course", "specialization", "blog")
-        html = render_resolved(resolved, standalone=standalone, render_mode="v2")
         return HTMLResponse(content=html)
     except HTTPException:
         raise
@@ -1207,7 +1112,7 @@ async def generate_specialization_stub_endpoint(req: GenerateSpecializationStubR
         )
 
         # Run compile to build the compiled html output and update the sibling specs cache
-        compile_workspace_v2(uni_slug)
+        compile_workspace(uni_slug)
 
         return {
             "slug": spec_slug,
@@ -1393,7 +1298,7 @@ async def compile_workspace_endpoint(university_slug: str = Form(...)):
              re-renders via the Jinja2 engine, and overwrites each .html file.
     """
     try:
-        result = compile_workspace_v2(university_slug)
+        result = compile_workspace(university_slug)
         return result
     except Exception as e:
         import traceback
@@ -1505,7 +1410,7 @@ async def upload_branding_endpoint(
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
         
         # Compile workspace
-        compile_result = compile_workspace_v2(university_slug)
+        compile_result = compile_workspace(university_slug)
         
         return {
             "status": "success",
@@ -1617,7 +1522,7 @@ async def delete_page_endpoint(
         shutil.rmtree(resolved_page_dir)
         
         # Re-compile workspace to update indexes/listings
-        compile_result = compile_workspace_v2(university_slug)
+        compile_result = compile_workspace(university_slug)
         
         return {
             "status": "success",
@@ -1715,9 +1620,9 @@ async def build_website_endpoint(
     try:
         compile_summary = None
         if not skip_compile:
-            compile_summary = compile_workspace_v2(university_slug)
+            compile_summary = compile_workspace(university_slug)
 
-        result = build_website_v2(university_slug)
+        result = build_website(university_slug)
         result["compile_summary"] = compile_summary
         return result
     except Exception as e:
@@ -1739,6 +1644,27 @@ async def build_status_endpoint(university_slug: str):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/download-build")
+async def download_build_endpoint(university_slug: str):
+    """
+    Download the entire build/ folder as a ZIP archive.
+    Returns a file attachment named <uni>-website.zip.
+    """
+    try:
+        zip_bytes, filename = zip_build(university_slug)
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/build-file")
 async def build_file_endpoint(university_slug: str, path: str = "index.html"):
     """
@@ -1747,6 +1673,10 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
     """
     from fastapi.responses import FileResponse
     try:
+        # Compile and build so the preview is always fresh
+        compile_workspace(university_slug)
+        build_website(university_slug)
+
         slug = university_slug.lower().strip()
         build_dir = WORKSPACES_ROOT / slug / "build"
         # Normalise and prevent path traversal outside build/
@@ -1828,148 +1758,6 @@ document.addEventListener('click', function(e) {{
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/download-build")
-async def download_build_endpoint(university_slug: str):
-    """
-    Download the entire build/ folder as a ZIP archive.
-    Returns a file attachment named <uni>-website.zip.
-    """
-    try:
-        zip_bytes, filename = zip_build_v2(university_slug)
-        return Response(
-            content=zip_bytes,
-            media_type="application/zip",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/build-file-v2")
-async def build_file_v2_endpoint(university_slug: str, path: str = "index.html"):
-    """
-    Serve a single file from a workspace's build_v2/ folder.
-    Used by the iframe / new-tab preview of the V2 built website.
-    """
-    from fastapi.responses import FileResponse
-    try:
-        # Dynamically compile and build using V2 templates so the V2 preview is always fresh
-        compile_workspace_v2(university_slug)
-        build_website_v2(university_slug)
-
-        slug = university_slug.lower().strip()
-        build_dir = WORKSPACES_ROOT / slug / "build_v2"
-        # Normalise and prevent path traversal outside build_v2/
-        target = (build_dir / path).resolve()
-        if target.exists() and target.is_dir():
-            target = target / "index.html"
-            
-        try:
-            target.relative_to(build_dir.resolve())
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid path")
-
-        if not target.exists() or not target.is_file():
-            raise HTTPException(status_code=404, detail="Build file not found")
-
-        # Guess media type from extension
-        ext = target.suffix.lower()
-        media_type = "application/octet-stream"
-        if ext == ".html":
-            media_type = "text/html"
-        elif ext == ".css":
-            media_type = "text/css"
-        elif ext == ".js":
-            media_type = "application/javascript"
-        elif ext == ".json":
-            media_type = "application/json"
-        elif ext == ".xml":
-            media_type = "application/xml"
-        elif ext == ".png":
-            media_type = "image/png"
-        elif ext in (".jpg", ".jpeg"):
-            media_type = "image/jpeg"
-        elif ext == ".webp":
-            media_type = "image/webp"
-        elif ext == ".gif":
-            media_type = "image/gif"
-        elif ext == ".svg":
-            media_type = "image/svg+xml"
-        elif ext == ".pdf":
-            media_type = "application/pdf"
-        elif ext == ".woff2":
-            media_type = "font/woff2"
-        elif ext == ".woff":
-            media_type = "font/woff"
-
-        if ext == ".html":
-            html = target.read_text(encoding="utf-8")
-            # Inject a client-side link interception script to make navigation work with build-file-v2 params
-            script = f"""
-<script>
-document.addEventListener('click', function(e) {{
-  var a = e.target.closest('a');
-  if (a && a.getAttribute('href')) {{
-    var href = a.getAttribute('href');
-    if (href.startsWith('/') && !href.startsWith('/build-file-v2') && !href.startsWith('/download-build-v2')) {{
-      e.preventDefault();
-      var path = href.substring(1);
-      if (!path || path.endsWith('/')) {{
-        path += 'index.html';
-      }} else if (!path.includes('.') && !path.endsWith('/index.html')) {{
-        path += '/index.html';
-      }}
-      var url = '/build-file-v2?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
-      window.location.href = url;
-    }}
-  }}
-}});
-</script>
-"""
-            if "</body>" in html:
-                html = html.replace("</body>", f"{script}</body>")
-            else:
-                html += script
-            
-            from fastapi.responses import HTMLResponse
-            return HTMLResponse(content=html)
-
-        return FileResponse(target, media_type=media_type)
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/download-build-v2")
-async def download_build_v2_endpoint(university_slug: str):
-    """
-    Download the entire build_v2/ folder as a ZIP archive.
-    Returns a file attachment named <uni>-website-v2.zip.
-    """
-    try:
-        # Dynamically compile and build using V2 templates so the V2 download package is always fresh
-        compile_workspace_v2(university_slug)
-        build_website_v2(university_slug)
-
-        zip_bytes, filename = zip_build_v2(university_slug)
-        return Response(
-            content=zip_bytes,
-            media_type="application/zip",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 

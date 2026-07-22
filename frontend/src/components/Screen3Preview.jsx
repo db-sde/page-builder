@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { renderHtml, saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl, downloadBuildV2, buildFileUrlV2 } from '../api';
+import { saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
 // Per-page-type transformer field descriptions for context comparison labels
 const TRANSFORMER_DOCS = {
@@ -217,25 +217,17 @@ function ImagePreviewPanel({ session }) {
   );
 }
 
-export default function Screen3Preview({ session, updateSession, onBack }) {
-  const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState('');
+export default function Screen3Preview({ session, onBack }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewWidth, setPreviewWidth] = useState('100%');
-  const [previewVersion, setPreviewVersion] = useState('v2');
-
   const previewUrl = session.slug && session.page_type && session.university_slug
-    ? (previewVersion === 'v2'
-        ? `http://localhost:8000/preview-file-v2?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
-        : `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`)
+    ? `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
     : null;
 
 
   // Workspace state
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
   const [workspaceSaveResult, setWorkspaceSaveResult] = useState(null);
-  const [compiling, setCompiling] = useState(false);
-  const [compileResult, setCompileResult] = useState(null);
   const [workspaceError, setWorkspaceError] = useState('');
 
   // Website build state (Pass 4)
@@ -279,37 +271,10 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
     parent_slug:     session.parent_slug,
   });
 
-
-
-  const handleDownload = async () => {
-    setDownloading(true);
-    setError('');
-    try {
-      // re-render to get the downloadable blob (also re-saves to generated/)
-      // Include metadata so the backend uses the correct template.
-      const acf = buildAcf();
-      const blob = await renderHtml({
-        acf_data: { ...acf, ...(session.images || {}) },
-        images: session.images || {},
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${session.slug}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setError(e.response?.data?.error || e.message);
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   const handleSaveAndCompile = async () => {
     setWorkspaceSaving(true);
     setWorkspaceError('');
     setWorkspaceSaveResult(null);
-    setCompileResult(null);
     try {
       const acf = buildAcf();
       const result = await saveToWorkspace(acf, session.images || {});
@@ -317,9 +282,7 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
         setWorkspaceSaveResult(result);
         
         if (session.university_slug) {
-          setCompiling(true);
-          const compRes = await compileWorkspace(session.university_slug);
-          setCompileResult(compRes);
+          await compileWorkspace(session.university_slug);
         }
       } else {
         setWorkspaceError(result.error || 'Unknown error saving to workspace.');
@@ -328,7 +291,6 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
       setWorkspaceError(e.response?.data?.error || e.message || String(e));
     } finally {
       setWorkspaceSaving(false);
-      setCompiling(false);
     }
   };
 
@@ -392,12 +354,6 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 8, padding: '12px 16px', color: '#c53030', fontSize: 14, marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
 
       {/* ── SAVE PAGE SECTION ── */}
       <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 20 }}>
@@ -475,35 +431,19 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
 
         {buildResult && (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>V2 (Optimized WebP Templates)</div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => window.open(buildFileUrlV2(session.university_slug, 'index.html'), '_blank')}
-                style={{ background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-              >
-                Preview V2 Website ↗
-              </button>
-              <button
-                onClick={() => downloadBuildV2(session.university_slug)}
-                style={{ background: '#fff', color: 'var(--primary)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--primary)', borderRadius: 8, cursor: 'pointer' }}
-              >
-                Download V2 ZIP
-              </button>
-            </div>
-            
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 8 }}>V1 (Legacy Templates)</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Website Package</div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => window.open(buildFileUrl(session.university_slug, 'index.html'), '_blank')}
-                style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                style={{ background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: 'none', borderRadius: 8, cursor: 'pointer' }}
               >
-                Preview V1 Website ↗
+                Preview Website ↗
               </button>
               <button
                 onClick={() => downloadBuild(session.university_slug)}
-                style={{ background: '#fff', color: 'var(--navy)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}
+                style={{ background: '#fff', color: 'var(--primary)', fontWeight: 700, fontSize: 14, padding: '10px 20px', border: '1.5px solid var(--primary)', borderRadius: 8, cursor: 'pointer' }}
               >
-                Download V1 ZIP
+                Download ZIP
               </button>
             </div>
           </div>
@@ -579,37 +519,6 @@ export default function Screen3Preview({ session, updateSession, onBack }) {
                   }}
                 >
                   {device.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Version Toggles */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
-            {[
-              { id: 'v2', label: '🚀 V2 (Optimized)' },
-              { id: 'v1', label: '⏳ V1 (Legacy)' },
-            ].map((ver) => {
-              const active = previewVersion === ver.id;
-              return (
-                <button
-                  key={ver.id}
-                  onClick={() => setPreviewVersion(ver.id)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    fontWeight: active ? 800 : 600,
-                    fontFamily: 'var(--font-ui)',
-                    background: active ? '#fff' : 'transparent',
-                    color: active ? 'var(--primary)' : 'var(--color-text-secondary)',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {ver.label}
                 </button>
               );
             })}

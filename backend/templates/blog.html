@@ -1,13 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <title>{{ seo_title }}</title>
 <meta name="description" content="{{ meta_description }}">
 {% if og_image_url %}
@@ -16,266 +11,22 @@
 {% if branding_favicon %}
 <link rel="icon" href="{{ branding_favicon }}">
 {% endif %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
-  a{text-decoration:none}
-  h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
-  ::selection{background:#FF5C35;color:#1C1B22}
-  .article-body p{font-size:16.5px;color:#434346;line-height:1.78;margin-bottom:18px}
-  .article-body h2 {font-size:25px;font-weight:800;color:#1C1B22;margin:30px 0 14px;letter-spacing:-.01em}
-  .article-body h3 {font-size:20px;font-weight:800;color:#1C1B22;margin:24px 0 12px;letter-spacing:-.01em}
-  .article-body blockquote {margin:26px 0;padding:20px 26px;border-left:4px solid #FF5C35;background:#fff;border-radius:0 12px 12px 0;font-size:18px;font-weight:600;color:#1C1B22;line-height:1.6}
-  .article-body ul {margin:0 0 18px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:12px}
-  .article-body ul li {display:flex;gap:12px;font-size:16.5px;color:#434346;line-height:1.65}
-  .article-body ul li::before {content:"✓";color:#FF5C35;font-weight:800;flex-shrink:0}
-
-  .article-body table {width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;background:#fff;border:1.5px solid #E9E5F2;border-radius:10px;overflow:hidden}
-  .article-body th, .article-body td {padding:12px 16px;border:1px solid #E9E5F2;text-align:left}
-  .article-body th {background:#F8FAFC;font-weight:700;color:#1C1B22}
-  img{max-width:100%;height:auto}
-  /* Fluid type scale — no heading exceeds viewport on any screen */
-  h1{font-size:clamp(26px,7vw,38px);line-height:1.18}
-  h2{font-size:clamp(20px,5vw,30px);line-height:1.22}
-  .article-body h2{font-size:clamp(20px,5.5vw,25px)}
-  .hero-container h1{font-size:clamp(26px,8vw,38px)}
-  /* CTA/newsletter bands use fixed horizontal padding that overflows on small screens */
-  .cta-band{padding:clamp(20px,5vw,40px) !important}
-
-  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
-  html,body{overflow-x:hidden;max-width:100%}
-  @media (max-width: 768px) {
-    header nav, header > div > a:last-of-type {
-      display: none !important;
-    }
-    header #mobile-menu-btn {
-      display: flex !important;
-    }
-    .layout-grid {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-    }
-    .layout-grid aside {
-      order: 2 !important;
-      position: static !important;
-      width: 100% !important;
-      margin-top: 16px !important;
-    }
-    .layout-grid main {
-      order: 1 !important;
-      width: 100% !important;
-    }
-    .hero-container {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-      padding: 0 16px !important;
-    }
-    .hero-container h1 {
-      font-size: 28px !important;
-      line-height: 1.2 !important;
-    }
-    .hero-container img, .hero-container div[style*="height:340px"] {
-      height: 220px !important;
-      min-height: 220px !important;
-    }
-    .site-footer-grid {
-      grid-template-columns: 1fr !important;
-      gap: 28px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .newsletter-wrap {
-      flex-direction: column !important;
-      width: 100% !important;
-      gap: 12px !important;
-    }
-    .newsletter-wrap input, .newsletter-wrap a {
-      width: 100% !important;
-      text-align: center !important;
-      min-height: 48px !important;
-      min-width: 0 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-  }
-
-  /* ============================================================
-     RESPONSIVE ADDITIONS — overflow, type scale, show-more
-     ============================================================ */
-
-  /* 1 ── Global overflow guards */
-  img, video, iframe, object { max-width: 100%; height: auto; }
-
-  /* ─────────────────────────────────────────────────────────────
-     ROOT-CAUSE FIX: CSS Grid tracks default to min-width:auto,
-     which sizes every grid child to its *content's* min-content
-     width.  If any child contains a long word, a wide image, or
-     a table, it blows past the track width and the entire page
-     becomes wider than the viewport — the excess is simply cut
-     off on the right.  Setting min-width:0 lets each child
-     shrink to the track width so content wraps inside the
-     visible area instead of overflowing it.
-  ──────────────────────────────────────────────────────────── */
-  .hero-container > div,
-  .layout-grid > article,
-  .layout-grid > aside,
-  .site-footer-grid > div {
-    min-width: 0;
-  }
-
-  /* The article container itself must also be constrained */
-  .article-body {
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-
-  /* 2 ── Word-break safety for long words / URLs in article body */
-  .article-body p,
-  .article-body li,
-  .article-body td,
-  .article-body th,
-  .article-body blockquote,
-  .article-body h2,
-  .article-body h3 { word-break: break-word; overflow-wrap: break-word; }
-
-  /* 3 ── Tables: JS wraps each table in a scroll div (see script).
-     These styles are for the table INSIDE that wrapper. */
-  .table-scroll-wrap {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    /* subtle scroll shadow hints */
-    background:
-      linear-gradient(to right, #fff 30%, rgba(255,255,255,0)),
-      linear-gradient(to left,  #fff 30%, rgba(255,255,255,0)) 100% 0,
-      radial-gradient(farthest-side at 0   50%, rgba(0,0,0,.08), transparent),
-      radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.08), transparent) 100% 0;
-    background-repeat: no-repeat;
-    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
-    background-attachment: local, local, scroll, scroll;
-    margin: 24px 0;
-    border-radius: 10px;
-  }
-  /* Remove the original margin now that the wrapper provides it */
-  .table-scroll-wrap .article-body table,
-  .table-scroll-wrap table {
-    margin: 0 !important;
-    width: 100%;
-    /* min-width keeps columns readable on very small screens */
-    min-width: 480px;
-  }
-
-  /* 4 ── Pre / code blocks */
-  .article-body pre {
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-width: 100%;
-  }
-  .article-body code { word-break: break-all; }
-
-  /* 5 ── Hero excerpt "Show more" — class injected by JS on mobile only */
-  .hero-excerpt-clamped {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: none;
-  }
-  .hero-excerpt-clamped.expanded {
-    display: block;
-    overflow: visible;
-  }
-  /* The toggle button */
-  .excerpt-toggle {
-    background: none;
-    border: none;
-    color: #F3C77C;
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 8px 0 0;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    letter-spacing: .02em;
-  }
-  .excerpt-toggle svg {
-    transition: transform 0.22s ease;
-    flex-shrink: 0;
-  }
-  .excerpt-toggle.expanded svg { transform: rotate(180deg); }
-
-  /* Hide toggle on desktop — no clamp needed there */
-  @media (min-width: 769px) {
-    .excerpt-toggle { display: none !important; }
-    .hero-excerpt-clamped { display: block; overflow: visible; }
-  }
-
-  /* 6 ── Newsletter / CTA outer band: reduce padding on small screens */
-  .cta-newsletter-band {
-    padding: clamp(20px, 5vw, 40px) !important;
-    flex-direction: row;
-  }
-  @media (max-width: 860px) {
-    .cta-newsletter-band {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-    }
-  }
-  .cta-newsletter-band .cta-heading {
-    font-size: clamp(18px, 5vw, 25px) !important;
-  }
-
-  /* 7 ── Article body type scale on mobile */
-  @media (max-width: 768px) {
-    .article-body p          { font-size: 15px;   line-height: 1.72; margin-bottom: 14px; }
-    .article-body h2         { font-size: clamp(16px, 4.8vw, 21px); margin: 20px 0 10px; }
-    .article-body h3         { font-size: clamp(14px, 4.2vw, 17px); margin: 16px 0 8px; }
-    .article-body blockquote { font-size: 15px; padding: 14px 16px; margin: 16px 0; }
-    .article-body ul li      { font-size: 15px; }
-
-    /* Tighter layout padding on mobile */
-    .layout-grid { padding: 24px 14px 10px !important; }
-
-    /* Author bio compact */
-    .article-body > div[style*="border-radius:14px"] {
-      gap: 12px !important;
-      padding: 18px !important;
-    }
-  }
-
-  /* 8 ── Extra-small screens (≤ 420 px) */
-  @media (max-width: 420px) {
-    .article-body p { font-size: 14.5px; line-height: 1.7; }
-
-    /* Hero meta row (author + date) wraps gracefully */
-    .hero-meta { flex-wrap: wrap; }
-
-    /* Sidebar TOC links smaller */
-    div[style*="In this article"] + div a { font-size: 12.5px !important; }
-  }
-
-  /* 9 ── Sidebar sticky CTA on mobile — no sticky needed, let it flow */
-  @media (max-width: 768px) {
-    .layout-grid aside > div { position: static !important; top: auto !important; }
-  }
-</style>
-</helmet>
-
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/blog.css">
+{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url }}" fetchpriority="high">{% endif %}
+</head>
+<body>
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
 
   {% if standalone %}
   <!-- ===== TOP BAR ===== -->
-  <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
+  <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
       <span>Admissions open for the 2026 batch · Limited seats</span>
     </div>
@@ -287,11 +38,14 @@
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
         {% if branding_logo %}
           <div style="height:44px;display:flex;align-items:center">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:99px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
         {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -304,7 +58,7 @@
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
 
       <!-- Hamburger Button -->
-      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+      <button id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center" aria-expanded="false" aria-label="Open navigation">
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
@@ -312,7 +66,7 @@
     </div>
 
     <!-- Mobile Navigation Drawer -->
-    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+    <div id="mobile-drawer">
       <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
       <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
       <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
@@ -323,22 +77,29 @@
   </header>
   {% endif %}
 
+  <main>
   <!-- ===== ARTICLE HEADER ===== -->
   <div style="background:linear-gradient(120deg,#6B4FC9 0%,#8A6BF0 72%);color:#fff;padding:44px 0 48px">
     <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr .82fr;gap:48px;align-items:center">
       <div>
-        <div style="font-size:12.5px;color:#C9BEEC;margin-bottom:18px"><a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a> › <a href="{{ blog_href }}" style="color:#C9BEEC">Blog</a> › <span style="color:#D9D2F2">{{ tag }}</span></div>
-        <span style="display:inline-block;background:#FF5C35;color:#1C1B22;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:6px;margin-bottom:18px">{{ tag }}</span>
+        <div style="font-size:12.5px;color:#EAE7FD;margin-bottom:18px"><a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a> › <a href="{{ blog_href }}" style="color:#EAE7FD">Blog</a> › <span style="color:#D9D2F2">{{ tag }}</span></div>
+        <span style="display:inline-block;background:#FF5C35;color:#1C1B22;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:6px;margin-bottom:18px">{{ tag }}</span>
         <h1 style="font-size:38px;font-weight:800;letter-spacing:-.015em;line-height:1.16">{{ title }}</h1>
         <p id="hero-excerpt" style="font-size:16.5px;color:#D9D2F2;margin-top:18px;line-height:1.6">{{ excerpt }}</p>
         <div class="hero-meta" style="display:flex;align-items:center;gap:13px;margin-top:26px">
           <div style="width:46px;height:46px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">{{ author_initials }}</div>
-          <div><div style="font-size:14.5px;font-weight:700;color:#fff">{{ author }}</div><div style="font-size:12.5px;color:#C9BEEC">{{ author_role }} · {{ read_time }} · {{ date }}</div></div>
+          <div><div style="font-size:14.5px;font-weight:700;color:#fff">{{ author }}</div><div style="font-size:12.5px;color:#EAE7FD">{{ author_role }} · {{ read_time }} · {{ date }}</div></div>
         </div>
       </div>
       {% if hero_image_url %}
       <div style="width:100%;aspect-ratio:3/2;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px -28px rgba(0,0,0,.45)">
-        <img src="{{ hero_image_url }}" alt="{{ title }}" style="width:100%;height:100%;object-fit:cover;display:block">
+        <picture>
+          <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
+          <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
+          <source type="image/webp" media="(max-width: 1200px)" srcset="{{ hero_image_url | webp_variant(1200) }}">
+          <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
+          <img src="{{ hero_image_url }}" alt="{{ title }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;height:100%;object-fit:cover;display:block" fetchpriority="high" decoding="async">
+        </picture>
       </div>
       {% else %}
       <div style="width:100%;aspect-ratio:3/2;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 16px,#6244C2 16px,#6244C2 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px -28px rgba(0,0,0,.45)"><span style="font-family:ui-monospace,monospace;font-size:13px;color:#A99BD8">[ article hero image ]</span></div>
@@ -357,15 +118,15 @@
       <section id="faq" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;margin-top:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Frequently Asked Questions</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <sc-for list="{{ '{{' }} faqs {{ '}}' }}" as="fq" hint-placeholder-count="5">
+        {% for fq in faqs %}
           <div style="border-bottom:1px solid #E9E5F2">
-            <button class="faq-btn" onClick="{{ '{{' }} fq.toggle {{ '}}' }}" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-              <span>{{ '{{' }} fq.q {{ '}}' }}</span>
-              <span style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ '{{' }} fq.sign {{ '}}' }}</span>
+            <button class="faq-btn" data-faq-btn type="button" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+              <span>{{ fq.q }}</span>
+              <span data-faq-sign style="color:#E04015;font-size:20px;flex-shrink:0;margin-left:14px">{{ fq.sign }}</span>
             </button>
-            <div style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ '{{' }} fq.disp {{ '}}' }}">{{ '{{' }} fq.a {{ '}}' }}</div>
+            <div data-faq-answer style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ fq.disp }}">{{ fq.a }}</div>
           </div>
-        </sc-for>
+        {% endfor %}
       </section>
       {% endif %}
 
@@ -374,7 +135,7 @@
         <div style="width:56px;height:56px;border-radius:50%;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;flex-shrink:0">{{ author_initials }}</div>
         <div>
           <div style="font-size:16px;font-weight:800;color:#1C1B22">{{ author }}</div>
-          <div style="font-size:12.5px;color:#FF5C35;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">{{ author_role }}</div>
+          <div style="font-size:12.5px;color:#E04015;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">{{ author_role }}</div>
           <p style="font-size:14px;color:#6E6A78;line-height:1.6;margin-top:10px">{{ author_bio }}</p>
         </div>
       </div>
@@ -384,11 +145,11 @@
     <aside style="position:relative">
       <div style="position:sticky;top:90px;display:flex;flex-direction:column;gap:20px">
         <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:20px">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9A93A8;margin-bottom:14px">In this article</div>
+          <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#706A80;margin-bottom:14px">In this article</div>
           <div style="display:flex;flex-direction:column;gap:11px">
-            <sc-for list="{{ '{{' }} toc {{ '}}' }}" as="t" hint-placeholder-count="4">
-              <a href="{{ '{{' }} t.href {{ '}}' }}" style="font-size:13.5px;color:#434346;font-weight:600;line-height:1.45;border-left:2px solid #ECE7F5;padding-left:12px" style-hover="color:#1C1B22;border-left-color:#FF5C35">{{ '{{' }} t.text {{ '}}' }}</a>
-            </sc-for>
+            {% for t in toc %}
+              <a href="{{ t.href }}" class="toc-link" style="font-size:13.5px;color:#434346;font-weight:600;line-height:1.45;border-left:2px solid #ECE7F5;padding-left:12px">{{ t.text }}</a>
+            {% endfor %}
           </div>
         </div>
         <div style="background:linear-gradient(140deg,#6B4FC9,#8A6BF0);border-radius:14px;padding:22px;color:#fff">
@@ -416,33 +177,38 @@
     </div>
   </div>
 
+  </main>
+
   {% if standalone %}
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
-  <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
-    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+  <footer style="background:#6B4FC9;color:#EAE7FD;padding:48px 20px 26px;margin-top:40px">
+    <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
       <div>
         {% if branding_logo %}
           <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
           </div>
         {% else %}
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a>
-          <a href="{{ specs_listing_href }}" style="color:#C9BEEC">Specialisations</a>
+          <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#EAE7FD">Specialisations</a>
         </div>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Company</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a>
-          <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
+          <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#EAE7FD">Blog</a>
         </div>
       </div>
       {% if show_contact %}
@@ -467,100 +233,7 @@
   {% endif %}
 
 </div>
-</x-dc>
 
-<!-- ===== RESPONSIVE BEHAVIOUR SCRIPT =====
-     Two jobs:
-       1. Wrap every CMS-supplied <table> inside .article-body in a
-          scroll div so tables never overflow the viewport.
-       2. Hero excerpt "Show more" on mobile.
-     No template variables, DC component state, or Jinja logic touched.
-  -->
-<script>
-(function () {
-  'use strict';
-
-  /* 1 ── Wrap tables in horizontal-scroll containers ──────────
-     We inject a wrapper div around each table rather than using
-     display:block on the table itself, which breaks table rendering
-     in some browsers. The .table-scroll-wrap div handles the scroll. */
-  function wrapTables() {
-    var tables = document.querySelectorAll('.article-body table');
-    tables.forEach(function (tbl) {
-      if (tbl.parentNode && tbl.parentNode.classList.contains('table-scroll-wrap')) return;
-      var wrap = document.createElement('div');
-      wrap.className = 'table-scroll-wrap';
-      tbl.parentNode.insertBefore(wrap, tbl);
-      wrap.appendChild(tbl);
-    });
-  }
-
-  /* 2 ── Hero excerpt show-more (mobile only) ─────────────── */
-  function setupExcerptToggle() {
-    if (window.innerWidth > 768) return;
-    var excerpt = document.getElementById('hero-excerpt');
-    if (!excerpt) return;
-    excerpt.classList.add('hero-excerpt-clamped');
-    if (excerpt.scrollHeight <= excerpt.clientHeight + 2) return;
-
-    var btn = document.createElement('button');
-    btn.className = 'excerpt-toggle';
-    btn.innerHTML =
-      'Show more' +
-      '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-        '<path d="M2.5 5L7 9.5L11.5 5" stroke="#F3C77C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '</svg>';
-
-    var expanded = false;
-    btn.addEventListener('click', function () {
-      expanded = !expanded;
-      excerpt.classList.toggle('expanded', expanded);
-      btn.classList.toggle('expanded', expanded);
-      btn.childNodes[0].nodeValue = expanded ? 'Show less' : 'Show more';
-    });
-    excerpt.insertAdjacentElement('afterend', btn);
-  }
-
-  function init() {
-    wrapTables();
-    setupExcerptToggle();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
-</script>
-
-<script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  state = { open: { 0: true }, mobileMenuOpen: false };
-
-  toggleFaq(i) {
-    this.setState(s => { const o = { ...s.open }; o[i] = !o[i]; return { open: o }; });
-  }
-
-  renderVals() {
-    const toc = {{ toc_json | safe }};
-    const related = {{ related_json | safe }};
-    
-    const faqData = {{ faqs_json | default('[]') | safe }};
-    const faqs = faqData.map((f, i) => ({
-      q: f.question, a: f.answer,
-      sign: this.state.open[i] ? '–' : '+',
-      disp: this.state.open[i] ? 'block' : 'none',
-      toggle: () => this.toggleFaq(i)
-    }));
-
-    return {
-      toc, related, faqs,
-      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
-      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
-    };
-  }
-}
-</script>
+<script src="/assets/js/public-runtime.js" defer></script>
 </body>
 </html>

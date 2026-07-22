@@ -24,7 +24,9 @@ Build layout (target):
   ├── assets/
   │   ├── images/…                    ← Assets/images/
   │   ├── downloads/…                 ← Assets/downloads/  (if present)
-  │   └── support.js                  ← runtime support script
+  │   ├── css/…                       ← static stylesheets
+  │   ├── fonts/…                     ← local web fonts
+  │   └── js/public-runtime.js        ← browser interactions
   ├── routes.json                     ← route manifest
   └── sitemap.xml                     ← sitemap
 
@@ -37,7 +39,6 @@ import json
 import shutil
 import zipfile
 import io
-import re
 from pathlib import Path
 from datetime import datetime, timezone
 from html import escape as html_escape
@@ -45,7 +46,6 @@ from html import escape as html_escape
 from workspace.manager import (
     _workspace_root,
     _HTML_FILENAME,
-    WORKSPACES_ROOT,
 )
 from workspace.compiler import _build_index
 from core.utils import build_public_route, build_public_url
@@ -56,11 +56,11 @@ from core.utils import build_public_route, build_public_url
 _RESERVED_SEGMENTS = {"programs", "specializations", "blog"}
 
 import threading
-_build_v2_lock = threading.Lock()
+_build_lock = threading.Lock()
 
-def with_build_v2_lock(func):
+def with_build_lock(func):
     def wrapper(*args, **kwargs):
-        with _build_v2_lock:
+        with _build_lock:
             return func(*args, **kwargs)
     return wrapper
 
@@ -69,24 +69,6 @@ def with_build_v2_lock(func):
 
 def _build_root(university_slug: str) -> Path:
     return _workspace_root(university_slug) / "build"
-
-
-def _build_root_v2(university_slug: str) -> Path:
-    return _workspace_root(university_slug) / "build_v2"
-
-
-def _locate_support_js() -> Path | None:
-    """Find support.js using the same search order as main.py /support.js."""
-    backend_root = Path(__file__).resolve().parent.parent
-    candidates = [
-        backend_root / "support.js",
-        backend_root.parent / "support.js",
-        backend_root.parent / "frontend" / "public" / "support.js",
-    ]
-    for p in candidates:
-        if p.exists():
-            return p
-    return None
 
 
 # ── Route map ─────────────────────────────────────────────────────────────────
@@ -180,19 +162,6 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
     return route_map, errors
 
 
-def _rewrite_map_for_routes(route_map: dict) -> dict:
-    """
-    Build a {slug: route} map covering courses, specializations, blogs.
-    Used to rewrite `{slug}.html` / `{slug}.dc.html` references.
-    """
-    rewrite: dict[str, str] = {}
-    for key, route in route_map.items():
-        if key.startswith(("course:", "specialization:", "blog:")):
-            slug = key.split(":", 1)[1]
-            rewrite[slug] = route
-    return rewrite
-
-
 # ── Validation ────────────────────────────────────────────────────────────────
 
 # Which data fields reference image files on disk.
@@ -252,25 +221,11 @@ def _validate_pages(index: dict, university_slug: str) -> list[dict]:
 
 # ── URL rewriting ─────────────────────────────────────────────────────────────
 
-def _rewrite_html(
+def _finalize_html(
     html: str,
     university_slug: str,
-    rewrite_map: dict,
 ) -> str:
-    """
-    Rewrite workspace-relative links to build-relative routes.
-
-    Patterns handled:
-      • ./support.js                 → /assets/support.js
-      • {uni}.dc.html                → /                      (homepage)
-      • programs_listing.html        → /programs/
-      • specializations_listing.html → /specializations/
-      • blog_listing.html            → /blog/
-      • {uni}-blog.dc.html           → /blog/                 (blog_href)
-      • listing JS: slug + '.html'   → '/' + slug + '/'
-      • JSON blob:  "{slug}.html"    → "{route}/"
-      • generic:    {slug}.dc.html   → {route}/               (fallback specs)
-    """
+    """Apply final build-time additions without changing rendered routes."""
     # Insert Google tag (gtag.js) only for nmims-2
     if university_slug == "nmims-2":
         gtag_script = """<!-- Google tag (gtag.js) -->
@@ -286,47 +241,6 @@ def _rewrite_html(
             html = html.replace("<head>", f"<head>\n{gtag_script}")
         elif "<HEAD>" in html:
             html = html.replace("<HEAD>", f"<HEAD>\n{gtag_script}")
-
-    # 1. Runtime support script — make it root-absolute so it loads from
-    #    /assets/support.js regardless of page depth.
-    html = html.replace('src="./support.js"', 'src="/assets/support.js"')
-
-    # 2. Shared navigation hrefs (identical strings across every page).
-    html = html.replace(f'href="{university_slug}.dc.html"', 'href="/"')
-    html = html.replace('href="programs_listing.html"', 'href="/programs"')
-    html = html.replace('href="specializations_listing.html"', 'href="/specializations"')
-    html = html.replace('href="blog_listing.html"', 'href="/blog"')
-    html = html.replace(f'href="{university_slug}-blog.dc.html"', 'href="/blog"')
-
-    # 3. Listing templates build card hrefs client-side as `slug + '.html'`.
-    #    Rewrite the JS to produce slashless public routes.
-    html = html.replace(
-        "p.slug ? p.slug + '.html' : '#'",
-        "p.slug ? '/' + p.slug : '#'",
-    )
-    html = html.replace(
-        "g.course_slug ? g.course_slug + '.html' : '#'",
-        "g.course_slug ? '/' + g.course_slug : '#'",
-    )
-    html = html.replace(
-        "sp.slug ? sp.slug + '.html' : '#'",
-        "sp.slug ? '/' + sp.slug : '#'",
-    )
-
-    # 4. Blog post hrefs are pre-baked into JSON as "href": "{slug}.html".
-    #    Also catch any generic {slug}.html / {slug}.dc.html references.
-    #    Process longest slugs first so "online-mba" isn't shadowed by a
-    #    shorter substring.
-    for slug in sorted(rewrite_map.keys(), key=len, reverse=True):
-        route = rewrite_map[slug]
-        html = html.replace(f'href="{slug}.html"', f'href="{route}"')
-        html = html.replace(f'href="{slug}.dc.html"', f'href="{route}"')
-        html = html.replace(f'href="/{slug}"', f'href="{route}"')
-        html = html.replace(f'href="/{slug}/"', f'href="{route}"')
-        html = html.replace(f'"href": "{slug}.html"', f'"href": "{route}"')
-        html = html.replace(f'"href":"{slug}.html"', f'"href":"{route}"')
-        html = html.replace(f'"href": "/{slug}"', f'"href": "{route}"')
-        html = html.replace(f'"href":"/{slug}"', f'"href":"{route}"')
 
     return html
 
@@ -461,24 +375,10 @@ def _write_robots_txt(
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+@with_build_lock
 def build_website(university_slug: str) -> dict:
     """
-    Build a deployable static website package for a university workspace.
-
-    Reads already-compiled .html files from the workspace folders
-    (run `compile_workspace` first — this builder does not re-render
-    templates), rewrites links, copies assets, and emits routes.json +
-    sitemap.xml under workspaces/<uni>/build/.
-
-    Returns a summary dict:
-      {
-        "university_slug", "build_path", "build_url",
-        "pages_compiled", "pages_failed",
-        "images_copied", "downloads_copied",
-        "routes_generated", "routes": [...],
-        "errors": [...],
-        "built_at": ISO timestamp,
-      }
+    Build a deployable static website package for a university workspace using static assets.
     """
     university_slug = university_slug.lower().strip()
     ws_root = _workspace_root(university_slug)
@@ -506,169 +406,6 @@ def build_website(university_slug: str) -> dict:
     # ── Pass B: route map + collision detection ─────────────────────────────
     route_map, route_errors = _build_route_map(index, university_slug)
     errors.extend(route_errors)
-    rewrite_map = _rewrite_map_for_routes(route_map)
-
-    # ── Pass C: reset build dir ─────────────────────────────────────────────
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
-    build_dir.mkdir(parents=True, exist_ok=True)
-    (build_dir / "assets").mkdir(parents=True, exist_ok=True)
-
-    # ── Pass D: export pages ────────────────────────────────────────────────
-    # (page_type_key, source_html_resolver) → (build_subpath)
-    export_specs: list[tuple[str, str, str]] = []  # (kind, slug, build_rel_dir)
-
-    def _export(html_path: Path, build_rel_dir: str, kind: str, slug: str) -> None:
-        nonlocal pages_compiled, pages_failed
-        if not html_path.exists():
-            pages_failed += 1
-            errors.append({
-                "page_type": kind, "slug": slug,
-                "error": f"Compiled HTML not found: {html_path}",
-            })
-            return
-        try:
-            html = html_path.read_text(encoding="utf-8")
-            html = _rewrite_html(html, university_slug, rewrite_map)
-            out_dir = build_dir / build_rel_dir
-            out_dir.mkdir(parents=True, exist_ok=True)
-            (out_dir / "index.html").write_text(html, encoding="utf-8")
-            pages_compiled += 1
-            export_specs.append((kind, slug, build_rel_dir))
-        except Exception as e:  # pragma: no cover - defensive
-            pages_failed += 1
-            errors.append({"page_type": kind, "slug": slug, "error": str(e)})
-
-    # Homepage
-    if index["university"]:
-        rec = next(iter(index["university"].values()))
-        uni_html = ws_root / "University" / _HTML_FILENAME["university"]
-        _export(uni_html, "", "homepage", rec.get("slug", university_slug))
-
-    # Listings
-    listing_dirs = {
-        "programs_listing": (Path("Pages") / "programs", "programs"),
-        "specializations_listing": (Path("Pages") / "specializations", "specializations"),
-        "blog_listing": (Path("Pages") / "blog", "blog"),
-    }
-    for kind, (sub, build_sub) in listing_dirs.items():
-        html_path = ws_root / sub / _HTML_FILENAME[kind]
-        _export(html_path, build_sub, kind, kind)
-
-    # Courses
-    for slug, rec in index["course"].items():
-        if slug in _RESERVED_SEGMENTS:
-            continue  # already reported as collision
-        route_key = f"course:{slug}"
-        build_rel_dir = route_map.get(route_key, build_public_route("course", slug, university_slug)).lstrip("/")
-        html_path = ws_root / "Courses" / slug / _HTML_FILENAME["course"]
-        _export(html_path, build_rel_dir, "course", slug)
-
-    # Specializations
-    for slug, rec in index["specialization"].items():
-        if slug in _RESERVED_SEGMENTS:
-            continue
-        route_key = f"specialization:{slug}"
-        build_rel_dir = route_map.get(route_key, build_public_route("specialization", slug, university_slug)).lstrip("/")
-        html_path = ws_root / "Specializations" / slug / _HTML_FILENAME["specialization"]
-        _export(html_path, build_rel_dir, "specialization", slug)
-
-    # Blogs
-    for slug, rec in index["blog"].items():
-        html_path = ws_root / "Blogs" / slug / _HTML_FILENAME["blog"]
-        _export(html_path, f"blog/{slug}", "blog", slug)
-
-    # ── Pass E: copy assets ─────────────────────────────────────────────────
-    images_copied = 0
-    downloads_copied = 0
-
-    src_images = ws_root / "Assets" / "images"
-    if src_images.exists():
-        images_copied = _copy_dir_contents(src_images, build_dir / "assets" / "images")
-
-    src_downloads = ws_root / "Assets" / "downloads"
-    if src_downloads.exists():
-        downloads_copied = _copy_dir_contents(src_downloads, build_dir / "assets" / "downloads")
-
-    # Runtime support script (optional — listing pages are now fully static;
-    # detail pages (course, specialization, blog) still use it for DC runtime)
-    support_src = _locate_support_js()
-    if support_src:
-        shutil.copy2(support_src, build_dir / "assets" / "support.js")
-    # Note: absence of support.js is no longer a hard error since listing pages
-    # are now server-side rendered. Detail pages may degrade gracefully.
-
-    # ── Pass F: manifests ────────────────────────────────────────────────────
-    kind_label = {
-        "homepage": "homepage",
-        "programs_listing": "programs_listing",
-        "specializations_listing": "specializations_listing",
-        "blog_listing": "blog_listing",
-    }
-    for key in route_map:
-        if key.startswith("course:"):
-            kind_label[key] = "course"
-        elif key.startswith("specialization:"):
-            kind_label[key] = "specialization"
-        elif key.startswith("blog:"):
-            kind_label[key] = "blog"
-
-    _write_routes_json(build_dir, route_map, kind_label)
-    _write_sitemap(build_dir, route_map, index, university_slug, last_compiled_at)
-    _write_robots_txt(build_dir, university_slug)
-
-    built_at = datetime.now(timezone.utc).isoformat()
-
-    return {
-        "university_slug": university_slug,
-        "build_path": str(build_dir),
-        "build_url": f"/build-file?university_slug={university_slug}&path=index.html",
-        "pages_compiled": pages_compiled,
-        "pages_failed": pages_failed,
-        "images_copied": images_copied,
-        "downloads_copied": downloads_copied,
-        "routes_generated": len(route_map),
-        "routes": [
-            {"route": route, "type": kind_label[k], "slug": k.split(":", 1)[1] if ":" in k else None}
-            for k, route in route_map.items()
-        ],
-        "errors": errors,
-        "built_at": built_at,
-    }
-
-
-@with_build_v2_lock
-def build_website_v2(university_slug: str) -> dict:
-    """
-    Build a deployable static website package for a university workspace using V2 assets.
-    """
-    university_slug = university_slug.lower().strip()
-    ws_root = _workspace_root(university_slug)
-    build_dir = _build_root_v2(university_slug)
-
-    errors: list[dict] = []
-    pages_compiled = 0
-    pages_failed = 0
-
-    # ── Pass A: index + validate ────────────────────────────────────────────
-    index = _build_index(university_slug)
-
-    validation_errors = _validate_pages(index, university_slug)
-    errors.extend(validation_errors)
-
-    # Read last_compiled_at for sitemap fallback
-    last_compiled_at = None
-    meta_path = ws_root / "metadata.json"
-    if meta_path.exists():
-        try:
-            last_compiled_at = json.loads(meta_path.read_text(encoding="utf-8")).get("last_compiled_at")
-        except Exception:
-            pass
-
-    # ── Pass B: route map + collision detection ─────────────────────────────
-    route_map, route_errors = _build_route_map(index, university_slug)
-    errors.extend(route_errors)
-    rewrite_map = _rewrite_map_for_routes(route_map)
 
     # ── Pass C: reset build dir ─────────────────────────────────────────────
     if build_dir.exists():
@@ -690,7 +427,7 @@ def build_website_v2(university_slug: str) -> dict:
             return
         try:
             html = html_path.read_text(encoding="utf-8")
-            html = _rewrite_html(html, university_slug, rewrite_map)
+            html = _finalize_html(html, university_slug)
             out_dir = build_dir / build_rel_dir
             out_dir.mkdir(parents=True, exist_ok=True)
             (out_dir / "index.html").write_text(html, encoding="utf-8")
@@ -754,22 +491,22 @@ def build_website_v2(university_slug: str) -> dict:
     if src_downloads.exists():
         downloads_copied = _copy_dir_contents(src_downloads, build_dir / "assets" / "downloads")
 
-    # Copy V2 static assets (CSS/JS/Fonts)
-    static_v2_dir = Path(__file__).resolve().parent.parent / "static_v2"
-    if static_v2_dir.exists():
+    # Copy static assets (CSS/JS/Fonts)
+    static_dir = Path(__file__).resolve().parent.parent / "static"
+    if static_dir.exists():
         # Copy JS
         js_dst = build_dir / "assets" / "js"
         js_dst.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(static_v2_dir / "assets" / "js" / "public-runtime.js", js_dst / "public-runtime.js")
+        shutil.copy2(static_dir / "assets" / "js" / "public-runtime.js", js_dst / "public-runtime.js")
         
         # Copy CSS
         css_dst = build_dir / "assets" / "css"
         css_dst.mkdir(parents=True, exist_ok=True)
-        for css_file in (static_v2_dir / "assets" / "css").glob("*.css"):
+        for css_file in (static_dir / "assets" / "css").glob("*.css"):
             shutil.copy2(css_file, css_dst / css_file.name)
 
         # Copy Fonts (WOFF2 + fonts.css) for local hosting
-        fonts_src = static_v2_dir / "assets" / "fonts"
+        fonts_src = static_dir / "assets" / "fonts"
         if fonts_src.exists():
             fonts_dst = build_dir / "assets" / "fonts"
             fonts_dst.mkdir(parents=True, exist_ok=True)
@@ -868,14 +605,10 @@ def get_build_status(university_slug: str) -> dict:
 
 def zip_build(university_slug: str) -> tuple[bytes, str]:
     """
-    Zip the build/ folder into an in-memory archive, compiling/rebuilding first
-    to ensure it contains the absolute latest files, and packaging it inside
-    a parent 'build/' folder.
-    Returns (zip_bytes, filename).
+    Zip the build/ folder into an in-memory archive, compiling/rebuilding first.
     """
     university_slug = university_slug.lower().strip()
 
-    # Compile & build the workspace first so the ZIP is always up to date
     from workspace.compiler import compile_workspace
     compile_workspace(university_slug)
     build_website(university_slug)
@@ -892,29 +625,4 @@ def zip_build(university_slug: str) -> tuple[bytes, str]:
                 arcname = Path("build") / p.relative_to(build_dir)
                 zf.write(p, str(arcname))
     filename = f"{university_slug}-website.zip"
-    return buf.getvalue(), filename
-
-
-def zip_build_v2(university_slug: str) -> tuple[bytes, str]:
-    """
-    Zip the build_v2/ folder into an in-memory archive, compiling/rebuilding first.
-    """
-    university_slug = university_slug.lower().strip()
-
-    from workspace.compiler import compile_workspace_v2
-    compile_workspace_v2(university_slug)
-    build_website_v2(university_slug)
-
-    build_dir = _build_root_v2(university_slug)
-    if not build_dir.exists():
-        raise FileNotFoundError(f"No V2 build found for workspace '{university_slug}'")
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for p in build_dir.rglob("*"):
-            if p.is_file():
-                # Package inside a parent 'build/' directory in the ZIP
-                arcname = Path("build") / p.relative_to(build_dir)
-                zf.write(p, str(arcname))
-    filename = f"{university_slug}-website-v2.zip"
     return buf.getvalue(), filename

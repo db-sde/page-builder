@@ -11,7 +11,6 @@ from html.parser import HTMLParser
 # TODO: add Redis caching layer here — render_resolved should check cache before re-rendering
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
-TEMPLATES_V2_DIR = os.path.join(os.path.dirname(__file__), "..", "templates_v2")
 
 env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
@@ -21,17 +20,11 @@ env = Environment(
 from jinja2 import pass_context
 from PIL import Image
 
-env_v2 = Environment(
-    loader=FileSystemLoader(TEMPLATES_V2_DIR),
-    autoescape=select_autoescape(["html"]),
-)
-
 # Custom filter — strips None safely for templates
 def default_empty(value):
     return value if value is not None else ""
 
 env.filters["de"] = default_empty
-env_v2.filters["de"] = default_empty
 
 def webp_variant_filter(url, width=None):
     if not url:
@@ -76,9 +69,9 @@ def image_height_filter(context, url):
             pass
     return "0"
 
-env_v2.filters["webp_variant"] = webp_variant_filter
-env_v2.filters["image_width"] = image_width_filter
-env_v2.filters["image_height"] = image_height_filter
+env.filters["webp_variant"] = webp_variant_filter
+env.filters["image_width"] = image_width_filter
+env.filters["image_height"] = image_height_filter
 
 # clean_fee is now the single canonical implementation, imported as
 # core.utils.format_fee (previously duplicated verbatim here and as
@@ -503,7 +496,7 @@ def clean_html_tables(html: str) -> str:
     return re.sub(r'(<table[^>]*>)(.*?)</table>', repl, html, flags=re.DOTALL | re.IGNORECASE)
 
 
-def render_resolved(resolved: dict, standalone: bool = False, render_mode: str = "v2") -> str:
+def render_resolved(resolved: dict, standalone: bool = False) -> str:
     from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
 
     uni_slug = resolved.get("university_slug") or "nmims"
@@ -1178,7 +1171,7 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
         {"icon": "⌖", "k": "Visit", "v": (ctx.get("site") or {}).get("address") or ""}
     ], ensure_ascii=False)
 
-    # For V2 rendering compatibility: populate lists directly on the context
+    # Populate native template collections directly on the context.
     ctx["features"] = features_list
     ctx["recruiters"] = recruiters_list
     ctx["testimonials"] = testimonials
@@ -1280,11 +1273,8 @@ def render_resolved(resolved: dict, standalone: bool = False, render_mode: str =
     ctx["standalone"] = standalone  # controls nav/footer visibility in templates
     template_name = TEMPLATE_MAP.get(resolved["page_type"], f"{resolved['page_type']}.html")
     
-    if render_mode == "v2":
-        template = env_v2.get_template(template_name)
-    else:
-        template = env.get_template(template_name)
-        
+    template = env.get_template(template_name)
+
     html_out = clean_html_tables(template.render(**ctx))
 
     # SEO & Open Graph post-processor for every supported render mode.

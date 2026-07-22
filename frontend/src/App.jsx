@@ -104,7 +104,7 @@ export default function App() {
           {step === 1 && <Screen0Workspace session={session} updateSession={updateSession} onNext={() => setStep(2)} setStep={setStep} />}
           {step === 2 && <Screen1Upload session={session} updateSession={updateSession} onNext={() => setStep(3)} />}
           {step === 3 && <Screen2Review session={session} updateSession={updateSession} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-          {step === 4 && <Screen3Preview session={session} updateSession={updateSession} onBack={() => setStep(3)} />}
+          {step === 4 && <Screen3Preview session={session} onBack={() => setStep(3)} />}
         </div>
       </main>
     </div>

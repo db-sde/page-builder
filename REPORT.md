@@ -28,7 +28,7 @@ graph TD
     D -->|Pass 1: Scan & Index| E[Workspace Global Index]
     E -->|Pass 2: Enrich & Compile| F[Jinja2 Rendered Pages]
     F -->|Pass 3: Export & Rewrite| G[Clean Static Build Folder]
-    G -->|Client Runtime: support.js| H[Interactivity & Live DOM]
+    G -->|Deferred public-runtime.js| H[Progressive Interactivity]
 ```
 
 ### Detailed Pipeline Stages:
@@ -38,7 +38,7 @@ graph TD
 4.  **Workspace Persistence**: The output is saved to the workspace's page subfolder as `source.json` (source of truth) and a static `.html` draft.
 5.  **Compiler Pass 1 (Index & Scan)**: Scans all `source.json` files in the workspace, compiles an in-memory catalog, and validates required images.
 6.  **Compiler Pass 2 (Context Enrichment)**: Resolves relationships (like mapping sibling specializations or parent programs) and compiles the final HTML pages with complete context.
-7.  **Export System (Builder)**: Wipes the `build/` directory, copies files, rewrites dynamic URL paths to root-absolute paths, moves media files to an optimized structure, and produces routing manifests (`routes.json`) and `sitemap.xml`.
+7.  **Export System (Builder)**: Wipes the `build/` directory, optimizes and copies media, bundles static CSS, fonts and JavaScript, and produces routing manifests (`routes.json`) and `sitemap.xml`.
 
 ---
 
@@ -97,7 +97,7 @@ The rendering pipeline (`backend/renderer/engine.py`) uses Jinja2 templates to b
 
 *   **Custom Filters**: Registered custom filters, such as `de` (`default_empty`), handle missing variables safely to prevent template compilation errors.
 *   **Syllabus & Admission Parsers**: The engine uses HTML parsers (`SyllabusHTMLParser`, `AdmissionHTMLParser`) to split blocks of text into structured JSON lists. These parsed lists (like sem-by-sem curriculums or step-by-step registration lists) are rendered cleanly as structured components rather than generic HTML blobs.
-*   **JSON Pre-Serialization**: Complex dictionaries (e.g., FAQs, reviews, stats) are pre-serialized into JSON strings (like `faq_data_json`, `stats_json`) and injected into the template. The browser runtime (`support.js`) uses these JSON strings to mount interactive React widgets without client-side parsing delay.
+*   **Static Template Context**: Complex dictionaries such as FAQs, reviews and statistics are normalized in Python and rendered directly by Jinja. The small deferred `public-runtime.js` file only wires progressive interactions such as menus, accordions and tabs.
 *   **Centralized Href System**: Link mappings are calculated during the compilation pass. Dynamic tags are translated to clean URL structures matching the route map rules.
 
 ---

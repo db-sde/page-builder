@@ -248,7 +248,7 @@ def _enrich_resolved(record: dict, index: dict) -> dict:
     }
 
 
-def _render_page(enriched: dict, render_mode: str = "v2") -> str:
+def _render_page(enriched: dict) -> str:
     """Run the transformer + renderer on an enriched record and return HTML."""
     from renderer.engine import render_resolved
 
@@ -262,10 +262,10 @@ def _render_page(enriched: dict, render_mode: str = "v2") -> str:
 
     page_type = enriched.get("page_type")
     standalone = page_type in ("course", "specialization", "blog")
-    return render_resolved(resolved, standalone=standalone, render_mode=render_mode)
+    return render_resolved(resolved, standalone=standalone)
 
 
-def _auto_render_listing_pages(university_slug: str, index: dict, render_mode: str = "v2") -> list[dict]:
+def _auto_render_listing_pages(university_slug: str, index: dict) -> list[dict]:
     """
     Automatically re-render the 3 system listing pages with fresh workspace data.
     Called after all user-content pages have been compiled in Pass 2.
@@ -297,7 +297,7 @@ def _auto_render_listing_pages(university_slug: str, index: dict, render_mode: s
             "raw": raw,
         }
         try:
-            html = render_resolved(resolved, render_mode=render_mode)
+            html = render_resolved(resolved)
             page_dir = resolve_page_dir(university_slug, pt, slug)
             page_dir.mkdir(parents=True, exist_ok=True)
             html_filename = _HTML_FILENAME.get(pt, f"{pt}.html")
@@ -346,94 +346,7 @@ def compile_workspace(university_slug: str) -> dict:
         parent_slug = record.get("parent_slug")
 
         try:
-            # Enforce validation of required images during compile
-            data = record.get("data", {})
-            if pt == "university":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
-            elif pt == "course":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
-                if not data.get("certificate_image_url"):
-                    raise ValueError("Missing required Degree Certificate Image (certificate_image_url)")
-            elif pt == "specialization":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Hero Image (hero_image_url)")
-            elif pt == "blog":
-                if not data.get("hero_image_url"):
-                    raise ValueError("Missing required Article Hero Image (hero_image_url)")
-
-            enriched = _enrich_resolved(record, index)
-            html = _render_page(enriched, render_mode="v1")
-
-            # Overwrite the .html file
-            page_dir = resolve_page_dir(university_slug, pt, slug, parent_slug)
-            html_filename = _HTML_FILENAME.get(pt, f"{pt}.html")
-            (page_dir / html_filename).write_text(html, encoding="utf-8")
-
-            pages_compiled += 1
-
-        except Exception as e:
-            pages_failed += 1
-            errors.append({"page_type": pt, "slug": slug, "error": str(e)})
-
-    # After user content, auto-render all 3 system listing pages
-    listing_results = _auto_render_listing_pages(university_slug, index, render_mode="v1")
-    listing_compiled = sum(1 for r in listing_results if r.get("success"))
-    listing_failed = sum(1 for r in listing_results if not r.get("success"))
-    pages_compiled += listing_compiled
-    pages_failed += listing_failed
-
-    # Update metadata.json with last_compiled_at
-    compiled_at = datetime.now(timezone.utc).isoformat()
-    ensure_metadata(university_slug, {"last_compiled_at": compiled_at})
-
-    return {
-        "university_slug": university_slug,
-        "pages_compiled": pages_compiled,
-        "pages_failed": pages_failed,
-        "listing_pages": listing_results,
-        "errors": errors,
-        "compiled_at": compiled_at,
-    }
-
-
-def compile_workspace_v2(university_slug: str) -> dict:
-    """
-    Run a full two-pass compilation for a university workspace using V2 templates.
-
-    Returns:
-    {
-      "university_slug": str,
-      "pages_compiled": int,
-      "pages_failed": int,
-      "listing_pages": [...],
-      "errors": [ { "slug": ..., "error": ... } ],
-      "compiled_at": ISO timestamp,
-    }
-    """
-    pages_compiled = 0
-    pages_failed = 0
-    errors = []
-
-    # Pass 1 — build global index
-    index = _build_index(university_slug)
-
-    # Gather all user-content records (skip system listing pages in this pass)
-    user_content_types = {"university", "course", "specialization", "blog"}
-    all_records = []
-    for pt in user_content_types:
-        for record in index.get(pt, {}).values():
-            all_records.append(record)
-
-    # Pass 2 — enrich + render each user-content page
-    for record in all_records:
-        pt = record.get("page_type")
-        slug = record.get("slug")
-        parent_slug = record.get("parent_slug")
-
-        try:
-            # Warn (but never skip) pages with missing images
+            # Missing images are reported without dropping otherwise valid pages.
             data = record.get("data", {})
             image_warnings = []
             if pt == "university" and not data.get("hero_image_url"):
@@ -448,11 +361,11 @@ def compile_workspace_v2(university_slug: str) -> dict:
             elif pt == "blog" and not data.get("hero_image_url"):
                 image_warnings.append("Missing hero_image_url — page will render without article hero image")
 
-            for w in image_warnings:
-                errors.append({"page_type": pt, "slug": slug, "warning": w})
+            for warning in image_warnings:
+                errors.append({"page_type": pt, "slug": slug, "warning": warning})
 
             enriched = _enrich_resolved(record, index)
-            html = _render_page(enriched, render_mode="v2")
+            html = _render_page(enriched)
 
             # Overwrite the .html file
             page_dir = resolve_page_dir(university_slug, pt, slug, parent_slug)
@@ -466,7 +379,7 @@ def compile_workspace_v2(university_slug: str) -> dict:
             errors.append({"page_type": pt, "slug": slug, "error": str(e)})
 
     # After user content, auto-render all 3 system listing pages
-    listing_results = _auto_render_listing_pages(university_slug, index, render_mode="v2")
+    listing_results = _auto_render_listing_pages(university_slug, index)
     listing_compiled = sum(1 for r in listing_results if r.get("success"))
     listing_failed = sum(1 for r in listing_results if not r.get("success"))
     pages_compiled += listing_compiled

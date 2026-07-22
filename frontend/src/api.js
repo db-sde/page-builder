@@ -170,19 +170,11 @@ export function downloadBuild(universitySlug) {
   window.location.href = `${BASE}/download-build?university_slug=${encodeURIComponent(universitySlug)}`;
 }
 
-export function downloadBuildV2(universitySlug) {
-  window.location.href = `${BASE}/download-build-v2?university_slug=${encodeURIComponent(universitySlug)}`;
-}
-
 /**
  * Absolute URL to a file inside the build/ folder (for iframe/new-tab preview).
  */
 export function buildFileUrl(universitySlug, path = 'index.html') {
   return `${BASE}/build-file?university_slug=${encodeURIComponent(universitySlug)}&path=${encodeURIComponent(path)}`;
-}
-
-export function buildFileUrlV2(universitySlug, path = 'index.html') {
-  return `${BASE}/build-file-v2?university_slug=${encodeURIComponent(universitySlug)}&path=${encodeURIComponent(path)}`;
 }
 
 // ── Hybrid Parent Mapping API ─────────────────────────────────────────────────
@@ -246,4 +238,3 @@ export async function getWorkspacePage(universitySlug, pageType, slug, parentSlu
   const res = await axios.get(url);
   return res.data;
 }
-

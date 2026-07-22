@@ -1,13 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
 <title>{{ seo_title }}</title>
 <meta name="description" content="{{ meta_description }}">
 {% if og_image_url %}
@@ -16,331 +11,22 @@
 {% if branding_favicon %}
 <link rel="icon" href="{{ branding_favicon }}">
 {% endif %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{max-width:100%;overflow-x:hidden}
-  body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
-  a{text-decoration:none}
-  h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
-  ::selection{background:#FF5C35;color:#1C1B22}
-  ul, ol { margin-bottom: 16px; padding-left: 22px; }
-  ul { list-style-type: disc; }
-  ol { list-style-type: decimal; }
-  li { margin-bottom: 6px; display: list-item; }
-  img{max-width:100%;height:auto}
-  table{max-width:100%}
-
-  .content-body p {
-      margin: 0 0 18px 0;
-      line-height: 1.8;
-  }
-  .content-body p:last-child {
-      margin-bottom: 0;
-  }
-  .content-body ul,
-  .content-body ol {
-      margin: 16px 0;
-      padding-left: 24px;
-  }
-  .content-body li {
-      margin-bottom: 8px;
-  }
-  .content-body h3,
-  .content-body h4 {
-      margin-top: 24px;
-      margin-bottom: 12px;
-  }
-
-  /* ===== OVERFLOW HARDENING =====
-     CSS Grid tracks default to min-width:auto, which sizes them to fit their
-     content's min-content width. If any grid child (sidebar, hero column,
-     card, footer column) has content that can't shrink, the whole grid -
-     and the page - gets pushed wider than the viewport and the excess is
-     clipped off-screen on the right. Forcing min-width:0 on every grid
-     child lets them shrink to the track width instead, so text wraps
-     inside the visible area instead of overflowing it. */
-  .layout-grid > aside, .layout-grid > main,
-  .hero-container > div,
-  .card-grid-3 > div, .card-grid-3 > a,
-  .placement-cert-grid > div,
-  .stats-grid-6 > div, .site-footer-grid > div {
-    min-width: 0;
-  }
-
-  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
-  .sticky-apply {
-    display: none !important;
-  }
-  @media (max-width: 768px) {
-    header nav, header > div > a:last-of-type {
-      display: none !important;
-    }
-    header #mobile-menu-btn {
-      display: flex !important;
-    }
-    .layout-grid {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-    }
-    .layout-grid aside {
-      order: 2 !important;
-      position: static !important;
-      width: 100% !important;
-      margin-top: 16px !important;
-    }
-    .layout-grid main {
-      order: 1 !important;
-      width: 100% !important;
-    }
-    .hero-container {
-      grid-template-columns: 1fr !important;
-      gap: 32px !important;
-      padding: 0 16px !important;
-    }
-    .hero-container h1 {
-      font-size: 28px !important;
-      line-height: 1.2 !important;
-    }
-    .hero-container img, .hero-container div[style*="min-height:410px"] {
-      height: 260px !important;
-      min-height: 260px !important;
-    }
-    .stats-grid-6 {
-      grid-template-columns: repeat(3, 1fr) !important;
-      margin-top: -30px !important;
-    }
-    .hero-buttons {
-      flex-direction: column !important;
-      gap: 12px !important;
-      width: 100% !important;
-    }
-    .hero-buttons .btn-hero {
-      width: 100% !important;
-      text-align: center !important;
-      min-height: 48px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center;
-    }
-    .card-grid-3 {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 16px !important;
-    }
-    .site-footer-grid {
-      grid-template-columns: 1fr !important;
-      gap: 28px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .card-grid-3, .placement-cert-grid {
-      grid-template-columns: 1fr !important;
-    }
-    .stats-grid-6 {
-      grid-template-columns: repeat(2, 1fr) !important;
-    }
-    .sticky-bottom-bar {
-      height: auto !important;
-    }
-    .sticky-bar-container {
-      flex-direction: row !important;
-      height: auto !important;
-      padding: 10px 16px !important;
-    }
-    .sticky-text-info {
-      display: none !important;
-    }
-    .sticky-whatsapp {
-      display: none !important;
-    }
-    .sticky-apply {
-      display: inline-flex !important;
-    }
-    .sticky-button-wrap {
-      width: 100% !important;
-      justify-content: stretch !important;
-      gap: 8px !important;
-    }
-    .sticky-button-wrap a {
-      flex: 1 !important;
-      text-align: center !important;
-      font-size: 13px !important;
-      padding: 10px 8px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      min-height: 44px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .stats-grid-6 {
-      grid-template-columns: 1fr !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: TABLET RANGE ===== */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .hero-container {
-      gap: 32px !important;
-    }
-    .layout-grid {
-      gap: 24px !important;
-    }
-    .layout-grid aside {
-      width: 190px !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: TIGHTER PADDING + TYPE SCALE ON MOBILE ===== */
-  @media (max-width: 768px) {
-    .layout-grid {
-      padding: 28px 16px 50px !important;
-    }
-    main section[style*="padding:28px"],
-    div[style*="padding:26px 28px"] {
-      padding: 18px !important;
-    }
-    h2[style*="font-size:21px"] {
-      font-size: 18px !important;
-    }
-    table {
-      font-size: 12.5px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    div[style*="position:absolute;left:18px;bottom:18px"] {
-      padding: 9px 12px !important;
-      gap: 8px !important;
-    }
-    div[style*="position:absolute;left:18px;bottom:18px"] > div:first-child {
-      font-size: 19px !important;
-    }
-    div[style*="position:absolute;left:18px;bottom:18px"] > div:last-child {
-      font-size: 10.5px !important;
-    }
-    div[style*="position:absolute;left:18px;bottom:18px"] > div:last-child span {
-      font-size: 9.5px !important;
-    }
-  }
-
-  /* ===== ADDITIONAL RESPONSIVENESS: SMALL PHONES ===== */
-  @media (max-width: 380px) {
-    .hero-container {
-      padding: 0 14px !important;
-    }
-    .hero-container h1 {
-      font-size: 22px !important;
-    }
-    .hero-container img, .hero-container div[style*="min-height:410px"] {
-      height: 210px !important;
-      min-height: 210px !important;
-    }
-    .stats-grid-6 > div {
-      padding: 14px 8px !important;
-    }
-    .stats-grid-6 > div span:first-child {
-      font-size: 16px !important;
-    }
-    main section[style*="padding:28px"],
-    div[style*="padding:26px 28px"] {
-      padding: 14px !important;
-    }
-    h2[style*="font-size:21px"] {
-      font-size: 17px !important;
-    }
-  }
-
-  /* ===== FIX: PREVENT CMS-SUPPLIED RICH TEXT FROM OVERFLOWING THE VIEWPORT =====
-     about / eligibility / placement.content / hero.description are rendered
-     with | safe and may carry their own inline styles, long unbroken
-     strings, or embedded tags from whatever editor produced them. Force
-     them to respect their container width regardless of source markup. */
-  .rich-content {
-    max-width: 100%;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-  .rich-content img {
-    max-width: 100% !important;
-    height: auto !important;
-  }
-  .rich-content table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .rich-content iframe, .rich-content video {
-    max-width: 100%;
-  }
-  .rich-content * {
-    max-width: 100%;
-  }
-  .rich-content pre, .rich-content code {
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  /* ===== SHOW MORE / SHOW LESS (pure CSS, no JS, mobile only) ===== */
-  .readmore-toggle {
-    display: none;
-  }
-  .readmore-label {
-    display: none;
-    cursor: pointer;
-    color: #FF5C35;
-    font-weight: 700;
-    font-size: 13.5px;
-    margin-top: 10px;
-  }
-  .readmore-label .rm-less {
-    display: none;
-  }
-  .readmore-toggle:checked ~ .readmore-label .rm-more {
-    display: none;
-  }
-  .readmore-toggle:checked ~ .readmore-label .rm-less {
-    display: inline;
-  }
-  @media (max-width: 768px) {
-    .readmore-body {
-      max-height: 190px;
-      overflow: hidden;
-      position: relative;
-    }
-    .readmore-body::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 44px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
-      pointer-events: none;
-    }
-    .readmore-toggle:checked ~ .readmore-body {
-      max-height: none;
-    }
-    .readmore-toggle:checked ~ .readmore-body::after {
-      display: none;
-    }
-    .readmore-label {
-      display: inline-block;
-    }
-  }
-</style>
-</helmet>
-
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/course.css">
+{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url }}" fetchpriority="high">{% endif %}
+</head>
+<body>
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;padding-bottom:64px">
 
   {% if standalone %}
   <!-- ===== TOP BAR ===== -->
-  <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
+  <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
       <span>Admissions open for the 2026 batch · Limited seats</span>
     </div>
@@ -352,11 +38,14 @@
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
         {% if branding_logo %}
           <div style="height:44px;display:flex;align-items:center">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
         {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -369,7 +58,7 @@
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
 
       <!-- Hamburger Button -->
-      <button onClick="{{ '{{' }} toggleMenu {{ '}}' }}" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+      <button id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center" aria-expanded="false" aria-label="Open navigation">
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
@@ -377,7 +66,7 @@
     </div>
 
     <!-- Mobile Navigation Drawer -->
-    <div class="mobile-menu-drawer" id="mobile-drawer" style="{{ '{{' }} mobileDrawerStyle {{ '}}' }}">
+    <div id="mobile-drawer">
       <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
       <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
       <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
@@ -389,39 +78,45 @@
   {% endif %}
 
   <!-- ===== HERO ===== -->
-  <div id="top" style="padding:46px 0 92px;{{ '{{' }} heroWrap {{ '}}' }}">
+  <div id="top" style="padding:46px 0 92px;{{ heroWrap }}">
     <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
       <div>
-        <div style="font-size:12.5px;margin-bottom:14px;color:{{ '{{' }} heroCrumb {{ '}}' }}">
+        <div style="font-size:12.5px;margin-bottom:14px;color:{{ heroCrumb }}">
           <a href="{{ homepage_href }}" style="color:inherit">Home</a> › <a href="{{ homepage_href }}" style="color:inherit">{{ university_name }}</a> › {{ hero.title }}
         </div>
         {% if hero.badge %}
-        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px;{{ '{{' }} heroBadge {{ '}}' }}">{{ hero.badge }}</div>
+        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px;{{ heroBadge }}">{{ hero.badge }}</div>
         {% endif %}
-        <h1 style="font-size:40px;font-weight:800;line-height:1.16;letter-spacing:-.01em;color:{{ '{{' }} heroH1 {{ '}}' }}">{{ hero.title }}</h1>
-        <div class="rich-content content-body" style="font-size:16px;max-width:540px;margin-top:16px;color:{{ '{{' }} heroSub {{ '}}' }}">{{ hero.description | safe }}</div>
+        <h1 style="font-size:40px;font-weight:800;line-height:1.16;letter-spacing:-.01em;color:{{ heroH1 }}">{{ hero.title }}</h1>
+        <div class="rich-content content-body" style="font-size:16px;max-width:540px;margin-top:16px;color:{{ heroSub }}">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
-            <span style="border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;{{ '{{' }} heroChip {{ '}}' }}">{{ pill.label }}</span>
+            <span style="border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;{{ heroChip }}">{{ pill.label }}</span>
           {% endfor %}
         </div>
-        <div class="hero-buttons" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
-          <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 24px;border-radius:9px" style-hover="background:#2C2A35">Download Brochure</a>
-          <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 24px;border-radius:9px;{{ '{{' }} heroSecBtn {{ '}}' }}">Enquire Now</a>
+        <div class="hero-buttons" style="margin-top:26px">
+          <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 24px;border-radius:9px">Download Brochure</a>
+          <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 24px;border-radius:9px;{{ heroSecBtn }}">Enquire Now</a>
         </div>
       </div>
       <!-- university image placeholder -->
       <div style="position:relative">
         {% if hero_image_url %}
-        <img src="{{ hero_image_url }}" alt="{{ hero_image_alt }}" style="width:100%;height:410px;object-fit:cover;border-radius:16px;display:block;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)">
+        <picture>
+          <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
+          <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
+          <source type="image/webp" media="(max-width: 1200px)" srcset="{{ hero_image_url | webp_variant(1200) }}">
+          <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
+          <img src="{{ hero_image_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;height:410px;object-fit:cover;border-radius:16px;display:block;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)" fetchpriority="high" decoding="async">
+        </picture>
         {% else %}
-        <div style="border-radius:16px;min-height:410px;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.35);{{ '{{' }} heroImg {{ '}}' }}">
-          <span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ '{{' }} heroImgText {{ '}}' }}">[{{ university_name }} campus / learner photo<br>— 480 × 420 — ]</span>
+        <div style="border-radius:16px;min-height:410px;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.35);{{ heroImg }}">
+          <span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ heroImgText }}">[{{ university_name }} campus / learner photo<br>— 480 × 420 — ]</span>
         </div>
         {% endif %}
         {% if hero.stat_card %}
         <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
-          <div style="font-size:26px;font-weight:800;color:#FF5C35">{{ hero.stat_card.value }}</div>
+          <div style="font-size:26px;font-weight:800;color:#E04015">{{ hero.stat_card.value }}</div>
           <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label }}<br><span style="color:#6E6A78;font-weight:600">Highest Category Rating</span></div>
         </div>
         {% endif %}
@@ -432,12 +127,12 @@
   <!-- ===== STATS STRIP ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:0 20px">
     <div class="stats-grid-6" style="background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(46,26,107,.10);display:grid;grid-template-columns:repeat(6,1fr);margin-top:-56px;position:relative;z-index:5">
-      <sc-for list="{{ '{{' }} stats {{ '}}' }}" as="s" hint-placeholder-count="6">
+      {% for s in stats %}
         <div style="padding:18px 14px;text-align:center;border-right:1px solid #E9E5F2">
-          <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ '{{' }} s.v {{ '}}' }}</span>
-          <span style="font-size:11px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ '{{' }} s.k {{ '}}' }}</span>
+          <span style="display:block;font-size:18px;font-weight:800;color:#1C1B22">{{ s.v }}</span>
+          <span style="font-size:12px;color:#6E6A78;text-transform:uppercase;letter-spacing:.4px;font-weight:600">{{ s.k }}</span>
         </div>
-      </sc-for>
+      {% endfor %}
     </div>
   </div>
 
@@ -446,9 +141,9 @@
 
     <!-- sidebar rail -->
     <aside style="position:sticky;top:84px;align-self:start;background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:10px">
-      <sc-for list="{{ '{{' }} rail {{ '}}' }}" as="r" hint-placeholder-count="12">
-        <a href="{{ '{{' }} r.href {{ '}}' }}" style="display:block;padding:9px 14px;font-size:13px;font-weight:600;border-left:3px solid transparent;border-radius:0 8px 8px 0;color:{{ '{{' }} r.color {{ '}}' }};border-left-color:{{ '{{' }} r.bar {{ '}}' }};background:{{ '{{' }} r.bg {{ '}}' }}">{{ '{{' }} r.label {{ '}}' }}</a>
-      </sc-for>
+      {% for r in rail %}
+        <a href="{{ r.href }}" class="rail-link" style="display:block;padding:9px 14px;font-size:13px;font-weight:600;border-left:3px solid transparent;border-radius:0 8px 8px 0;color:{{ r.color }};border-left-color:{{ r.bar }};background:{{ r.bg }}">{{ r.label }}</a>
+      {% endfor %}
       <div style="padding:14px 12px 6px">
         <a href="{{ lead_url_brochure }}" style="display:block;background:#1C1B22;color:#F3C77C;text-align:center;font-weight:800;font-size:13.5px;padding:11px;border-radius:8px">Get Brochure</a>
       </div>
@@ -472,12 +167,12 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Program Highlights</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;flex-direction:column;gap:14px">
-          <sc-for list="{{ '{{' }} highlights {{ '}}' }}" as="h" hint-placeholder-count="6">
+          {% for h in highlights %}
             <div style="display:flex;gap:13px;align-items:flex-start">
               <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#FFE7E0;color:#E0431F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-top:1px">✓</span>
-              <div style="line-height:1.55"><span style="font-size:14.5px;color:#1C1B22;font-weight:700">{{ '{{' }} h.t {{ '}}' }}</span><span style="font-size:13.5px;color:#6E6A78"> — {{ '{{' }} h.d {{ '}}' }}</span></div>
+              <div style="line-height:1.55"><span style="font-size:14.5px;color:#1C1B22;font-weight:700">{{ h.t }}</span><span style="font-size:13.5px;color:#6E6A78"> — {{ h.d }}</span></div>
             </div>
-          </sc-for>
+          {% endfor %}
         </div>
       </section>
       {% endif %}
@@ -486,7 +181,7 @@
       <section id="accreditations" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Approvals &amp; Accreditations</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div class="placement-cert-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+        <div class="placement-cert-grid">
           {% for acc in accreditations %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ acc.title }}</h4>
@@ -506,9 +201,9 @@
         <div style="max-height:300px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#D9CFF0 transparent">
         {% endif %}
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          <sc-for list="{{ '{{' }} specs {{ '}}' }}" as="sp" hint-placeholder-count="7">
-            <a href="{{ '{{' }} sp.href {{ '}}' }}" style="display:flex;flex-direction:column;height:100%;min-height:120px;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px;font-weight:700;color:#1C1B22" style-hover="border-color:#FF5C35;box-shadow:0 4px 14px rgba(46,26,107,.12)">{{ '{{' }} sp.t {{ '}}' }}<small style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#6E6A78;margin-top:4px">{{ '{{' }} sp.d {{ '}}' }}</small></a>
-          </sc-for>
+          {% for sp in specs %}
+            <a href="{{ sp.href }}" class="spec-card" style="display:flex;flex-direction:column;height:100%;min-height:120px;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px;font-weight:700;color:#1C1B22">{{ sp.t }}<small style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#6E6A78;margin-top:4px">{{ sp.d }}</small></a>
+          {% endfor %}
         </div>
         {% if specs | length > 6 %}
         </div>
@@ -537,9 +232,9 @@
         <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
           <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
             <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700">Amount</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th></tr>
-            <sc-for list="{{ '{{' }} fees {{ '}}' }}" as="f" hint-placeholder-count="3">
-              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.plan {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }}">{{ '{{' }} f.amt {{ '}}' }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ '{{' }} f.bg {{ '}}' }};font-weight:700;color:#1C1B22">{{ '{{' }} f.total {{ '}}' }}</td></tr>
-            </sc-for>
+            {% for f in fees %}
+              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.plan }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.amt }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }};font-weight:700;color:#1C1B22">{{ f.total }}</td></tr>
+            {% endfor %}
           </table>
         </div>
         {% if fees.note %}
@@ -565,12 +260,12 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Admission Process</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;flex-direction:column;gap:4px">
-          <sc-for list="{{ '{{' }} steps {{ '}}' }}" as="st" hint-placeholder-count="4">
+          {% for st in steps %}
             <div style="display:flex;gap:14px;padding:10px 0;font-size:14px;align-items:flex-start">
-              <div style="flex:0 0 30px;height:30px;border-radius:50%;background:#FF5C35;color:#1C1B22;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">{{ '{{' }} st.n {{ '}}' }}</div>
-              <div style="padding-top:3px">{{ '{{' }} st.t {{ '}}' }}</div>
+              <div style="flex:0 0 30px;height:30px;border-radius:50%;background:#FF5C35;color:#1C1B22;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">{{ st.n }}</div>
+              <div style="padding-top:3px">{{ st.t }}</div>
             </div>
-          </sc-for>
+          {% endfor %}
         </div>
 
       </section>
@@ -580,23 +275,55 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-          <sc-for list="{{ '{{' }} syllabusTabs {{ '}}' }}" as="tab">
-            <button onClick="{{ '{{' }} tab.select {{ '}}' }}" style="padding:9px 22px;border:1px solid #E9E5F2;border-radius:24px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:{{ '{{' }} tab.bg {{ '}}' }};color:{{ '{{' }} tab.color {{ '}}' }};border-color:{{ '{{' }} tab.border {{ '}}' }}">{{ '{{' }} tab.label {{ '}}' }}</button>
-          </sc-for>
+          {% for tab in syllabusTabs %}
+            <button type="button" class="syllabus-tab" data-syllabus-tab="{{ loop.index0 }}" style="background:{{ tab.bg }};color:{{ tab.color }};border-color:{{ tab.border }}">{{ tab.label }}</button>
+          {% endfor %}
         </div>
-        <div class="placement-cert-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <sc-for list="{{ '{{' }} sems {{ '}}' }}" as="sem" hint-placeholder-count="2">
-            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
-              <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ '{{' }} sem.title {{ '}}' }}</h4>
-              <div style="display:flex;flex-direction:column">
-                <sc-for list="{{ '{{' }} sem.subjects {{ '}}' }}" as="sub" hint-placeholder-count="6">
-                  <div style="font-size:13px;padding:6px 0;border-bottom:1px dashed #E9E5F2;color:#434346">{{ '{{' }} sub {{ '}}' }}</div>
-                </sc-for>
+        {% for year in syllabus_years %}
+          <div class="syllabus-year-content placement-cert-grid" id="syllabus-year-{{ loop.index0 }}" style="display: {% if loop.first %}grid{% else %}none{% endif %};grid-template-columns:1fr 1fr;gap:16px">
+            {% for sem in year.semesters %}
+              <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
+                <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ sem.title }}</h4>
+                <div style="display:flex;flex-direction:column">
+                  {% for sub in sem.subjects %}
+                    <div style="font-size:13px;padding:6px 0;border-bottom:1px dashed #E9E5F2;color:#434346">{{ sub }}</div>
+                  {% endfor %}
+                </div>
               </div>
-            </div>
-          </sc-for>
-        </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
       </section>
+
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var tabs = document.querySelectorAll('[data-syllabus-tab]');
+        var yearContents = document.querySelectorAll('.syllabus-year-content');
+        tabs.forEach(function(tab) {
+          tab.addEventListener('click', function() {
+            var targetIdx = this.getAttribute('data-syllabus-tab');
+            tabs.forEach(function(t) {
+              if (t.getAttribute('data-syllabus-tab') === targetIdx) {
+                t.style.background = '#6B4FC9';
+                t.style.color = '#fff';
+                t.style.borderColor = '#6B4FC9';
+              } else {
+                t.style.background = '#fff';
+                t.style.color = '#6E6A78';
+                t.style.borderColor = '#E9E5F2';
+              }
+            });
+            yearContents.forEach(function(content) {
+              if (content.id === 'syllabus-year-' + targetIdx) {
+                content.style.display = 'grid';
+              } else {
+                content.style.display = 'none';
+              }
+            });
+          });
+        });
+      });
+      </script>
 
       {% if placement %}
       <section id="placement" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
@@ -613,10 +340,16 @@
         <div class="placement-cert-grid" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:stretch">
           {% if certificate_image_url %}
           <div style="border-radius:10px;border:1px solid #E9E5F2;overflow:hidden;min-height:210px;display:flex;align-items:center;justify-content:center">
-            <img src="{{ certificate_image_url }}" alt="Sample Degree Certificate" style="max-width:100%;max-height:240px;display:block;object-fit:contain">
+            <picture>
+              <source type="image/webp" media="(max-width: 480px)" srcset="{{ certificate_image_url | webp_variant(480) }}">
+              <source type="image/webp" media="(max-width: 768px)" srcset="{{ certificate_image_url | webp_variant(768) }}">
+              <source type="image/webp" media="(max-width: 1200px)" srcset="{{ certificate_image_url | webp_variant(1200) }}">
+              <source type="image/webp" srcset="{{ certificate_image_url | webp_variant }}">
+              <img src="{{ certificate_image_url }}" alt="Sample Degree Certificate" width="{{ certificate_image_url | image_width }}" height="{{ certificate_image_url | image_height }}" style="max-width:100%;max-height:240px;display:block;object-fit:contain" loading="lazy" decoding="async">
+            </picture>
           </div>
           {% else %}
-          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px"><span style="font-family:ui-monospace,monospace;font-size:11.5px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span></div>
+          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px"><span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span></div>
           {% endif %}
           <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:18px;display:flex;flex-direction:column;justify-content:center">
             <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4>
@@ -632,12 +365,12 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Job Profiles After Graduation</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          <sc-for list="{{ '{{' }} jobs {{ '}}' }}" as="j" hint-placeholder-count="6">
+          {% for j in jobs %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
-              <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ '{{' }} j.t {{ '}}' }}</h4>
-              <p style="font-size:13px;color:#6E6A78">Avg. salary: {{ '{{' }} j.s {{ '}}' }}</p>
+              <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ j.t }}</h4>
+              <p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p>
             </div>
-          </sc-for>
+          {% endfor %}
         </div>
       </section>
       {% endif %}
@@ -655,12 +388,12 @@
       <section id="reviews" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Student Reviews</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <sc-for list="{{ '{{' }} reviews {{ '}}' }}" as="rv" hint-placeholder-count="3">
+        {% for rv in reviews %}
           <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px">
-            <p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ '{{' }} rv.q {{ '}}' }}</p>
-            <b style="font-size:13px;color:#1C1B22">{{ '{{' }} rv.a {{ '}}' }}</b>
+            <p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p>
+            <b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b>
           </div>
-        </sc-for>
+        {% endfor %}
       </section>
       {% endif %}
 
@@ -668,15 +401,15 @@
       <section id="faq" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Frequently Asked Questions</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <sc-for list="{{ '{{' }} faqs {{ '}}' }}" as="fq" hint-placeholder-count="5">
+        {% for fq in faqs %}
           <div style="border-bottom:1px solid #E9E5F2">
-            <button class="faq-btn" onClick="{{ '{{' }} fq.toggle {{ '}}' }}" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-              <span>{{ '{{' }} fq.q {{ '}}' }}</span>
-              <span style="color:#FF5C35;font-size:20px;flex-shrink:0;margin-left:14px">{{ '{{' }} fq.sign {{ '}}' }}</span>
+            <button class="faq-btn" data-faq-btn type="button" style="width:100%;background:none;border:none;font:inherit;font-size:14.5px;font-weight:700;color:#1C1B22;text-align:left;padding:14px 30px 14px 0;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+              <span>{{ fq.q }}</span>
+              <span data-faq-sign style="color:#E04015;font-size:20px;flex-shrink:0;margin-left:14px">{{ fq.sign }}</span>
             </button>
-            <div style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ '{{' }} fq.disp {{ '}}' }}">{{ '{{' }} fq.a {{ '}}' }}</div>
+            <div data-faq-answer style="font-size:13.5px;color:#6E6A78;padding:0 0 14px;display:{{ fq.disp }}">{{ fq.a }}</div>
           </div>
-        </sc-for>
+        {% endfor %}
       </section>
       {% endif %}
     </main>
@@ -685,30 +418,33 @@
   {% if standalone %}
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
-  <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px">
-    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+  <footer style="background:#6B4FC9;color:#EAE7FD;padding:48px 20px 26px">
+    <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
       <div>
         {% if branding_logo %}
           <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
           </div>
         {% else %}
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a>
-          <a href="{{ specs_listing_href }}" style="color:#C9BEEC">Specialisations</a>
+          <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#EAE7FD">Specialisations</a>
         </div>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Company</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a>
-          <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
+          <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#EAE7FD">Blog</a>
         </div>
       </div>
       {% if show_contact %}
@@ -734,7 +470,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#C9BEEC;display:block;font-size:11px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>
@@ -747,73 +483,6 @@
   {% endif %}
 
 </div>
-</x-dc>
-<script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  state = { selectedYearIndex: 0, open: { 0: true }, whiteHero: true, mobileMenuOpen: false };
-
-  toggleFaq(i) {
-    this.setState(s => { const o = { ...s.open }; o[i] = !o[i]; return { open: o }; });
-  }
-
-  renderVals() {
-    const O = '#FF5C35', NAVY = '#6B4FC9', MUT = '#6E6A78';
-    const stats = {{ stats_json | safe }};
-    const railDef = {{ rail_json | safe }};
-    const rail = railDef.map(([label, href]) => ({
-      label, href, color: MUT, bar: 'transparent', bg: 'transparent'
-    }));
-    const highlights = {{ highlights_json | safe }};
-    const specs = {{ specs_json | safe }};
-    const fees = {{ fees_json | safe }};
-    const steps = {{ steps_json | safe }};
-    const jobs = {{ jobs_json | safe }};
-    const reviews = {{ reviews_json | safe }};
-    const faqData = {{ faq_data_json | safe }};
-    const faqs = faqData.map((f, i) => ({
-      q: f.q, a: f.a,
-      sign: this.state.open[i] ? '–' : '+',
-      disp: this.state.open[i] ? 'block' : 'none',
-      toggle: () => this.toggleFaq(i)
-    }));
-
-    const syllabusYears = {{ syllabus_years_json | safe }};
-    const selectedYear = this.state.selectedYearIndex || 0;
-    const syllabusTabs = syllabusYears.map((y, idx) => {
-      const active = selectedYear === idx;
-      return {
-        label: y.label,
-        bg: active ? NAVY : '#fff',
-        color: active ? '#fff' : MUT,
-        border: active ? NAVY : '#E9E5F2',
-        select: () => this.setState({ selectedYearIndex: idx })
-      };
-    });
-    const sems = (syllabusYears[selectedYear] || {}).semesters || [];
-
-    const wh = this.state.whiteHero;
-    const heroWrap = wh ? 'background:#fff;border-bottom:1px solid #ECE8F6;color:#434346' : 'background:linear-gradient(125deg,#6B4FC9 0%,#8A6BF0 78%);color:#fff';
-    const heroCrumb = wh ? '#9A93A8' : '#E4DCF7';
-    const heroH1 = wh ? '#5737C5' : '#ffffff';
-    const heroSub = wh ? '#6E6A78' : '#EBE6F9';
-    const heroBadge = wh ? 'background:#FFF0EB;border:1px solid #FFD3C6;color:#E0431F' : 'background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#FF5C35';
-    const heroChip = wh ? 'background:#F6F4FB;border:1px solid #E9E5F2;color:#5737C5' : 'background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#ffffff';
-    const heroSecBtn = wh ? 'border:1.5px solid #D9CFF0;color:#5737C5' : 'border:1.5px solid rgba(255,255,255,.45);color:#ffffff';
-    const heroImg = wh ? 'background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 14px,#E4DEF4 14px,#E4DEF4 28px);border:1px solid #E9E5F2' : 'background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 14px,#6244C2 14px,#6244C2 28px);border:1px solid rgba(255,255,255,.18)';
-    const heroImgText = wh ? '#A99BD8' : '#E4DCF7';
-
-    return {
-      stats, rail, highlights, specs, fees, steps, jobs, reviews, faqs, syllabusTabs, sems,
-      heroWrap, heroCrumb, heroH1, heroSub, heroBadge, heroChip, heroSecBtn, heroImg, heroImgText,
-      setHeroPurple: () => this.setState({ whiteHero: true }),
-      setHeroWhite: () => this.setState({ whiteHero: true }),
-      purpleTabBg: wh ? 'transparent' : '#6B4FC9', purpleTabColor: wh ? '#6E6A78' : '#ffffff',
-      whiteTabBg: wh ? '#6B4FC9' : 'transparent', whiteTabColor: wh ? '#ffffff' : '#6E6A78',
-      toggleMenu: () => this.setState({ mobileMenuOpen: !this.state.mobileMenuOpen }),
-      mobileDrawerStyle: 'position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2;display:' + (this.state.mobileMenuOpen ? 'flex' : 'none')
-    };
-  }
-}
-</script>
+<script src="/assets/js/public-runtime.js" defer></script>
 </body>
 </html>

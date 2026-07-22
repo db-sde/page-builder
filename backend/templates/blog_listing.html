@@ -8,68 +8,19 @@
 {% if branding_favicon %}
 <link rel="icon" href="{{ branding_favicon }}">
 {% endif %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#F6F4FB}
-  a{text-decoration:none}
-  h1,h2{font-family:'Playfair Display',Georgia,serif;letter-spacing:-.01em}
-  ::selection{background:#FF5C35;color:#1C1B22}
-  .blog-card:hover{box-shadow:0 14px 30px -16px rgba(46,26,107,.25)}
-  .featured-card:hover{box-shadow:0 18px 40px -20px rgba(46,26,107,.28)}
-  img{max-width:100%;height:auto}
-
-  /* ===== MOBILE RESPONSIVENESS OVERRIDES ===== */
-  @media (max-width: 768px) {
-    header nav, header > div > a:last-of-type {
-      display: none !important;
-    }
-    header #mobile-menu-btn {
-      display: flex !important;
-    }
-    .hero-container {
-      grid-template-columns: 1fr !important;
-      gap: 16px !important;
-    }
-    .hero-container div[style*="height:320px"] {
-      height: 200px !important;
-    }
-    .card-grid-3 {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 16px !important;
-    }
-    .hero-buttons {
-      flex-direction: column !important;
-      gap: 12px !important;
-      width: 100% !important;
-    }
-    .hero-buttons .btn-hero {
-      width: 100% !important;
-      text-align: center !important;
-      min-height: 48px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center;
-    }
-    .site-footer-grid {
-      grid-template-columns: 1fr !important;
-      gap: 28px !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .card-grid-3 {
-      grid-template-columns: 1fr !important;
-    }
-  }
-</style>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/blog.css">
 </head>
 <body style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh">
 
   <!-- ===== TOP BAR ===== -->
-  <div style="background:#6B4FC9;color:#C9BEEC;font-size:12.5px">
+  <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
       <span>Admissions open for the 2026 batch · Limited seats</span>
     </div>
@@ -81,11 +32,14 @@
       <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
         {% if branding_logo %}
           <div style="height:44px;display:flex;align-items:center">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#FF5C35">Online</span></div><div style="font-size:9px;letter-spacing:.18em;color:#9A93A8;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
         {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -98,7 +52,7 @@
       <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
 
       <!-- Hamburger Button -->
-      <button onclick="var d=document.getElementById('mobile-drawer'); d.style.display=(d.style.display==='flex'?'none':'flex');" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center">
+      <button onclick="var d=document.getElementById('mobile-drawer'); d.style.display=(d.style.display==='flex'?'none':'flex');" id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center" aria-expanded="false" aria-label="Open navigation">
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
         <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
@@ -106,7 +60,7 @@
     </div>
 
     <!-- Mobile Navigation Drawer -->
-    <div class="mobile-menu-drawer" id="mobile-drawer" style="display:none;position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2">
+    <div id="mobile-drawer" style="display:none;position:absolute;top:100%;left:0;width:100%;height:calc(100vh - 100%);background:#fff;z-index:99;padding:24px;flex-direction:column;gap:18px;box-shadow:0 10px 15px rgba(0,0,0,0.05);border-top:1px solid #E9E5F2">
       <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
       <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
       <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
@@ -116,10 +70,11 @@
     </div>
   </header>
 
+  <main>
   <!-- ===== PAGE HEADER ===== -->
   <div style="background:#fff;border-bottom:1px solid #ECE8F6;padding:50px 0 40px">
     <div style="max-width:1180px;margin:0 auto;padding:0 20px">
-      <div style="font-size:12.5px;color:#9A93A8;margin-bottom:12px"><a href="{{ homepage_href }}" style="color:#9A93A8">Home</a> › Blog</div>
+      <div style="font-size:12.5px;color:#706A80;margin-bottom:12px"><a href="{{ homepage_href }}" style="color:#706A80">Home</a> › Blog</div>
       <h1 style="font-size:38px;font-weight:800;letter-spacing:-.01em;color:#5737C5">The {{ university_name }} Blog</h1>
       <p style="font-size:16px;color:#6E6A78;max-width:600px;margin-top:12px">Guides, career advice and program insights to help you choose, fund and finish your online degree with confidence.</p>
     </div>
@@ -129,24 +84,30 @@
 
   <!-- ===== POST GRID ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:28px 20px 10px">
-    <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+    <div class="card-grid-3">
       {% for p in blog_posts %}
         <a href="{{ p.href }}" class="blog-card" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;min-height:380px;transition:box-shadow .18s">
           {% if p.hero_image_url %}
-            <img src="{{ p.hero_image_url }}" alt="{{ p.title | default('') }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block">
+            <picture>
+              <source type="image/webp" media="(max-width: 480px)" srcset="{{ p.hero_image_url | webp_variant(480) }}">
+              <source type="image/webp" media="(max-width: 768px)" srcset="{{ p.hero_image_url | webp_variant(768) }}">
+              <source type="image/webp" media="(max-width: 1200px)" srcset="{{ p.hero_image_url | webp_variant(1200) }}">
+              <source type="image/webp" srcset="{{ p.hero_image_url | webp_variant }}">
+              <img src="{{ p.hero_image_url }}" alt="{{ p.title | default('') }}" width="{{ p.hero_image_url | image_width }}" height="{{ p.hero_image_url | image_height }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block" loading="lazy" decoding="async">
+            </picture>
           {% else %}
-            <div style="width:100%;aspect-ratio:3/2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:11px;color:#A99BD8">[ {{ p.tag | default('article') }} image ]</span></div>
+            <div style="width:100%;aspect-ratio:3/2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8">[ {{ p.tag | default('article') }} image ]</span></div>
           {% endif %}
           <div style="padding:20px;display:flex;flex-direction:column;flex:1">
-            <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF5C35">{{ p.tag | default('') }}</span>
+            <span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#E04015">{{ p.tag | default('') }}</span>
             <div style="font-size:17px;font-weight:700;color:#1C1B22;margin-top:8px;line-height:1.32">{{ p.title | default('') }}</div>
             <p style="font-size:13px;color:#6E6A78;margin-top:8px;line-height:1.55;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ p.excerpt | default('') }}</p>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px;border-top:1px solid #ECE7F5"><span style="font-size:12px;color:#9A93A8;font-weight:600">{{ p.meta | default('') }}</span><span style="font-size:13px;color:#FF5C35;font-weight:800">Read →</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px;border-top:1px solid #ECE7F5"><span style="font-size:12px;color:#706A80;font-weight:600">{{ p.meta | default('') }}</span><span style="font-size:13px;color:#E04015;font-weight:800">Read →</span></div>
           </div>
         </a>
       {% else %}
         {% if not featured_post %}
-        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#9A93A8">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#706A80">
           <div style="font-size:20px;font-weight:700">No blog posts added yet.</div>
           <p style="margin-top:8px">Add blog articles in the workspace to see them listed here.</p>
         </div>
@@ -171,32 +132,37 @@
     </div>
   </div>
 
+  </main>
+
   <!-- ===== FOOTER ===== -->
   {% set show_contact = site.email or site.address %}
-  <footer style="background:#6B4FC9;color:#C9BEEC;padding:48px 20px 26px;margin-top:40px">
-    <div class="site-footer-grid" style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:{% if show_contact %}1.4fr 1fr 1fr 1.2fr{% else %}1.6fr 1.2fr 1.2fr{% endif %};gap:32px">
+  <footer style="background:#6B4FC9;color:#EAE7FD;padding:48px 20px 26px;margin-top:40px">
+    <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
       <div>
         {% if branding_logo %}
           <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
-            <img src="{{ branding_logo }}" alt="{{ university_name }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
           </div>
         {% else %}
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#FF5C35">Online</span></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
         <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ programs_listing_href }}" style="color:#C9BEEC">All Programs</a>
-          <a href="{{ specs_listing_href }}" style="color:#C9BEEC">Specialisations</a>
+          <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#EAE7FD">Specialisations</a>
         </div>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Explore</div>
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-          <a href="{{ homepage_href }}" style="color:#C9BEEC">Home</a>
-          <a href="{{ blog_listing_href }}" style="color:#C9BEEC">Blog</a>
+          <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#EAE7FD">Blog</a>
         </div>
       </div>
       {% if show_contact %}
@@ -219,5 +185,6 @@
     </div>
   </footer>
 
+<script src="/assets/js/public-runtime.js" defer></script>
 </body>
 </html>
