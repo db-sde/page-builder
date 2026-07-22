@@ -272,7 +272,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
           page_type: session.page_type,
           university_slug: session.university_slug,
           parent_slug: session.parent_slug,
-        }, imageUrls);
+        }, imageUrls, session.page_action === 'edit' ? 'edit' : 'import');
         if (!cancelled) setDraftSaveState('saved');
       } catch {
         if (!cancelled) setDraftSaveState('error');

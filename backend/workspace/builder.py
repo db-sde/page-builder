@@ -416,10 +416,11 @@ def build_website(university_slug: str) -> dict:
     # ── Pass D: export pages ────────────────────────────────────────────────
     export_specs: list[tuple[str, str, str]] = []  # (kind, slug, build_rel_dir)
 
-    def _export(html_path: Path, build_rel_dir: str, kind: str, slug: str) -> None:
+    def _export(html_path: Path, build_rel_dir: str, kind: str, slug: str, is_listing: bool = False) -> None:
         nonlocal pages_compiled, pages_failed
         if not html_path.exists():
-            pages_failed += 1
+            if not is_listing:
+                pages_failed += 1
             errors.append({
                 "page_type": kind, "slug": slug,
                 "error": f"Compiled HTML not found: {html_path}",
@@ -431,10 +432,12 @@ def build_website(university_slug: str) -> dict:
             out_dir = build_dir / build_rel_dir
             out_dir.mkdir(parents=True, exist_ok=True)
             (out_dir / "index.html").write_text(html, encoding="utf-8")
-            pages_compiled += 1
+            if not is_listing:
+                pages_compiled += 1
             export_specs.append((kind, slug, build_rel_dir))
         except Exception as e:
-            pages_failed += 1
+            if not is_listing:
+                pages_failed += 1
             errors.append({"page_type": kind, "slug": slug, "error": str(e)})
 
     # Homepage
@@ -443,7 +446,7 @@ def build_website(university_slug: str) -> dict:
         uni_html = ws_root / "University" / _HTML_FILENAME["university"]
         _export(uni_html, "", "homepage", rec.get("slug", university_slug))
 
-    # Listings
+    # Listings (system listing shells, not counted in user page totals)
     listing_dirs = {
         "programs_listing": (Path("Pages") / "programs", "programs"),
         "specializations_listing": (Path("Pages") / "specializations", "specializations"),
@@ -451,7 +454,7 @@ def build_website(university_slug: str) -> dict:
     }
     for kind, (sub, build_sub) in listing_dirs.items():
         html_path = ws_root / sub / _HTML_FILENAME[kind]
-        _export(html_path, build_sub, kind, kind)
+        _export(html_path, build_sub, kind, kind, is_listing=True)
 
     # Courses
     for slug, rec in index["course"].items():
@@ -575,10 +578,13 @@ def get_build_status(university_slug: str) -> dict:
         except Exception:
             routes = {}
 
-    # Count page index.html files (exclude assets/, routes.json, sitemap.xml)
+    # Count page index.html files (exclude system listing pages: programs/, specializations/, blog/)
     page_count = 0
+    listing_rel_paths = {"programs/index.html", "specializations/index.html", "blog/index.html"}
     for p in build_dir.rglob("index.html"):
-        page_count += 1
+        rel_path = p.relative_to(build_dir).as_posix()
+        if rel_path not in listing_rel_paths:
+            page_count += 1
 
     images = build_dir / "assets" / "images"
     images_copied = sum(1 for _ in images.rglob("*") if _.is_file()) if images.exists() else 0

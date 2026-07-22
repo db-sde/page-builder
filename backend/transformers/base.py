@@ -88,14 +88,11 @@ class BaseTransformer(ABC):
                 continue
             reviewer_name = self.clean_str(item.get("reviewer_name"))
             reviewer_label = self.clean_str(item.get("reviewer_label")) or ""
-            parsed = self.build_reviewer(reviewer_label)
-            name = reviewer_name or parsed["name"]
-            role = reviewer_label if reviewer_name else parsed["role"]
             enriched.append({
                 "q": item.get("review_text", ""),
-                "name": name,
-                "role": role,
-                "initial": name[0].upper() if name else ""
+                "name": reviewer_name or "",
+                "role": reviewer_label,
+                "initial": reviewer_name[0].upper() if reviewer_name else ""
             })
         return enriched
 

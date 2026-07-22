@@ -1,16 +1,26 @@
 /* university.css - homepage-specific styles */
-.hero-stats { display: flex; gap: 34px; margin-top: 34px; }
+.hero-container { grid-template-columns: 1.12fr .88fr; }
+.hero-container--text-only { grid-template-columns: 1fr; }
+.hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 22px; margin-top: 34px; }
+.hero-stats > div { min-width: 0; border-left: 0 !important; padding-left: 0 !important; }
+.hero-stats > div > div:first-child { overflow-wrap: anywhere; }
 .hero-container h1 { font-size: clamp(26px, 8vw, 46px); }
+.home-program-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 280px)); justify-content: center; }
+.home-accreditation-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.why-us-grid--single { grid-template-columns: 1fr !important; }
 .home-program-card, .home-post-card { transition: transform .18s, box-shadow .18s, border-color .18s; }
 .home-program-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px -20px rgba(46,26,107,.4); }
 .home-post-card:hover { box-shadow: 0 14px 30px -16px rgba(46,26,107,.25); }
 @media (max-width: 768px) {
   .hero-container img, .hero-container div[style*="min-height:430px"] { height: 240px !important; min-height: 240px !important; }
-  .hero-stats { flex-wrap: wrap !important; gap: 20px !important; margin-top: 24px !important; }
-  .hero-stats > div { border-left: none !important; padding-left: 0 !important; min-width: 40% !important; }
+  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px !important; margin-top: 24px !important; }
+  .hero-stats > div { min-width: 0 !important; }
+  .home-program-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 280px)) !important; }
+  .home-accreditation-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important; }
 }
 @media (max-width: 640px) {
   .why-us-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .home-program-grid { grid-template-columns: minmax(0, 1fr) !important; }
 }
 
 .spec-card:hover {

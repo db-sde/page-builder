@@ -4,7 +4,8 @@ class UniversityTransformer(BaseTransformer):
     def transform(self) -> dict:
         raw = self.raw
 
-        my_courses = []
+        workspace_courses = raw.get("_workspace_courses")
+        my_courses = workspace_courses if isinstance(workspace_courses, list) else []
 
         # Workspace-injected lists (added by compiler._enrich_resolved)
         workspace_specs = raw.get("_workspace_specs") or []
@@ -36,8 +37,6 @@ class UniversityTransformer(BaseTransformer):
         uni_full_name = self.resolve("university_full_name", "")
         mode_of_learning = self.resolve("mode_of_learning")
         established_year = self.resolve("established_year")
-        starting_fee = self.resolve("starting_fee")
-        num_programs = self.resolve("num_programs")
 
         # Resolve badge content dynamically
         badge_parts = []
@@ -51,20 +50,57 @@ class UniversityTransformer(BaseTransformer):
 
         about_content = self.resolve("about_content")
         why_choose_content = self.resolve("why_choose_content")
-        facts = self.resolve_list("facts")
-        accreditations = self.resolve_list("accreditations")
-        programs_table = self.resolve_list("programs_table")
+        facts = [
+            item for item in self.resolve_list("facts")
+            if isinstance(item, dict)
+            and (self.clean_str(item.get("fact_title")) or self.clean_str(item.get("fact_description")))
+        ]
+
+        # Publisher payloads currently exist in two compatible shapes. The
+        # template consumes the body_* context contract, so normalize at the
+        # transformer boundary and discard entries with no visible identity.
+        accreditations = []
+        for item in self.resolve_list("accreditations"):
+            if not isinstance(item, dict):
+                continue
+            body_name = self.clean_str(item.get("body_name") or item.get("name"))
+            if not body_name:
+                continue
+            if item.get("body_name"):
+                body_descriptor = self.clean_str(item.get("body_descriptor")) or ""
+                body_detail = self.clean_str(item.get("body_detail")) or ""
+            else:
+                body_descriptor = ""
+                body_detail = self.clean_str(item.get("description")) or ""
+            accreditations.append({
+                "body_name": body_name,
+                "body_descriptor": body_descriptor,
+                "body_detail": body_detail,
+            })
+
         admission_steps = self.resolve("admission_steps")
         emi_content = self.resolve("emi_content")
         exam_content = self.resolve("exam_content")
         placement_content = self.resolve("placement_content")
-        reviews = self.resolve_list("reviews")
-        faqs = self.resolve_list("faqs")
-        faculty_members = self.resolve_list("faculty_members")
+        reviews = [
+            item for item in self.resolve_list("reviews")
+            if isinstance(item, dict) and self.clean_str(item.get("review_text") or item.get("q"))
+        ]
+        faqs = [
+            item for item in self.resolve_list("faqs")
+            if isinstance(item, dict)
+            and self.clean_str(item.get("question") or item.get("q"))
+            and self.clean_str(item.get("answer") or item.get("a"))
+        ]
+        faculty_members = [
+            item for item in self.resolve_list("faculty_members")
+            if isinstance(item, dict) and self.clean_str(item.get("member_name"))
+        ]
 
         hero_image_alt = self.resolve("hero_image_alt", "")
         if not hero_image_alt:
-            hero_image_alt = f"{uni_name} Online Degree Programs Hero Image"
+            online_uni_name = uni_name if "online" in uni_name.lower() else f"{uni_name} Online"
+            hero_image_alt = f"{online_uni_name} Degree Programs Hero Image"
 
         return {
             "hero_image_url": self.resolve("hero_image_url"),
@@ -125,8 +161,6 @@ class UniversityTransformer(BaseTransformer):
                 (established_year, "Est."),
                 (naac and f"NAAC {naac}", "Accreditation"),
                 (ugc, "UGC Status"),
-                (f"{self.format_fee(starting_fee)}/sem" if starting_fee else None, "Starting Fee"),
-                (str(num_programs) if num_programs else None, "Programs"),
             ]),
 
             # --- Sidebar rail ---
@@ -135,7 +169,7 @@ class UniversityTransformer(BaseTransformer):
                 ("why-choose", "Why Choose", why_choose_content),
                 ("facts", "Quick Facts", facts),
                 ("accreditations", "Accreditations", accreditations),
-                ("programs", "Programs & Fees", programs_table or my_courses),
+                ("programs", "Programs & Fees", my_courses),
                 ("admission", "Admission", admission_steps),
                 ("emi", "Fees & EMI", emi_content),
                 ("exams", "Exam Process", exam_content),
@@ -154,10 +188,9 @@ class UniversityTransformer(BaseTransformer):
             "programs_intro": self.resolve("programs_intro"),
             "admission_fee_note": self.clean_str(raw.get("admission_fee_note")),
 
-            # Programs table — from DB if courses exist, fallback to raw table
+            # Programs are generated exclusively from published course pages.
             "programs": {
                 "intro": raw.get("programs_intro", ""),
-                "table": programs_table,
                 "courses": [
                     {
                         "name": c["data"].get("program_name", ""),
@@ -168,7 +201,7 @@ class UniversityTransformer(BaseTransformer):
                     }
                     for c in my_courses
                 ]
-            } if (programs_table or my_courses) else None,
+            } if my_courses else None,
 
             "admission": {
                 "steps": admission_steps,

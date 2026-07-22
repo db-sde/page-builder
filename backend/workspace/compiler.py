@@ -378,12 +378,10 @@ def compile_workspace(university_slug: str) -> dict:
             pages_failed += 1
             errors.append({"page_type": pt, "slug": slug, "error": str(e)})
 
-    # After user content, auto-render all 3 system listing pages
+    # After user content, auto-render all 3 system listing pages (not counted in user pages_compiled)
     listing_results = _auto_render_listing_pages(university_slug, index)
     listing_compiled = sum(1 for r in listing_results if r.get("success"))
     listing_failed = sum(1 for r in listing_results if not r.get("success"))
-    pages_compiled += listing_compiled
-    pages_failed += listing_failed
 
     # Update metadata.json with last_compiled_at
     compiled_at = datetime.now(timezone.utc).isoformat()

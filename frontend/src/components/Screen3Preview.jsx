@@ -285,7 +285,12 @@ export default function Screen3Preview({ session, onBack }) {
     setWorkspaceSaveResult(null);
     try {
       const acf = buildAcf();
-      const result = await saveToWorkspace(acf, session.images || {});
+      const result = await saveToWorkspace(
+        acf,
+        session.images || {},
+        null,
+        session.page_action === 'edit' ? 'edit' : 'import'
+      );
       if (result.status === 'saved') {
         setWorkspaceSaveResult(result);
         

@@ -44,7 +44,7 @@
           </div>
         {% else %}
           <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
-          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ online_university_name }}</div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
         {% endif %}
       </a>
       <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
@@ -78,25 +78,25 @@
   <main>
   <!-- ===== HERO : SPLIT ===== -->
   <div style="{{ heroWrap }};padding:56px 0 72px">
-    <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
+    <div class="hero-container{% if not hero_image_url %} hero-container--text-only{% endif %}" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;gap:46px;align-items:center">
       <div>
-        {% if naac_grade or ugc_approved %}
-        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ heroBadge }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }} · {% endif %}NIRF #24</div>
+        {% if hero.badge %}
+        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ heroBadge }}">{{ hero.badge }}</div>
         {% endif %}
-        <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ heroH1 }}">{{ hero.full_name | default("Online Degrees from " ~ hero.title) }}</h1>
-        <div style="font-size:16.5px;color:{{ heroSub }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>
+        <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ heroH1 }}">{{ hero.full_name or ("Online Degrees from " ~ hero.title) }}</h1>
+        {% if hero.description %}<div style="font-size:16.5px;color:{{ heroSub }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>{% endif %}
         <div class="hero-buttons" style="margin-top:26px">
           <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Download Brochure</a>
           <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ heroSecBtn }}">Enquire Now</a>
         </div>
-        <div class="hero-stats" style="display:flex;gap:34px;margin-top:34px">
+        {% if stats %}<div class="hero-stats" style="margin-top:34px">
           {% for stat in stats %}
           <div{% if not loop.first %} style="border-left:1px solid {{ heroStatDivider }};padding-left:34px"{% endif %}><div style="font-size:24px;font-weight:800;color:#E04015">{{ stat.v }}</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">{{ stat.k }}</div></div>
           {% endfor %}
-        </div>
+        </div>{% endif %}
       </div>
+      {% if hero_image_url %}
       <div style="position:relative">
-        {% if hero_image_url %}
         <picture>
           <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
           <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
@@ -104,11 +104,6 @@
           <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
           <img src="{{ hero_image_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;height:430px;object-fit:cover;border-radius:16px;display:block;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)" fetchpriority="high" decoding="async">
         </picture>
-        {% else %}
-        <div style="border-radius:16px;min-height:430px;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.35);{{ heroImg }}">
-          <span style="font-family:ui-monospace,monospace;font-size:12.5px;color:{{ heroImgText }};letter-spacing:.04em;text-align:center">[{{ university_name }} campus / learner hero photo<br>— 500 × 430 — ]</span>
-        </div>
-        {% endif %}
         {% if hero.stat_card %}
         <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
           <div style="font-size:26px;font-weight:800;color:#E04015">{{ hero.stat_card.value }}</div>
@@ -116,6 +111,7 @@
         </div>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
 
@@ -124,9 +120,12 @@
   <div style="background:#3A2A7A;color:#EAE7FD">
     <div style="max-width:1180px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;font-size:13px;font-weight:600">
       <span style="color:#fff;font-weight:700">Recognised &amp; Accredited:</span>
-      {% if naac_grade %}<span>NAAC {{ naac_grade }}</span>{% endif %}
-      {% if ugc_approved %}<span>UGC {{ ugc_approved }}</span>{% endif %}
-      {% for acc in accreditations or [] %}<span>{{ acc.body_name }}{% if acc.body_descriptor %} · {{ acc.body_descriptor }}{% endif %}</span>{% endfor %}
+      {% if accreditations %}
+        {% for acc in accreditations %}<span>{{ acc.body_name }}{% if acc.body_descriptor %} · {{ acc.body_descriptor }}{% endif %}</span>{% endfor %}
+      {% else %}
+        {% if naac_grade %}<span>NAAC {{ naac_grade }}</span>{% endif %}
+        {% if ugc_approved %}<span>{{ ugc_approved }}</span>{% endif %}
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -140,7 +139,7 @@
         <h2 style="font-size:34px;font-weight:800;color:#1C1B22;margin-top:8px;letter-spacing:-.01em">{{ headings.programs }}</h2>
         {% if programs_intro %}<p style="color:#6E6A78;font-size:15.5px;margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto">{{ programs_intro }}</p>{% endif %}
       </div>
-      <div class="card-grid-4">
+      <div class="card-grid-4 home-program-grid">
         {% for p in programs %}
           <a href="{{ p.href }}" class="prog-card home-program-card" style="border-radius:16px;padding:24px;display:flex;flex-direction:column;height:100%;min-height:350px;{{ p.cardStyle }}">
             <span style="align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;{{ p.badgeStyle }}">{{ p.level }}</span>
@@ -166,7 +165,7 @@
           </a>
         {% endfor %}
       </div>
-      <div style="text-align:center;margin-top:30px;font-size:13.5px;color:#6E6A78">All programs are UGC-entitled{% if naac_grade %} &amp; NAAC {{ naac_grade }} accredited{% endif %}</div>
+      {% if ugc_approved or naac_grade %}<div style="text-align:center;margin-top:30px;font-size:13.5px;color:#6E6A78">{% if ugc_approved %}{{ ugc_approved }}{% endif %}{% if ugc_approved and naac_grade %} · {% endif %}{% if naac_grade %}NAAC {{ naac_grade }}{% endif %}</div>{% endif %}
     </div>
   </div>
   {% endif %}
@@ -219,11 +218,11 @@
   {% if accreditations %}
   <section style="max-width:1180px;margin:0 auto;padding:54px 20px 0">
     <h2 style="font-size:30px;font-weight:800;color:#1C1B22;margin-bottom:20px">{{ headings.accreditations }}</h2>
-    <div class="card-grid-3">
+    <div class="card-grid-3 home-accreditation-grid">
       {% for acc in accreditations %}
       <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:20px">
         <div style="font-size:15px;font-weight:800;color:#1C1B22">{{ acc.body_name }}</div>
-        <div style="font-size:13.5px;font-weight:700;color:#6B4FC9;margin-top:5px">{{ acc.body_descriptor }}</div>
+        {% if acc.body_descriptor %}<div style="font-size:13.5px;font-weight:700;color:#6B4FC9;margin-top:5px">{{ acc.body_descriptor }}</div>{% endif %}
         {% if acc.body_detail %}<div style="font-size:13px;color:#6E6A78;margin-top:6px">{{ acc.body_detail }}</div>{% endif %}
       </div>
       {% endfor %}
@@ -234,13 +233,13 @@
   <!-- ===== WHY US ===== -->
   {% if why_choose or features %}
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 20px">
-    <div class="why-us-grid" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;align-items:center">
+    <div class="why-us-grid{% if not features %} why-us-grid--single{% endif %}" style="display:grid;gap:40px;align-items:center">
       <div>
-        <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Why {{ university_name }} Online</div>
+        <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Why {{ online_university_name }}</div>
         <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.15">{{ headings.why_choose }}</h2>
         {% if why_choose %}<div class="content-body" style="color:#6E6A78;font-size:15px;margin-top:14px">{{ why_choose | safe }}</div>{% endif %}
       </div>
-      <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      {% if features %}<div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         {% for f in features %}
           <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:20px">
             <div style="font-size:22px;font-weight:800;color:#E04015">{{ f.stat }}</div>
@@ -248,7 +247,7 @@
             <div style="font-size:13px;color:#6E6A78;margin-top:4px;line-height:1.5">{{ f.d }}</div>
           </div>
         {% endfor %}
-      </div>
+      </div>{% endif %}
     </div>
   </div>
   {% endif %}
@@ -313,11 +312,11 @@
   </section>
   {% endif %}
 
-  {% if faculty_members %}
+  {% if faculty_intro or faculty_members %}
   <section style="max-width:1180px;margin:0 auto;padding:54px 20px 0">
     <h2 style="font-size:30px;font-weight:800;color:#1C1B22">{{ headings.faculty }}</h2>
     {% if faculty_intro %}<p style="color:#6E6A78;font-size:15px;margin-top:8px">{{ faculty_intro }}</p>{% endif %}
-    <div class="card-grid-3" style="margin-top:20px">
+    {% if faculty_members %}<div class="card-grid-3" style="margin-top:20px">
       {% for member in faculty_members %}
       <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:20px">
         <div style="font-size:15px;font-weight:800;color:#1C1B22">{{ member.member_name }}</div>
@@ -325,7 +324,7 @@
         <div style="font-size:13px;color:#6E6A78;margin-top:6px">{{ member.member_program }}{% if member.member_qualification %} · {{ member.member_qualification }}{% endif %}</div>
       </div>
       {% endfor %}
-    </div>
+    </div>{% endif %}
   </section>
   {% endif %}
 
@@ -377,7 +376,7 @@
         {% for f in faqs %}
           <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;overflow:hidden">
             <button class="faq-btn" data-faq-btn type="button" style="width:100%;border:none;background:none;cursor:pointer;font:inherit;text-align:left;padding:17px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px">
-              <span style="font-size:15px;font-weight:700;color:{{ f.qColor }}">{{ f.q }}</span>
+              <span style="font-size:15px;font-weight:700;color:#1C1B22">{{ f.q }}</span>
               <span data-faq-sign style="font-size:22px;font-weight:700;color:#E04015;line-height:1;flex-shrink:0">{{ f.sign }}</span>
             </button>
             <div data-faq-answer style="padding:0 20px 18px;font-size:14px;color:#6E6A78;line-height:1.6;display:{% if f.isOpen %}block{% else %}none{% endif %}">{{ f.a }}</div>
@@ -456,9 +455,9 @@
             </picture>
           </div>
         {% else %}
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ online_university_name }}</div></div>
         {% endif %}
-        <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs from {{ university_name }} Online, built for working professionals who want to grow without pausing their careers.</p>
+        <p style="font-size:13px;line-height:1.6;max-width:300px">Online degree programs from {{ online_university_name }}, built for working professionals who want to grow without pausing their careers.</p>
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>

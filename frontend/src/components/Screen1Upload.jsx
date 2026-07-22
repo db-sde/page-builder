@@ -51,6 +51,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       document_title: documentTitle,
       page_type,
       generated_by: 'DegreeBaba Content Publisher',
+      ...(sourceFileName ? { source_filename: sourceFileName } : {}),
     };
 
     // Force university_slug to be the one selected/created in Step 1
@@ -88,13 +89,14 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     delete data.university_slug;
     delete data.parent_slug;
 
-    await saveDraft({
+    const draft = await saveDraft({
       ...data,
       slug,
       page_type,
       university_slug,
       parent_slug,
-    });
+    }, {}, 'import');
+    slug = draft.slug || slug;
 
     updateSession({
       acf_data: data,
@@ -102,6 +104,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       page_type,
       university_slug,
       parent_slug,
+      page_action: 'import',
       validation_warnings: validationWarnings,
       table_warnings: tableWarnings
     });

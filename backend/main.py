@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from core.router import get_transformer
 from renderer.engine import render_resolved
 from workspace.manager import (
-    save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
+    save_page, list_workspaces, ensure_metadata, init_system_pages, resolve_page_dir, WORKSPACES_ROOT
 )
 from workspace.compiler import compile_workspace, get_workspace_tree
 from workspace.builder import build_website, get_build_status, zip_build
@@ -473,6 +473,92 @@ def delete_draft_data(university_slug: str, page_type: str, slug: str) -> bool:
     return True
 
 
+def _source_filename(data: dict) -> str:
+    """Return a stable, case-insensitive identity for an imported DOCX file."""
+    import re
+
+    meta = data.get("_meta") if isinstance(data.get("_meta"), dict) else {}
+    filename = str(meta.get("source_filename") or "").strip()
+    if not filename:
+        return ""
+    stem = Path(filename).stem.lower()
+    return re.sub(r"[^a-z0-9]+", "-", stem).strip("-")
+
+
+def _saved_page_record(
+    university_slug: str,
+    page_type: str,
+    slug: str,
+    parent_slug: str | None,
+) -> dict | None:
+    """Load a saved record for an exact workspace page identity, if it exists."""
+    try:
+        page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
+        source_path = page_dir / "source.json"
+        if source_path.exists():
+            return json.loads(source_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    return None
+
+
+def _matches_import_source(record: dict | None, incoming_data: dict) -> bool:
+    """A DOCX import may update only a page imported from the same filename."""
+    if not record:
+        return False
+    incoming_filename = _source_filename(incoming_data)
+    existing_data = record.get("data") if isinstance(record.get("data"), dict) else {}
+    return bool(incoming_filename and incoming_filename == _source_filename(existing_data))
+
+
+def resolve_import_slug(
+    university_slug: str,
+    page_type: str,
+    slug: str,
+    parent_slug: str | None,
+    data: dict,
+) -> str:
+    """
+    Keep a parser-derived slug for its original DOCX, but never let a different
+    import overwrite that page. Numbered suffixes are only used on collision.
+    """
+    if page_type == "university":
+        # A workspace has exactly one university homepage by design.
+        return slug
+
+    def matching_record(candidate: str) -> bool:
+        saved = _saved_page_record(university_slug, page_type, candidate, parent_slug)
+        if saved:
+            return _matches_import_source(saved, data)
+        draft = load_draft_data(university_slug, page_type, candidate)
+        return _matches_import_source(draft, data)
+
+    candidate = slug
+    if not _saved_page_record(university_slug, page_type, candidate, parent_slug) and not load_draft_data(university_slug, page_type, candidate):
+        return candidate
+    if matching_record(candidate):
+        return candidate
+
+    suffix = 2
+    while True:
+        candidate = f"{slug}-{suffix}"
+        if not _saved_page_record(university_slug, page_type, candidate, parent_slug) and not load_draft_data(university_slug, page_type, candidate):
+            return candidate
+        if matching_record(candidate):
+            return candidate
+        suffix += 1
+
+
+def _preserve_existing_images(acf_data: dict, existing_record: dict | None, images: dict) -> None:
+    """Retain saved image references when an update does not supply replacements."""
+    if not existing_record:
+        return
+    existing_data = existing_record.get("data") if isinstance(existing_record.get("data"), dict) else {}
+    for slot in ("hero_image_url", "certificate_image_url", "featured_image_url", "og_image_url"):
+        if not images.get(slot) and not acf_data.get(slot) and existing_data.get(slot):
+            acf_data[slot] = existing_data[slot]
+
+
 def list_draft_data(university_slug: str) -> list[dict]:
     import re
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", university_slug):
@@ -525,6 +611,7 @@ def list_draft_data(university_slug: str) -> list[dict]:
 class RenderRequest(BaseModel):
     acf_data: dict[str, Any]
     images: dict[str, str] = {}
+    identity_mode: str = "import"
 
 
 @app.post("/drafts")
@@ -532,8 +619,12 @@ async def save_draft_endpoint(req: RenderRequest):
     """Create or update a durable editor draft without publish validation."""
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        if req.identity_mode not in {"import", "edit"}:
+            raise ValueError("Unsupported page identity mode")
+        if req.identity_mode == "import":
+            slug = resolve_import_slug(university_slug, page_type, slug, parent_slug, acf_data)
         record = save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
-        return {"status": "saved", "updated_at": record["updated_at"]}
+        return {"status": "saved", "slug": slug, "updated_at": record["updated_at"]}
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
@@ -1324,6 +1415,7 @@ class SaveToWorkspaceRequest(BaseModel):
     acf_data: dict[str, Any]
     images: dict[str, str] = {}
     metadata_overrides: Optional[dict[str, Any]] = None
+    identity_mode: str = "import"
 
 
 def _missing_publish_fields(
@@ -1369,6 +1461,15 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         acf_data.pop("detected_specializations", None)
+
+        if req.identity_mode not in {"import", "edit"}:
+            raise HTTPException(status_code=400, detail="Unsupported page identity mode")
+        if req.identity_mode == "import":
+            slug = resolve_import_slug(university_slug, page_type, slug, parent_slug, acf_data)
+
+        existing_record = _saved_page_record(university_slug, page_type, slug, parent_slug)
+        if page_type == "university" or req.identity_mode == "edit" or _matches_import_source(existing_record, acf_data):
+            _preserve_existing_images(acf_data, existing_record, req.images)
 
         # 1. Report all genuinely required user inputs in one actionable error.
         missing_fields = _missing_publish_fields(

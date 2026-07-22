@@ -50,8 +50,8 @@ export async function saveTempJson(data) {
 
 // ── Draft API ────────────────────────────────────────────────────────────────
 
-export async function saveDraft(acf_data, images = {}) {
-  const res = await axios.post(`${BASE}/drafts`, { acf_data, images });
+export async function saveDraft(acf_data, images = {}, identityMode = 'import') {
+  const res = await axios.post(`${BASE}/drafts`, { acf_data, images, identity_mode: identityMode });
   return res.data;
 }
 
@@ -81,8 +81,8 @@ export async function deleteDraft(universitySlug, pageType, slug) {
  * @param {object} images    - Image URL map { hero_image_url: '...', ... }
  * @param {object} metadataOverrides - Optional university-level metadata overrides
  */
-export async function saveToWorkspace(acf_data, images = {}, metadataOverrides = null) {
-  const payload = { acf_data, images };
+export async function saveToWorkspace(acf_data, images = {}, metadataOverrides = null, identityMode = 'import') {
+  const payload = { acf_data, images, identity_mode: identityMode };
   if (metadataOverrides) payload.metadata_overrides = metadataOverrides;
   const res = await axios.post(`${BASE}/save-to-workspace`, payload);
   return res.data;

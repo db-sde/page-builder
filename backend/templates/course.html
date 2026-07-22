@@ -247,11 +247,8 @@
       <section id="eligibility" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.eligibility }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div class="rich-content readmore-wrap">
-          {% if eligibility_summary %}<p style="font-size:14px;font-weight:700;color:#6B4FC9;margin-bottom:10px">{{ eligibility_summary }}</p>{% endif %}
-          <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
-          <div class="readmore-body content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
-          <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        <div class="rich-content content-body" style="font-size:14.5px">
+          {{ eligibility | safe }}
         </div>
       </section>
       {% endif %}
@@ -402,7 +399,12 @@
         {% for rv in reviews %}
           <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px">
             <p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p>
-            <b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b>
+            {% if rv.name or rv.label %}
+            <div style="font-size:13px;color:#1C1B22">
+              {% if rv.name %}<b style="display:block">{{ rv.name }}</b>{% endif %}
+              {% if rv.label %}<span style="display:block;color:#6E6A78">{{ rv.label }}</span>{% endif %}
+            </div>
+            {% endif %}
           </div>
         {% endfor %}
       </section>

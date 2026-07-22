@@ -431,8 +431,22 @@ class AdmissionHTMLParser(HTMLParser):
             idx = len(self.steps) + 1
             self.steps.append({"n": str(idx), "t": text})
 
-def parse_admission_html(html_str: str) -> list[dict]:
+def parse_admission_html(html_str) -> list[dict]:
     if not html_str:
+        return []
+    if isinstance(html_str, list):
+        steps = []
+        for item in html_str:
+            text = _plain_text(item)
+            if not text:
+                continue
+            match = re.match(r"^(?:Step\s*)?(\d+)[\.\s:]+(.*)$", text, re.IGNORECASE)
+            if match:
+                steps.append({"n": match.group(1), "t": match.group(2).strip()})
+            else:
+                steps.append({"n": str(len(steps) + 1), "t": text})
+        return steps
+    if not isinstance(html_str, str):
         return []
     parser = AdmissionHTMLParser()
     try:
@@ -522,6 +536,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
 
     ctx["university_name"] = uni_name
     ctx["university_letter"] = logo_letter
+    ctx["online_university_name"] = (
+        uni_name if "online" in uni_name.lower() else f"{uni_name} Online"
+    )
 
     branding_logo = resolve_field(raw_dict, knowledge, "logo")
     branding_favicon = resolve_field(raw_dict, knowledge, "favicon")
@@ -825,24 +842,27 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     # 8. Reviews
     reviews_raw = ctx.get("reviews") or resolve_list(raw_dict, knowledge, "reviews")
     if isinstance(reviews_raw, str):
-        reviews_raw = [{"review_text": reviews_raw, "reviewer_label": "Student"}]
+        reviews_raw = [{"review_text": reviews_raw}]
     elif isinstance(reviews_raw, list):
         new_rv = []
         for r in reviews_raw:
             if isinstance(r, str):
-                new_rv.append({"review_text": r, "reviewer_label": "Student"})
+                new_rv.append({"review_text": r})
             elif isinstance(r, dict):
                 new_rv.append(r)
         reviews_raw = new_rv
     review_list = [
         {
             "q": r.get("q") or r.get("review_text", ""),
+            "name": r.get("name") or r.get("reviewer_name", ""),
+            "label": r.get("role") or r.get("reviewer_label", ""),
             "a": r.get("a") or ", ".join(filter(None, [
                 r.get("name") or r.get("reviewer_name", ""),
                 r.get("role") or r.get("reviewer_label", ""),
             ]))
         }
         for r in reviews_raw
+        if r.get("q") or r.get("review_text")
     ]
     ctx["reviews_json"] = json.dumps(review_list, ensure_ascii=False)
     
@@ -866,6 +886,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "disp": "none"
         }
         for f in faqs_raw
+        if (f.get("q") or f.get("question")) and (f.get("a") or f.get("answer"))
     ]
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
  
@@ -934,10 +955,13 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
  
  
     # University specific features, recruiters, financing, testimonials
-    features_list = resolve_list(raw_dict, knowledge, "features")
+    features_list = [
+        item for item in resolve_list(raw_dict, knowledge, "features")
+        if isinstance(item, dict) and any(item.get(key) for key in ("stat", "t", "d"))
+    ]
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
     
-    recruiters_list = resolve_list(raw_dict, knowledge, "recruiters")
+    recruiters_list = [item for item in resolve_list(raw_dict, knowledge, "recruiters") if item]
     ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
     
     # testimonials is reviews mapped for homepage
@@ -952,10 +976,13 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["testimonials_json"] = json.dumps(testimonials, ensure_ascii=False)
     
     # financing for homepage
-    financing_list = resolve_list(raw_dict, knowledge, "financing")
+    financing_list = [
+        item for item in resolve_list(raw_dict, knowledge, "financing")
+        if isinstance(item, dict) and any(item.get(key) for key in ("stat", "t", "d"))
+    ]
     ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
     
-    banks_list = resolve_list(raw_dict, knowledge, "banks")
+    banks_list = [item for item in resolve_list(raw_dict, knowledge, "banks") if item]
     ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
 
     # Programs list for homepage (enriched from workspace courses if available)
@@ -983,23 +1010,6 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "href": build_public_route("course", slug, uni_slug),
                 "featured": i == 0,
                 "mode": data.get("mode") or "",
-            })
-    elif raw_dict.get("programs_table"):
-        uni_programs = []
-        for p in raw_dict["programs_table"]:
-            if not isinstance(p, dict):
-                continue
-            uni_programs.append({
-                "level": "Program",
-                "name": p.get("program_name") or "",
-                "dur": "",
-                "fee": clean_fee(p.get("program_fee") or ""),
-                "feeUnit": "total course",
-                "elig": p.get("program_eligibility") or "",
-                "d": p.get("program_eligibility") or "",
-                "href": ctx["programs_listing_href"],
-                "featured": False,
-                "mode": resolve_field(raw_dict, knowledge, "mode_of_learning", ""),
             })
     else:
         uni_programs = []
