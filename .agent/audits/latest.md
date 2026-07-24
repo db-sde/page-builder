@@ -1,103 +1,51 @@
 # audits/latest.md — Codebase Audit
 
-**Date:** 2026-07-24
-**Auditor:** AI Agent (initial .agent/ creation audit)
-**Scope:** Full repository read — backend, frontend, contact app, git log, REPORT.md
+**Date:** 2026-07-24 (schema-coverage audit)
+**Auditor:** AI Agent (end-to-end Micro-App schema verification)
+**Scope:** Full pipeline read — ingestion, adapter, transformers, renderer, templates, compiler, builder, editor — traced against the latest Micro App JSON schema (University / Course / Specialization).
+**Prior audit:** archived at `audits/archive/2026-07-24-initial.md` (it predates this schema trace and over-stated content fidelity).
+**Deliverables (repo root):** `SCHEMA_COVERAGE_REPORT.md`, `PIPELINE_TRACE.md`, `HARDCODED_CONTENT_AUDIT.md`, `TEMPLATE_AUDIT.md`, `PLATFORM_AUDIT.md`.
 
 ---
 
-## Summary
+## Headline
 
-The codebase is in good working order. The architecture is coherent and well-structured.
-The pipeline is deterministic and consistent. Both the backend server and frontend admin UI
-are confirmed running (`uv run main.py`, `npm run dev`).
+The pipeline **plumbing** is sound (deterministic ingestion, two-pass compiler, canonical URLs, WebP, image-validation gate, SEO scaffolding, tenant isolation). The **content contract is not honoured**: the platform is schema-ready for scalar/identity data but **not schema-faithful for editorial content**.
 
----
-
-## Findings
-
-### ✅ Strengths
-
-1. **Clear separation of concerns** — parser, extractor, adapter, transformers, renderer,
-   compiler, builder, and editor are all distinct subsystems with well-defined interfaces.
-
-2. **No fabricated data** — the `normalize_value()` function in `core/router.py` strips all
-   NA/null variants before transformers run. Templates use `{% if %}` guards throughout.
-
-3. **DRY utility layer** — `core/utils.py` contains canonical implementations of
-   `format_fee()`, `normalize_specialization_name()`, `read_parent_course_data()`, and
-   `build_public_route()`. No duplicates found in the current codebase.
-
-4. **Multi-tenant isolation** — workspace slugs are correctly isolated. NMIMS contact info
-   does not leak into other workspaces (fixed in commit `532b518`).
-
-5. **Robust table parser** — `process_table_block()` handles merged title rows, all-identical
-   headers, and column count mismatches. Emits structured warnings, not silent failures.
-
-6. **Build validation** — `_validate_pages()` blocks the build if required images are missing.
-   Prevents broken-image production deploys.
-
-7. **WebP optimisation** — images are converted to WebP with responsive variants at build time.
-   `<picture>` elements in templates use these variants correctly.
-
-8. **JSON-LD coverage** — BreadcrumbList, Course, FAQPage, and Organization are all implemented
-   correctly with no invented values.
+This corrects the previous audit's "No fabricated data" strength claim — that is **false in the current code**.
 
 ---
 
-### ⚠️ Concerns
+## Confirmed drift from RULES.md
 
-1. **`main.py` is 1774 lines** — the FastAPI application file contains route handlers,
-   helper functions, heuristic detection logic, and image processing utilities mixed together.
-   This creates a large surface area for bugs and makes it hard to test individual concerns.
-   *Recommendation: future refactor could extract helpers into domain modules, but only
-   when there is a concrete need (YAGNI).*
+- **R1 (never fabricate)** — 🟥 violated pervasively. `renderer/engine.py` injects fabricated fallbacks when schema collections are empty: fake named reviews (`engine.py:866`), fake job salaries (`:836`), NMIMS recruiter logos (`:1008`), full hardcoded MBA syllabus (`:908`), hardcoded FAQs (`:895`, also emitted into `FAQPage` JSON-LD), 3-row fee table (`:794`), 7-row other-specs table (`:965`), demo blog posts (`:1156`). `transformers/course.py` adds hardcoded admission steps (`:41`) and invented accreditation prose (`:184`). Templates add `NIRF #24`, `AIU Member`, `WES Recognised` (`university.html:84,128`) and a fabricated spec salary `₹14.2L` (`specialization.html:115`).
+- **R2 (templates render only transformed data)** — 🟥 violated. Section titles are hardcoded (no `*_heading` field is consulted); `university.html` renders hardcoded marketing prose instead of `about/why_choose/emi/exam/placement/facts/accreditations`.
+- **R6 (slug never in UI)** — 🟥 violated at `specialization.html:429` (`admissions@{{university_slug}}online.edu`).
+- **R11/R13** — ⚠️ dead `spec_desc_map` (`course.py:49`), duplicate transform layer (engine rebuilds transformer collections), two spec-name cleaners.
 
-2. **No automated tests** — `test_spec.py` exists (2772 bytes) but appears minimal.
-   The parser, extractor, adapter, compiler, and builder have no unit test coverage.
-   Any regression must be caught manually through the Review UI.
+## Schema coverage in one line
 
-3. **`engine.py` is 1380 lines** — the renderer is also very large. It combines Jinja2
-   setup, custom filters, structured data builders, SEO injectors, HTML parsers, and the
-   main render function in one file.
+Scalars (names, fees, approvals, SEO, duration, mode) flow correctly. **Dropped with zero consumers:** all `*_heading`, `faculty_members`, `faculty_intro`, `validity`, `certificate_heading`, `linked_university`, `linked_course`. **Overwritten on empty:** jobs, reviews, faqs, fee_plans, syllabus, other_specs. **Transformed but not rendered (university):** about_content, why_choose_content, emi_content, exam_content, placement_content, facts, accreditations, admission_fee_note, programs_intro.
 
-4. **GA tag is hardcoded to nmims-2** — `_finalize_html()` in `builder.py` checks
-   `if university_slug == "nmims-2":` and injects a specific GA tracking ID. If other
-   workspaces need analytics, this needs generalisation.
+## Structural notes
 
-5. **`primary_domain` resolution is fragile** — the sitemap and canonical URLs rely on
-   `metadata.json["primary_domain"]`, which may not exist in all workspaces.
-   The fallback to `LEAD_BASE_URL` is likely incorrect (the lead app domain ≠ the site domain).
+- `renderer/engine.py` is a *second transformer* that discards most per-type transformer output for repeaters — this is where fabrication lives.
+- Editor (`fieldSchema.js`) exposes no repeaters at all, so operators cannot review list data (or spot fabrication) before publish.
+- Tenant-specific logic still in shared code: GA hardcoded to `nmims-2` + real GA ID (`builder.py:231`), `engine.py:1048` nmims-2 EMBA rule, `engine.py:502` `"nmims"` default.
 
-6. **Image upload is Base64 over JSON** — large images (> a few MB) may cause timeouts
-   or hit FastAPI's body size limits when sent as Base64-encoded JSON from the frontend.
+## Corrected facts vs. old docs
 
-7. **No Redis caching** — `engine.py` has a `TODO` comment for caching `render_resolved()`.
-   Large workspaces with many pages will re-render everything on every compile.
+- `systems/seo.md` said "No per-page lastmod in sitemap" — **outdated**: `builder.py::_write_sitemap` emits `<lastmod>` per page. (Corrected in this pass.)
+- Old `audits/latest.md` "No fabricated data" strength — **removed** (was incorrect).
 
-8. **Heuristic parent detection can be wrong** — the token-overlap scorer in `main.py`
-   will return the best-scoring course even if the score is very low. For unique
-   specialization slugs that share no tokens with any course, this may produce incorrect
-   pre-fills that an operator might not notice and correct.
-
----
-
-### ❌ Not Found / Not Implemented
-
-- No real-time build status UI (listed in roadmap)
-- No direct cloud storage publishing (listed in roadmap)
-- No global search across pages (listed in roadmap)
-- No loading indicators in contact form (listed in roadmap)
-
----
-
-## Action Items
+## Action items (for a future change effort — NOT done here)
 
 | Priority | Item |
 |---|---|
-| High | Add unit tests for parser, extractor, adapter |
-| High | Fix `primary_domain` resolution for sitemap/canonical URLs |
-| Medium | Generalise GA tag injection via `metadata.json["ga_id"]` |
-| Medium | Add loading state to contact form inputs |
-| Low | Split `main.py` helpers into domain modules when it causes a concrete problem |
-| Low | Implement Redis caching for `render_resolved()` |
+| Critical | Remove fabricated fallbacks in `engine.py`; guard syllabus with `{% if %}`; restore R1 |
+| Critical | Render university schema content + faculty; stop hardcoded marketing blocks |
+| High | Consume `*_heading` fields |
+| High | Fix R6 slug-in-email; parameterise GA via `metadata.json["ga_id"]` |
+| Medium | Collapse double transform layer; expose repeaters in editor |
+| Medium | Remove dead code (`spec_desc_map`, unused vars) |
+| Low | Ingestion + compiler unit tests |

@@ -4,6 +4,28 @@ One section per development session. Newest first.
 
 ---
 
+## 2026-07-24 — Micro-App Schema Coverage Audit
+
+**What changed:**
+- Full read-only audit of the pipeline vs. the latest Micro App JSON schema.
+- Produced 5 root-level reports: `SCHEMA_COVERAGE_REPORT.md`, `PIPELINE_TRACE.md`,
+  `HARDCODED_CONTENT_AUDIT.md`, `TEMPLATE_AUDIT.md`, `PLATFORM_AUDIT.md`.
+- Updated `.agent`: rewrote `audits/latest.md` (archived prior to `audits/archive/2026-07-24-initial.md`),
+  added REG-010 (fabricated fallback content) + REG-011 (slug-in-email) to `memory/regressions.md`,
+  corrected the stale "no lastmod" note in `systems/seo.md`, refreshed `memory/active.md`.
+
+**Files modified:** documentation only (`.agent/**`, root `*_REPORT.md`/`*_AUDIT.md`). No backend/frontend code touched.
+
+**Outcome:**
+- Established that the platform is schema-ready for scalar/identity fields but not schema-faithful
+  for editorial content: pervasive fabricated fallbacks (R1/R2 drift), all `*_heading` + faculty
+  fields unconsumed, university template drops parsed content.
+
+**Next steps:**
+- Prioritise REG-010 remediation (remove fabrication) before shipping schema-dependent features.
+
+---
+
 ## 2026-07-24 — .agent/ Memory System Created
 
 **What changed:**

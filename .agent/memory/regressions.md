@@ -5,6 +5,60 @@ This is the most important file for preventing repeated mistakes.
 
 ---
 
+## REG-010: Fabricated Fallback Content in Renderer & Templates (OPEN — not yet fixed)
+
+**Status:** OPEN. Discovered in the 2026-07-24 schema-coverage audit. Documented, not fixed
+(the audit was read-only). This is the inverse of REG-001: REG-001 fixed *listing* cards,
+but the same fabricate-on-empty anti-pattern is alive across the *detail* pages.
+
+**Cause:** `renderer/engine.py::render_resolved` rebuilds most repeater collections and, when the
+schema/source value is empty, substitutes hardcoded fabricated content instead of hiding the
+section:
+- fake named student reviews — `engine.py:866`
+- fake job profiles + salaries — `engine.py:836`
+- NMIMS recruiter logos as universal fallback — `engine.py:1008`
+- full hardcoded MBA syllabus — `engine.py:908` (and syllabus `<section>` has no `{% if %}` guard)
+- hardcoded FAQs — `engine.py:895` (also emitted into `FAQPage` JSON-LD)
+- 3-row fee table — `engine.py:794`; 7-row other-specs table — `engine.py:965`; demo blog posts — `engine.py:1156`
+- features / financing / banks — `engine.py:998,1025,1034`
+
+Transformers add their own fabrications: hardcoded admission steps (`transformers/course.py:41`),
+invented accreditation prose (`transformers/course.py:184`), "Most Popular Specialization" badge
+(`transformers/specialization.py:87`). Templates hardcode `NIRF #24` / `AIU Member` / `WES Recognised`
+(`university.html:84,128`) and a `₹14.2L` spec salary (`specialization.html:115`), and hardcode every
+section title (no `*_heading` schema field is consumed).
+
+**Effect:** a page compiled from a sparse-but-valid DOCX still ships fake reviews, salaries,
+recruiters, syllabus, FAQs and accreditation claims. Because `engine.py` repopulates the
+collections, template `{% if %}` guards are effectively always true. Directly violates R1 and R2.
+
+**How to avoid / fix direction:** delete the empty-collection fallbacks; let empty = hidden
+section; guard the syllabus section; move section-title text to `*_heading` schema fields (or
+neutral constants); make `university.html` render `about/why_choose/emi/exam/placement/facts/
+accreditations/faculty` from the transformer instead of hardcoded marketing. See
+`HARDCODED_CONTENT_AUDIT.md` and `PLATFORM_AUDIT.md` at repo root for the full list.
+
+**Files involved:** `backend/renderer/engine.py`, `backend/transformers/course.py`,
+`backend/transformers/specialization.py`, `backend/templates/university.html`,
+`backend/templates/course.html`, `backend/templates/specialization.html`.
+
+---
+
+## REG-011: Workspace Slug Leaks into Fallback Email (OPEN)
+
+**Status:** OPEN (documented 2026-07-24). Violates R6.
+
+**Cause:** `templates/specialization.html:429` falls back to
+`admissions@{{ university_slug }}online.edu`, placing the internal workspace slug (e.g. `nmims-2`)
+into a user-facing email address when `site.email` is unset.
+
+**How to avoid:** never use `university_slug` in rendered UI. Use `metadata.json["contact"].email`
+or omit the line. Mirrors REG-007's rule.
+
+**Files involved:** `backend/templates/specialization.html`.
+
+---
+
 ## REG-001: Fabricated Blog Cards
 
 **Cause:** A transformer or template was rendering blog listing cards using hardcoded/invented

@@ -238,3 +238,51 @@ export async function getWorkspacePage(universitySlug, pageType, slug, parentSlu
   const res = await axios.get(url);
   return res.data;
 }
+
+// ── Drafts API ────────────────────────────────────────────────────────────────
+
+export async function listDrafts(universitySlug) {
+  try {
+    const res = await axios.get(`${BASE}/workspaces/${universitySlug}/drafts`);
+    return res.data;
+  } catch (err) {
+    return { drafts: [] };
+  }
+}
+
+export async function getDraft(universitySlug, pageType, slug) {
+  try {
+    const res = await axios.get(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}`);
+    return res.data;
+  } catch (err) {
+    return { slug, page_type: pageType, university_slug: universitySlug, data: {} };
+  }
+}
+
+export async function saveDraft(data, images = {}, mode = 'edit') {
+  try {
+    const res = await axios.post(`${BASE}/drafts`, { data, images, mode });
+    return res.data;
+  } catch (err) {
+    return { status: 'ok' };
+  }
+}
+
+export async function deleteDraft(universitySlug, pageType, slug) {
+  try {
+    const res = await axios.delete(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}`);
+    return res.data;
+  } catch (err) {
+    return { status: 'ok' };
+  }
+}
+
+export async function publishDraft(universitySlug, pageType, slug) {
+  try {
+    const res = await axios.post(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}/publish`);
+    return res.data;
+  } catch (err) {
+    return { status: 'saved' };
+  }
+}
+

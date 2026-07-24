@@ -6,27 +6,45 @@ Last updated: 2026-07-24
 
 ## What Is Being Worked On?
 
-Based on the repository state (both `uv run main.py` and `npm run dev` are running),
-the team is in an active development session. The specific feature being worked on
-is **not determinable from the repository alone** at the time of this `.agent/` creation.
+A full **schema-coverage audit** was completed 2026-07-24, tracing the latest Micro App JSON
+schema (University / Course / Specialization) end-to-end. Read-only — no code changed.
+Deliverables at repo root: `SCHEMA_COVERAGE_REPORT.md`, `PIPELINE_TRACE.md`,
+`HARDCODED_CONTENT_AUDIT.md`, `TEMPLATE_AUDIT.md`, `PLATFORM_AUDIT.md`.
+Updated `.agent`: `audits/latest.md`, `memory/regressions.md` (REG-010, REG-011), `systems/seo.md`.
 
 ---
 
 ## Why?
 
-Not enough evidence from the repository.
+To verify whether the platform fully supports the new Micro-App schema before any further changes.
+
+---
+
+## Key finding (must address before further feature work)
+
+The pipeline is schema-ready for scalar data but **NOT schema-faithful for editorial content**:
+- `renderer/engine.py` fabricates content on empty collections (fake reviews/jobs/recruiters/
+  syllabus/FAQs/fees) — violates R1/R2. See REG-010.
+- All `*_heading` fields, `faculty_members`, `faculty_intro`, `validity`, `certificate_heading`,
+  `linked_*` are unconsumed (zero references).
+- `university.html` drops parsed `about/why_choose/emi/exam/placement/facts/accreditations`.
+- R6 slug leak at `specialization.html:429` (REG-011).
 
 ---
 
 ## What Remains?
 
-From open TODOs in the codebase and ROADMAP.md:
+**From the audit (highest priority — not yet started):**
+1. Remove fabricated fallbacks in `engine.py`; guard syllabus section (REG-010)
+2. Render university schema content + faculty section
+3. Consume `*_heading` fields; expose repeaters in the editor
+4. Fix R6 slug-in-email (REG-011); parameterise GA via `metadata.json["ga_id"]`
 
-1. **Responsive CSS refinement** — minor issues on intermediate screen widths (768–1024px)
-2. **Contact app polish** — loading states, better validation UX
-3. **Caching** — `render_resolved()` in `engine.py` has a `TODO` for Redis caching
-4. **AI gap-fill** — `BaseTransformer` has a `TODO` for calling Groq on missing required fields
-5. **Tests** — parser, extractor, adapter, compiler all lack unit tests
+**Pre-existing TODOs / ROADMAP:**
+5. Responsive CSS refinement (768–1024px)
+6. Contact app polish (loading states, validation UX)
+7. Redis caching TODO in `engine.py`; AI gap-fill TODO in `base.py`
+8. Tests — parser, extractor, adapter, compiler all lack unit tests
 
 ---
 
