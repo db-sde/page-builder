@@ -86,7 +86,8 @@
         </div>
         <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#E04015;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge | default('Most Popular Specialization') }}</div>
         <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ parent_program_name }} in<br>{{ hero.title }}</h1>
-        <div class="rich-content content-body" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
+        {% set hero_summary = hero.description | summary %}
+        {% if hero_summary %}<div class="rich-content content-body" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero_summary }}</div>{% endif %}
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
             <span style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600">{{ pill.label }}</span>
@@ -148,10 +149,11 @@
       <section id="about" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.about }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div class="rich-content readmore-wrap">
-          <input type="checkbox" id="rm-about" class="readmore-toggle">
-          <div class="readmore-body content-body" style="font-size:14.5px">{{ about | safe }}</div>
-          <label for="rm-about" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        {% set about_long = (about | striptags | trim | length) > 850 %}
+        <div class="rich-content{% if about_long %} readmore-wrap{% endif %}">
+          {% if about_long %}<input type="checkbox" id="rm-about" class="readmore-toggle">{% endif %}
+          <div class="{% if about_long %}readmore-body {% endif %}content-body" style="font-size:14.5px">{{ about | safe }}</div>
+          {% if about_long %}<label for="rm-about" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
         </div>
       </section>
       {% endif %}
@@ -175,11 +177,12 @@
       <section id="eligibility" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.eligibility }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div class="rich-content readmore-wrap">
+        {% set eligibility_long = (eligibility | striptags | trim | length) > 700 %}
+        <div class="rich-content{% if eligibility_long %} readmore-wrap{% endif %}">
           {% if eligibility_summary %}<p style="font-size:14px;font-weight:700;color:#6B4FC9;margin-bottom:10px">{{ eligibility_summary }}</p>{% endif %}
-          <input type="checkbox" id="rm-eligibility" class="readmore-toggle">
-          <div class="readmore-body content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
-          <label for="rm-eligibility" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+          {% if eligibility_long %}<input type="checkbox" id="rm-eligibility" class="readmore-toggle">{% endif %}
+          <div class="{% if eligibility_long %}readmore-body {% endif %}content-body" style="font-size:14.5px">{{ eligibility | safe }}</div>
+          {% if eligibility_long %}<label for="rm-eligibility" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
         </div>
       </section>
       {% endif %}
@@ -218,19 +221,39 @@
         </div>
       </div>
 
-      {% if admission %}
+      {% set admission_flow = namespace(actions=[], notes=[]) %}
+      {% for st in steps or [] %}
+        {% set step_text = st.t | trim %}
+        {% set step_text_lower = step_text | lower %}
+        {% set step_is_marker = step_text_lower in ['additional information', 'additional information:', 'note', 'note:'] %}
+        {% set step_is_note = (('refund' in step_text_lower or 'non-refundable' in step_text_lower) and 'pay' not in step_text_lower and 'submit' not in step_text_lower) or 'declaration' in step_text_lower or 'instruction' in step_text_lower or 'policy' in step_text_lower or 'closing date' in step_text_lower %}
+        {% if step_text and step_text not in ['-', ':'] and not step_is_marker %}
+          {% if step_is_note %}
+            {% set admission_flow.notes = admission_flow.notes + [step_text] %}
+          {% else %}
+            {% set admission_flow.actions = admission_flow.actions + [st] %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {% if admission_flow.actions or admission_flow.notes %}
       <section id="admission" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.admission }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          {% for st in steps %}
-            <div style="display:flex;gap:14px;padding:10px 0;font-size:14px;align-items:flex-start">
-              <div style="flex:0 0 30px;height:30px;border-radius:50%;background:#FF5C35;color:#1C1B22;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px">{{ st.n }}</div>
-              <div style="padding-top:3px">{{ st.t }}</div>
+        {% if admission_flow.actions %}<div class="admission-timeline">
+          {% for st in admission_flow.actions %}
+            <div class="admission-step">
+              <div class="admission-step__number">{{ loop.index }}</div>
+              <div class="admission-step__text">{{ st.t }}</div>
             </div>
           {% endfor %}
-        </div>
+        </div>{% endif %}
         {% if admission.fee_note %}<p style="font-size:13px;color:#6E6A78;margin-top:12px">{{ admission.fee_note }}</p>{% endif %}
+        {% if admission_flow.notes %}
+        <aside class="admission-notes">
+          <strong>Additional information</strong>
+          <ul>{% for note in admission_flow.notes %}<li>{{ note }}</li>{% endfor %}</ul>
+        </aside>
+        {% endif %}
 
       </section>
       {% endif %}
@@ -240,13 +263,14 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.syllabus }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% if syllabus_years %}
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <div data-syllabus-tabs>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" role="tablist">
           {% for tab in syllabusTabs %}
-            <button type="button" class="syllabus-tab" data-syllabus-tab="{{ loop.index0 }}" style="background:{{ tab.bg }};color:{{ tab.color }};border-color:{{ tab.border }}">{{ tab.label }}</button>
+            <button type="button" class="syllabus-tab{% if loop.first %} is-active{% endif %}" data-syllabus-tab="{{ loop.index0 }}" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ tab.label }}</button>
           {% endfor %}
         </div>
         {% for year in syllabus_years %}
-          <div class="syllabus-year-content placement-cert-grid" id="syllabus-year-{{ loop.index0 }}" style="display: {% if loop.first %}grid{% else %}none{% endif %};grid-template-columns:1fr 1fr;gap:16px">
+          <div class="syllabus-year-content placement-cert-grid" data-syllabus-panel="{{ loop.index0 }}" data-display="grid" role="tabpanel"{% if not loop.first %} hidden{% endif %} style="grid-template-columns:1fr 1fr;gap:16px">
             {% for sem in year.semesters %}
               <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
                 <h4 style="font-size:14px;color:#1C1B22;font-weight:700;margin-bottom:8px">{{ sem.title }}</h4>
@@ -259,40 +283,11 @@
             {% endfor %}
           </div>
         {% endfor %}
+        </div>
         {% else %}
-        <div class="content-body" style="font-size:14.5px">{{ syllabus | safe }}</div>
+        <div class="syllabus-table-wrap content-body" style="font-size:14.5px">{{ syllabus | safe }}</div>
         {% endif %}
       </section>
-
-      <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var tabs = document.querySelectorAll('[data-syllabus-tab]');
-        var yearContents = document.querySelectorAll('.syllabus-year-content');
-        tabs.forEach(function(tab) {
-          tab.addEventListener('click', function() {
-            var targetIdx = this.getAttribute('data-syllabus-tab');
-            tabs.forEach(function(t) {
-              if (t.getAttribute('data-syllabus-tab') === targetIdx) {
-                t.style.background = '#6B4FC9';
-                t.style.color = '#fff';
-                t.style.borderColor = '#6B4FC9';
-              } else {
-                t.style.background = '#fff';
-                t.style.color = '#6E6A78';
-                t.style.borderColor = '#E9E5F2';
-              }
-            });
-            yearContents.forEach(function(content) {
-              if (content.id === 'syllabus-year-' + targetIdx) {
-                content.style.display = 'grid';
-              } else {
-                content.style.display = 'none';
-              }
-            });
-          });
-        });
-      });
-      </script>
       {% endif %}
 
       {% if other_specs %}
@@ -324,10 +319,11 @@
       <section id="exams" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{{ headings.exam }}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <div class="rich-content readmore-wrap">
-          <input type="checkbox" id="rm-exam" class="readmore-toggle">
-          <div class="readmore-body content-body" style="font-size:14.5px">{{ exam | safe }}</div>
-          <label for="rm-exam" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        {% set exam_long = (exam | striptags | trim | length) > 700 %}
+        <div class="rich-content{% if exam_long %} readmore-wrap{% endif %}">
+          {% if exam_long %}<input type="checkbox" id="rm-exam" class="readmore-toggle">{% endif %}
+          <div class="{% if exam_long %}readmore-body {% endif %}content-body" style="font-size:14.5px">{{ exam | safe }}</div>
+          {% if exam_long %}<label for="rm-exam" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
         </div>
       </section>
       {% endif %}
@@ -337,10 +333,11 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">{% if placement %}{{ headings.placement }}{% else %}{{ headings.certificate }}{% endif %}</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% if placement %}
-        <div class="rich-content readmore-wrap" style="margin-bottom:12px">
-          <input type="checkbox" id="rm-placement" class="readmore-toggle">
-          <div class="readmore-body content-body" style="font-size:14.5px">{{ placement | safe }}</div>
-          <label for="rm-placement" class="readmore-label"><span class="rm-more">Show More</span><span class="rm-less">Show Less</span></label>
+        {% set placement_long = (placement | striptags | trim | length) > 700 %}
+        <div class="rich-content{% if placement_long %} readmore-wrap{% endif %}" style="margin-bottom:12px">
+          {% if placement_long %}<input type="checkbox" id="rm-placement" class="readmore-toggle">{% endif %}
+          <div class="{% if placement_long %}readmore-body {% endif %}content-body placement-content" style="font-size:14.5px">{{ placement | safe }}</div>
+          {% if placement_long %}<label for="rm-placement" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
         </div>
         {% endif %}
         {% if certificate %}

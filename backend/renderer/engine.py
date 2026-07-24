@@ -1,6 +1,6 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from core.router import get_transformer
-from core.utils import build_public_route, build_public_url, format_fee as clean_fee
+from core.utils import build_public_route, build_public_url, format_fee as clean_fee, summarize_content
 from workspace.manager import WORKSPACES_ROOT
 import os
 from pathlib import Path
@@ -72,6 +72,7 @@ def image_height_filter(context, url):
 env.filters["webp_variant"] = webp_variant_filter
 env.filters["image_width"] = image_width_filter
 env.filters["image_height"] = image_height_filter
+env.filters["summary"] = summarize_content
 
 # clean_fee is now the single canonical implementation, imported as
 # core.utils.format_fee (previously duplicated verbatim here and as
@@ -370,13 +371,131 @@ class SyllabusHTMLParser(HTMLParser):
         elif self.in_li:
             self.li_text += data
 
+
+class SyllabusTableHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tables = []
+        self.in_table = False
+        self.section = "body"
+        self.header_rows = []
+        self.body_rows = []
+        self.current_row = None
+        self.current_cell = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs_dict = dict(attrs)
+        if tag == "table" and not self.in_table:
+            self.in_table = True
+            self.section = "body"
+            self.header_rows = []
+            self.body_rows = []
+        elif not self.in_table:
+            return
+        elif tag == "thead":
+            self.section = "head"
+        elif tag == "tbody":
+            self.section = "body"
+        elif tag == "tr":
+            self.current_row = {"cells": [], "divider": "table-section-row" in attrs_dict.get("class", "")}
+        elif tag in ("th", "td") and self.current_row is not None:
+            try:
+                colspan = int(attrs_dict.get("colspan", "1"))
+            except ValueError:
+                colspan = 1
+            self.current_cell = {"parts": [], "colspan": colspan}
+        elif tag == "br" and self.current_cell is not None:
+            self.current_cell["parts"].append("\n")
+        elif tag in ("p", "li") and self.current_cell is not None and self.current_cell["parts"]:
+            self.current_cell["parts"].append("\n")
+
+    def handle_endtag(self, tag):
+        if not self.in_table:
+            return
+        if tag in ("th", "td") and self.current_cell is not None and self.current_row is not None:
+            self.current_row["cells"].append(self.current_cell)
+            self.current_cell = None
+        elif tag == "tr" and self.current_row is not None:
+            target = self.header_rows if self.section == "head" else self.body_rows
+            target.append(self.current_row)
+            self.current_row = None
+        elif tag == "table":
+            self.tables.append({"headers": self.header_rows, "rows": self.body_rows})
+            self.in_table = False
+            self.current_cell = None
+            self.current_row = None
+
+    def handle_data(self, data):
+        if self.current_cell is not None:
+            self.current_cell["parts"].append(data)
+
+
+def _syllabus_table_cell_text(cell: dict) -> str:
+    return "\n".join(
+        line.strip() for line in "".join(cell["parts"]).splitlines() if line.strip()
+    )
+
+
+def _parse_syllabus_table_html(html_str: str) -> list[dict]:
+    parser = SyllabusTableHTMLParser()
+    try:
+        parser.feed(html_str)
+    except Exception:
+        return []
+
+    for table in parser.tables:
+        header = next((row["cells"] for row in table["headers"] if len(row["cells"]) == 2), [])
+        titles = [_syllabus_table_cell_text(cell) for cell in header]
+        if len(titles) != 2 or not all(re.match(r"^semester\b", title, re.IGNORECASE) for title in titles):
+            continue
+
+        years = []
+        current_year = {
+            "label": "Year I",
+            "semesters": [{"title": title, "subjects": []} for title in titles],
+        }
+        for row in table["rows"]:
+            cells = row["cells"]
+            if not cells:
+                continue
+            if row["divider"] or (len(cells) == 1 and cells[0]["colspan"] > 1):
+                if current_year["semesters"]:
+                    years.append(current_year)
+                current_year = {"label": _syllabus_table_cell_text(cells[0]) or f"Year {len(years) + 1}", "semesters": []}
+                continue
+            if len(cells) != 2:
+                continue
+
+            cell_texts = [_syllabus_table_cell_text(cell) for cell in cells]
+            if all(re.match(r"^semester\b", text, re.IGNORECASE) and "\n" not in text for text in cell_texts):
+                current_year["semesters"] = [{"title": title, "subjects": []} for title in cell_texts]
+                continue
+            if len(current_year["semesters"]) != 2:
+                continue
+            for index, text in enumerate(cell_texts):
+                current_year["semesters"][index]["subjects"] = [
+                    re.sub(r"^[•▪●○■\-–]\s*", "", subject).strip()
+                    for subject in text.splitlines() if subject.strip()
+                ]
+
+        if current_year["semesters"]:
+            years.append(current_year)
+        valid_years = [
+            year for year in years
+            if len(year["semesters"]) == 2 and any(semester["subjects"] for semester in year["semesters"])
+        ]
+        if valid_years:
+            return valid_years
+    return []
+
+
 def parse_syllabus_html(html_str: str) -> list[dict]:
     if not html_str:
         return []
     parser = SyllabusHTMLParser()
     try:
         parser.feed(html_str)
-        return parser.syllabus_years
+        return parser.syllabus_years or _parse_syllabus_table_html(html_str)
     except Exception:
         return []
 

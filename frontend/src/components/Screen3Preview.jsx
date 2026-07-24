@@ -304,6 +304,10 @@ export default function Screen3Preview({ session, onBack }) {
   };
 
   const handleBuildWebsite = async () => {
+    if (!workspaceSaveResult) {
+      setBuildError('Publish this page before building the website. Drafts are available in the editor preview but are not included in the public build.');
+      return;
+    }
     setBuilding(true);
     setBuildError('');
     setBuildResult(null);
@@ -409,7 +413,7 @@ export default function Screen3Preview({ session, onBack }) {
             {building ? (
               <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Building your website package...</p>
             ) : !buildResult ? (
-              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Build the entire website package using the latest workspace data.</p>
+              <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Publish this page, then build the website package using the latest workspace data.</p>
             ) : (
               <p style={{ color: 'var(--color-success)', fontSize: 14, fontWeight: 600, margin: 0 }}>✓ Website Built</p>
             )}

@@ -101,7 +101,7 @@
           <div style="padding:20px;display:flex;flex-direction:column;flex:1">
             <span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#E04015">{{ p.tag | default('') }}</span>
             <div style="font-size:17px;font-weight:700;color:#1C1B22;margin-top:8px;line-height:1.32">{{ p.title | default('') }}</div>
-            <p style="font-size:13px;color:#6E6A78;margin-top:8px;line-height:1.55;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ p.excerpt | default('') }}</p>
+            <p style="font-size:13px;color:#6E6A78;margin-top:8px;line-height:1.55;flex:1">{{ p.excerpt | default('') | summary(40) }}</p>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px;border-top:1px solid #ECE7F5"><span style="font-size:12px;color:#706A80;font-weight:600">{{ p.meta | default('') }}</span><span style="font-size:13px;color:#E04015;font-weight:800">Read →</span></div>
           </div>
         </a>

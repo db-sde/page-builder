@@ -1,4 +1,30 @@
 import re
+from html import unescape
+
+
+def summarize_content(value: str, max_words: int = 120) -> str:
+    """Return complete leading sentences suitable for compact page sections."""
+    if value is None:
+        return ""
+    text = unescape(re.sub(r"<[^>]+>", " ", str(value)))
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    summary: list[str] = []
+    word_count = 0
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        sentence_words = len(sentence.split())
+        if summary and word_count + sentence_words > max_words:
+            break
+        summary.append(sentence)
+        word_count += sentence_words
+
+    return " ".join(summary) or text
 
 
 def format_fee(amount_str: str) -> str:

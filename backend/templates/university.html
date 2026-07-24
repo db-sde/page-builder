@@ -84,7 +84,8 @@
         <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ heroBadge }}">{{ hero.badge }}</div>
         {% endif %}
         <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ heroH1 }}">{{ hero.full_name or ("Online Degrees from " ~ hero.title) }}</h1>
-        {% if hero.description %}<div style="font-size:16.5px;color:{{ heroSub }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>{% endif %}
+        {% set hero_summary = hero.description | summary %}
+        {% if hero_summary %}<div style="font-size:16.5px;color:{{ heroSub }};max-width:520px;margin-top:18px">{{ hero_summary }}</div>{% endif %}
         <div class="hero-buttons" style="margin-top:26px">
           <a class="btn-hero" href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Download Brochure</a>
           <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ heroSecBtn }}">Enquire Now</a>
@@ -144,7 +145,7 @@
           <a href="{{ p.href }}" class="prog-card home-program-card" style="border-radius:16px;padding:24px;display:flex;flex-direction:column;height:100%;min-height:350px;{{ p.cardStyle }}">
             <span style="align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;{{ p.badgeStyle }}">{{ p.level }}</span>
             <div style="font-size:23px;font-weight:800;margin-top:16px;color:{{ p.nameColor }}">{{ p.name }}</div>
-            <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:{{ p.descColor }};display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ p.d }}</div>
+            <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:{{ p.descColor }}">{{ p.d | summary(40) }}</div>
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
               <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px">
                 <span style="color:{{ p.metaLabel }};font-weight:600">Duration</span>
@@ -184,7 +185,7 @@
           <span style="align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;background:#EFEBF8;color:#6B4FC9;margin-bottom:12px">{{ sp.course_name }}</span>
           <div style="width:44px;height:44px;border-radius:11px;background:#FFE7E0;color:#E0431F;display:flex;align-items:center;justify-content:center;font-size:20px">{{ sp.icon }}</div>
           <div style="font-size:19px;font-weight:800;color:#1C1B22;margin-top:14px">{{ sp.t }}</div>
-          <div style="font-size:13.5px;color:#6E6A78;margin-top:6px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ sp.d }}</div>
+          <div style="font-size:13.5px;color:#6E6A78;margin-top:6px;line-height:1.55">{{ sp.d | summary(32) }}</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:14px;border-top:1px solid #ECE7F5"><span style="font-size:13px;color:#706A80;font-weight:600">{{ sp.fee }}</span><span style="font-size:13.5px;color:#E04015;font-weight:800">Explore →</span></div>
         </a>
       {% endfor %}
@@ -193,10 +194,15 @@
   {% endif %}
 
   {% if about %}
+  {% set about_long = (about | striptags | trim | length) > 850 %}
   <section style="max-width:1180px;margin:0 auto;padding:54px 20px 0">
     <div style="background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:30px">
       <h2 style="font-size:30px;font-weight:800;color:#1C1B22">{{ headings.about }}</h2>
-      <div class="content-body" style="font-size:15px;color:#434346;margin-top:14px;line-height:1.7">{{ about | safe }}</div>
+      <div class="rich-content{% if about_long %} readmore-wrap{% endif %}" style="font-size:15px;color:#434346;margin-top:14px;line-height:1.7">
+        {% if about_long %}<input type="checkbox" id="rm-about" class="readmore-toggle">{% endif %}
+        <div class="{% if about_long %}readmore-body {% endif %}content-body">{{ about | safe }}</div>
+        {% if about_long %}<label for="rm-about" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
+      </div>
     </div>
   </section>
   {% endif %}
@@ -253,29 +259,49 @@
   {% endif %}
 
   <!-- ===== ADMISSION PROCESS ===== -->
-  {% if admission %}
+  {% set admission_flow = namespace(actions=[], notes=[]) %}
+  {% for s in admission or [] %}
+    {% set step_text = ((s.d if s.d is defined and s.d else s.t) | trim) %}
+    {% set step_text_lower = step_text | lower %}
+    {% set step_is_marker = step_text_lower in ['additional information', 'additional information:', 'note', 'note:'] %}
+    {% set step_is_note = (('refund' in step_text_lower or 'non-refundable' in step_text_lower) and 'pay' not in step_text_lower and 'submit' not in step_text_lower) or 'declaration' in step_text_lower or 'instruction' in step_text_lower or 'policy' in step_text_lower or 'closing date' in step_text_lower %}
+    {% if step_text and step_text not in ['-', ':'] and not step_is_marker %}
+      {% if step_is_note %}
+        {% set admission_flow.notes = admission_flow.notes + [step_text] %}
+      {% else %}
+        {% set admission_flow.actions = admission_flow.actions + [s] %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {% if admission_flow.actions or admission_flow.notes %}
   <div id="admissions" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
     <div style="text-align:center;margin-bottom:34px">
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Admissions</div>
       <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px">{{ headings.admission }}</h2>
       {% if admission_fee_note %}<p style="color:#6E6A78;font-size:15px;margin-top:8px">{{ admission_fee_note }}</p>{% endif %}
     </div>
-    <div class="card-grid-4">
-      {% for s in admission %}
+    {% if admission_flow.actions %}<div class="card-grid-4">
+      {% for s in admission_flow.actions %}
         <div style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;padding:24px;position:relative">
-          <div style="font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#EFEBF8">{{ s.n }}</div>
+          <div style="font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#EFEBF8">{{ '%02d' | format(loop.index) }}</div>
           <div style="font-size:16.5px;font-weight:800;color:#1C1B22;margin-top:8px">{{ s.t }}</div>
           <div style="font-size:13.5px;color:#6E6A78;margin-top:6px;line-height:1.55;white-space:pre-line">{{ s.d }}</div>
         </div>
       {% endfor %}
-    </div>
+    </div>{% endif %}
+    {% if admission_flow.notes %}
+    <aside class="admission-notes">
+      <strong>Additional information</strong>
+      <ul>{% for note in admission_flow.notes %}<li>{{ note }}</li>{% endfor %}</ul>
+    </aside>
+    {% endif %}
   </div>
   {% endif %}
 
   <!-- ===== FEES & FINANCING ===== -->
   {% if emi or financing or banks %}
   <div id="fees" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
-    <div class="why-us-grid" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:38px 36px;display:grid;grid-template-columns:.95fr 1.05fr;gap:40px;align-items:center">
+    <div class="why-us-grid{% if not financing %} fees-grid--compact{% endif %}" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:38px 36px;display:grid;grid-template-columns:.95fr 1.05fr;gap:40px;align-items:center">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Fees &amp; Financing</div>
         <h2 style="font-size:30px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.18">{{ headings.emi }}</h2>
@@ -286,7 +312,7 @@
           {% endfor %}
         </div>
       </div>
-      <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="grid-2-col fee-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         {% for f in financing %}
           <div style="background:#F6F4FB;border:1px solid #ECE8F6;border-radius:12px;padding:18px">
             <div style="font-size:22px;font-weight:800;color:#E04015">{{ f.stat }}</div>
@@ -304,10 +330,15 @@
   {% endif %}
 
   {% if exam %}
+  {% set exam_long = (exam | striptags | trim | length) > 700 %}
   <section style="max-width:1180px;margin:0 auto;padding:54px 20px 0">
     <div style="background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:30px">
       <h2 style="font-size:30px;font-weight:800;color:#1C1B22">{{ headings.exam }}</h2>
-      <div class="content-body" style="font-size:15px;color:#434346;margin-top:14px;line-height:1.7">{{ exam | safe }}</div>
+      <div class="rich-content{% if exam_long %} readmore-wrap{% endif %}" style="font-size:15px;color:#434346;margin-top:14px;line-height:1.7">
+        {% if exam_long %}<input type="checkbox" id="rm-exam" class="readmore-toggle">{% endif %}
+        <div class="{% if exam_long %}readmore-body {% endif %}content-body">{{ exam | safe }}</div>
+        {% if exam_long %}<label for="rm-exam" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
+      </div>
     </div>
   </section>
   {% endif %}
@@ -333,7 +364,14 @@
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 16px">
     <div style="background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:30px 28px;text-align:center">
       <h2 style="font-size:30px;font-weight:800;color:#1C1B22">{{ headings.placement }}</h2>
-      {% if placement %}<div class="content-body" style="font-size:15px;color:#6E6A78;margin-top:12px">{{ placement | safe }}</div>{% endif %}
+      {% if placement %}
+      {% set placement_long = (placement | striptags | trim | length) > 700 %}
+      <div class="rich-content{% if placement_long %} readmore-wrap{% endif %}" style="font-size:15px;color:#6E6A78;margin-top:12px">
+        {% if placement_long %}<input type="checkbox" id="rm-placement" class="readmore-toggle">{% endif %}
+        <div class="{% if placement_long %}readmore-body {% endif %}content-body placement-content">{{ placement | safe }}</div>
+        {% if placement_long %}<label for="rm-placement" class="readmore-label"><span class="rm-more">Read more</span><span class="rm-less">Show less</span></label>{% endif %}
+      </div>
+      {% endif %}
       {% if recruiters %}<div style="font-size:12.5px;font-weight:700;letter-spacing:.12em;color:#706A80;text-transform:uppercase;margin-top:20px">Alumni hired at</div>{% endif %}
       <div style="display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;margin-top:18px">
         {% for r in recruiters %}

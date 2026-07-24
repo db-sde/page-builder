@@ -135,7 +135,7 @@ class UniversityTransformer(BaseTransformer):
             "hero": {
                 "title": uni_name,
                 "full_name": uni_full_name,
-                "description": raw.get("hero_description", ""),
+                "description": raw.get("hero_description") or about_content,
                 "pills": self.build_pills([
                     (naac and f"NAAC {naac}", None),
                     (ugc, None),

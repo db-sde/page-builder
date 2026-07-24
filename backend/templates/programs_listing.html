@@ -90,7 +90,7 @@
         <a href="{{ p_href }}" class="prog-card">
           <span style="align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:30px;background:#FFE7E0;color:#E0431F">Online Degree</span>
           <div style="font-size:24px;font-weight:800;margin-top:16px;color:#1C1B22">{{ p.name | default('') }}</div>
-          <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:#6E6A78;flex:1;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis">{{ p.description | default('') }}</div>
+          <div style="font-size:13.5px;line-height:1.55;margin-top:8px;color:#6E6A78;flex:1">{{ p.description | default('') | summary(40) }}</div>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">
             <div style="display:flex;justify-content:space-between;font-size:12.5px">
               <span style="color:#706A80;font-weight:600">Duration</span>
