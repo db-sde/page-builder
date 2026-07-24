@@ -1,0 +1,178 @@
+# memory/regressions.md — Known Regressions & Fixes
+
+Each entry documents a regression that occurred, how it was fixed, and how to avoid it.
+This is the most important file for preventing repeated mistakes.
+
+---
+
+## REG-001: Fabricated Blog Cards
+
+**Cause:** A transformer or template was rendering blog listing cards using hardcoded/invented
+content when no real blog pages existed in the workspace. The listing page appeared populated
+but with fabricated data.
+
+**Fix:** Listing pages now only render cards for entries that exist in the workspace index.
+If `_workspace_blogs` is empty, the listing page renders an empty state.
+
+**How to avoid:** Never provide a hardcoded fallback list of items for listing pages.
+If the workspace has no blogs, the blog listing must say so — not invent placeholder cards.
+
+**Files involved:**
+- `backend/transformers/blog_listing.py`
+- `backend/templates/blog_listing.html`
+- `backend/workspace/compiler.py` (`_build_workspace_blog_list`)
+
+---
+
+## REG-002: Duplicated UGC Labels
+
+**Cause:** `ugc_status` and `ugc_approved` were treated as separate fields in some
+transformers. If both were present, the UGC badge appeared twice in the rendered page.
+
+**Fix:** `core/router.py`'s `normalize_value()` and the knowledge base `FIELD_MAPPING`
+in `knowledge.py` now map both `ugc_status` and `ugc_approved` to the same canonical
+key (`approvals.ugc_status`). Transformers only read one resolved field.
+
+**How to avoid:** When adding new ACF field aliases, add them only to the `FIELD_MAPPING`
+in `knowledge.py` — not as separate fields in the transformer context dict.
+
+**Files involved:**
+- `backend/workspace/knowledge.py` (`FIELD_MAPPING`)
+- `backend/core/router.py` (`normalize_value`)
+
+---
+
+## REG-003: Hidden Listing Pages
+
+**Cause:** After the workspace directory structure was reorganised, the `Pages/` folder
+(which stores system-generated listing pages) was not initialised for new workspaces.
+The compiler scanned for listing pages but found nothing, so `programs_listing`,
+`specializations_listing`, and `blog_listing` were silently absent from the build.
+
+**Fix:** `workspace/manager.py`'s `init_system_pages()` is called when creating or
+opening a workspace. It creates stub `source.json` files for all three listing page types
+if they don't already exist.
+
+**How to avoid:** Always call `init_system_pages()` after `ensure_metadata()` when
+setting up a new workspace. Never assume listing pages exist without checking.
+
+**Files involved:**
+- `backend/workspace/manager.py` (`init_system_pages`)
+- `backend/main.py` (workspace creation endpoint)
+
+---
+
+## REG-004: Broken Syllabus Tables
+
+**Cause:** The syllabus section in some DOCX files had merged header rows or all-identical
+headers (e.g., "Subject" repeated across all columns). The original table parser assumed
+the first row was always a header, causing the table to render with no data rows or
+with the actual headers treated as data.
+
+**Fix:** `parser.py`'s `process_table_block()` now:
+1. Detects merged title rows (all cells identical) and treats them as a title, not headers.
+2. Recovers from all-identical header rows by treating them as the title and promoting
+   the second row to headers.
+3. Records a `TABLE_HEADER_DETECTION_FAILED` or `TABLE_HEADER_RECOVERED` warning in the block.
+
+**How to avoid:** Run the parser on any new university's DOCX before committing to see if
+table warnings appear. Table warnings in the block output mean the rendered table may be
+wrong — review in the Preview screen before saving.
+
+**Files involved:**
+- `backend/ingestion/parser.py` (`process_table_block`)
+
+---
+
+## REG-005: Placeholder Hero Images in Production
+
+**Cause:** Early builds did not validate image existence. Pages compiled and exported
+successfully even when `hero_image_url` pointed to a non-existent file. The template
+rendered an empty `<img>` or a broken image in production.
+
+**Fix:** `workspace/builder.py`'s `_validate_pages()` checks every required image field
+against the workspace `Assets/images/` directory. If a file is missing, the build returns
+a validation error and does not proceed.
+
+**How to avoid:** Always upload images before building. The Review screen's field health
+panel flags missing required images. Never skip the build validation step.
+
+**Files involved:**
+- `backend/workspace/builder.py` (`_validate_pages`, `_IMAGE_FIELD_BY_TYPE`)
+
+---
+
+## REG-006: NMIMS Contact Info Leaking into Other Workspaces
+
+**Cause:** `core/site_config.py` contained a single `SITE_CONFIG` dict with NMIMS's real
+WhatsApp number, email, and address. All tenants called `get_site_config()` and received
+this config, so every university site showed NMIMS's contact details.
+
+**Fix:** `get_site_config()` now returns `SITE_CONFIG` only for `university_slug == "nmims"`.
+All other workspaces get a blank generic config, with overrides from `metadata.json["contact"]`.
+
+**How to avoid:** Never add university-specific contact details to the shared `SITE_CONFIG`
+dict. Put them in the workspace's `metadata.json` under the `contact` key.
+
+**Files involved:**
+- `backend/core/site_config.py`
+
+---
+
+## REG-007: Workspace Slug Appearing in Page Titles
+
+**Cause:** When `university_name` was not found in the workspace index, some code paths
+fell back to `university_slug.replace("-", " ").title()`. This caused `nmims-2` to appear
+as "Nmims 2" in page headings, breadcrumbs, and the admin UI.
+
+**Fix:** `_resolve_university_context()` in `compiler.py` has a priority chain:
+1. University page's `university_name` from `source.json`
+2. `metadata.json`'s `university_name`
+3. Title-cased slug (last resort, acceptable only if workspace has no University page)
+
+The UI was also patched to strip version suffixes from display names.
+
+**How to avoid:** Always create the University page first when setting up a new workspace.
+This ensures `university_name` is available in the index before any other pages compile.
+
+**Files involved:**
+- `backend/workspace/compiler.py` (`_resolve_university_context`)
+- `backend/workspace/manager.py`
+
+---
+
+## REG-008: Duplicated `format_fee` Implementation
+
+**Cause:** The fee formatting function was written inline in `renderer/engine.py` and
+again in `transformers/base.py`. The two copies diverged — one stripped `INR` prefix,
+the other didn't, causing fees to display as `₹INR 1,20,000` in some templates.
+
+**Fix:** Single canonical `format_fee()` in `core/utils.py`. Both files now import from there.
+A comment in both files explains the delegation.
+
+**How to avoid:** All shared text/value processing belongs in `core/utils.py`. Do not
+reimplement formatting logic in transformers or templates.
+
+**Files involved:**
+- `backend/core/utils.py`
+- `backend/transformers/base.py`
+- `backend/renderer/engine.py`
+
+---
+
+## REG-009: Parser Not Moved to Backend (Historical)
+
+**Cause:** Based on the previous conversation summary ("Moving Parser to Backend"),
+the parser was originally not in the backend package, causing import issues or deployment
+complications.
+
+**Fix:** Parser and all ingestion modules now live under `backend/ingestion/`.
+CLI entrypoint `ingestion/ingest.py` can still be run directly for testing.
+
+**How to avoid:** All Python backend modules must be importable from the `backend/`
+working directory. Do not place shared Python logic outside the `backend/` package.
+
+**Files involved:**
+- `backend/ingestion/parser.py`
+- `backend/ingestion/extractor.py`
+- `backend/ingestion/ingest.py`

@@ -28,7 +28,8 @@ Build layout (target):
   │   ├── fonts/…                     ← local web fonts
   │   └── js/public-runtime.js        ← browser interactions
   ├── routes.json                     ← route manifest
-  └── sitemap.xml                     ← sitemap
+  ├── sitemap.xml                     ← sitemap
+  └── vercel.json                     ← trailing-slash policy + redirects
 
 Usage:
   from workspace.builder import build_website
@@ -373,6 +374,61 @@ def _write_robots_txt(
     (build_dir / "robots.txt").write_text(content, encoding="utf-8")
 
 
+def _write_vercel_json(
+    build_dir: Path,
+    route_map: dict,
+    university_slug: str,
+) -> None:
+    """Write deployment redirects for normalized and workspace-specific URLs."""
+    redirects_by_source: dict[str, dict] = {}
+
+    # Internal workspace prefixes must never become public URLs. When route
+    # normalization removes one, retain the raw path as a permanent redirect.
+    for key, destination in route_map.items():
+        if ":" not in key:
+            continue
+        page_type, raw_slug = key.split(":", 1)
+        source = f"/blog/{raw_slug}" if page_type == "blog" else f"/{raw_slug}"
+        if source != destination:
+            redirects_by_source[source] = {
+                "source": source,
+                "destination": destination,
+                "permanent": True,
+            }
+
+    # Historical redirects are content-specific, so they live in workspace
+    # metadata while the export behavior remains reusable across universities.
+    meta_path = _workspace_root(university_slug) / "metadata.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            configured_redirects = (meta.get("site") or {}).get("redirects") or []
+            for redirect in configured_redirects:
+                if not isinstance(redirect, dict):
+                    continue
+                source = "/" + str(redirect.get("source") or "").strip().strip("/")
+                destination = "/" + str(redirect.get("destination") or "").strip().strip("/")
+                if source == "/" or destination == "/" or source == destination:
+                    continue
+                redirects_by_source[source] = {
+                    "source": source,
+                    "destination": destination,
+                    "permanent": True,
+                }
+        except (OSError, ValueError, TypeError):
+            pass
+
+    config = {
+        "$schema": "https://openapi.vercel.sh/vercel.json",
+        "trailingSlash": False,
+        "redirects": [redirects_by_source[source] for source in sorted(redirects_by_source)],
+    }
+    (build_dir / "vercel.json").write_text(
+        json.dumps(config, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 @with_build_lock
@@ -532,6 +588,7 @@ def build_website(university_slug: str) -> dict:
     _write_routes_json(build_dir, route_map, kind_label)
     _write_sitemap(build_dir, route_map, index, university_slug, last_compiled_at)
     _write_robots_txt(build_dir, university_slug)
+    _write_vercel_json(build_dir, route_map, university_slug)
 
     built_at = datetime.now(timezone.utc).isoformat()
 

@@ -1,0 +1,161 @@
+# AGENTS.md — DegreeBaba Page Builder
+
+> **Read this first. Only this.** Then open specific files as needed.
+
+---
+
+## What Is This Project?
+
+**DegreeBaba Page Builder** is an internal tool that converts Microsoft Word (`.docx`) curriculum documents from Indian distance-learning universities into fully compiled, SEO-optimised static websites.
+
+It is **not** a CMS. It is a **pipeline** — ingestion → transformation → compilation → static export.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend API | Python 3.12, FastAPI, Uvicorn |
+| Templating | Jinja2 (`backend/templates/`) |
+| Image processing | Pillow (PIL) |
+| DOCX parsing | python-docx |
+| Frontend Admin UI | React 19 + Vite, vanilla CSS |
+| Lead Capture App | React + Vite (`contact/`) — deployed to Vercel |
+| Package manager | `uv` (backend), npm (frontend) |
+| Deployment | Static site per university workspace |
+| CRM | Supabase webhook endpoint |
+
+---
+
+## Critical Architecture Facts
+
+1. **`source.json` is the source of truth** — never edit compiled `.html` files directly.
+2. **Workspace slug ≠ display name** — `nmims-2` is internal; user-facing name comes from `university_name` in `metadata.json` or the University page's `source.json`.
+3. **Specializations are flat** — stored in `Specializations/<slug>/`, never nested under `Courses/`.
+4. **Listing pages are system-generated** — `Pages/programs/`, `Pages/specializations/`, `Pages/blog/` are auto-rebuilt during compilation. Never hand-edit them.
+5. **Lead capture is decoupled** — static pages link to `LEAD_BASE_URL` (a separate hosted React app). No lead logic lives in the page builder backend.
+6. **Two-pass compiler** — Pass 1 indexes all `source.json` files; Pass 2 re-renders with full relationship context injected.
+
+---
+
+## Important Commands
+
+```bash
+# Backend (from backend/)
+uv run main.py           # Start FastAPI dev server (port 8000)
+uv run test_spec.py      # Run tests
+
+# Frontend admin (from frontend/)
+npm run dev              # Start Vite dev server (port 5173)
+
+# Contact app (from contact/)
+npm run dev              # Local lead capture preview
+npm run build            # Build for Vercel deploy
+```
+
+---
+
+## Environment Variables
+
+**`backend/.env`**
+```
+MICRO_APP_URL=https://micro-app-57l9.onrender.com   # External DOCX parsing microservice
+LEAD_BASE_URL=https://applicationquery.vercel.app    # Hosted lead capture React app
+```
+
+**`contact/.env`**
+```
+VITE_WEBHOOK_URL=https://yepxydikozzrzxbybrxd.supabase.co/functions/v1/webhook-inbound
+VITE_WEBHOOK_API_KEY=<secret>
+```
+
+---
+
+## Important Paths
+
+```
+backend/main.py                 # All FastAPI route definitions (~1774 lines)
+backend/ingestion/parser.py     # DOCX → block list (local Python parser)
+backend/ingestion/extractor.py  # Block list → ACF JSON fields
+backend/ingestion/adapter.py    # Schema adapter + micro-parser merge logic
+backend/transformers/           # One class per page type (course, spec, uni, blog, listings)
+backend/renderer/engine.py      # Jinja2 render + SEO/JSON-LD injection (~1380 lines)
+backend/workspace/manager.py    # Workspace folder layout + path resolution
+backend/workspace/compiler.py   # Two-pass workspace compiler
+backend/workspace/builder.py    # Static site exporter (Pass 4)
+backend/workspace/knowledge.py  # University knowledge base (shared fields across pages)
+backend/core/router.py          # page_type → transformer class map
+backend/core/site_config.py     # Per-tenant nav/footer/contact config
+backend/core/utils.py           # format_fee, normalize_specialization_name, etc.
+backend/templates/              # 7 Jinja2 HTML templates (one per page type)
+backend/workspaces/             # All university workspace data (on-disk "database")
+frontend/src/components/        # Screen0–3 admin UI components
+frontend/src/fieldSchema.js     # Required/optional field list per page type
+contact/src/App.jsx             # Lead capture form logic (decode, display, submit)
+```
+
+---
+
+## Pipeline at a Glance
+
+```
+.docx file upload
+    ↓ POST /parse-docx (or /ingest-acf for raw JSON)
+Ingestion: parser.py → extractor.py → adapter.py (merge micro + local)
+    ↓
+extract_metadata_from_json() in main.py
+    ↓ normalise, detect page_type, heuristic parent detection
+Transformer (core/router.py → transformers/<type>.py)
+    ↓
+save_page() → workspaces/<uni>/<Type>/<slug>/source.json + draft .html
+    ↓ POST /compile-workspace
+Compiler Pass 1: _build_index() — scan all source.json
+Compiler Pass 2: _enrich_resolved() + re-render every page
+    ↓ POST /build-website
+Builder: wipe build/, copy assets, rewrite links, write routes.json + sitemap.xml
+    ↓
+workspaces/<uni>/build/  ← deployable static site
+```
+
+---
+
+## Coding Standards
+
+- **Never invent/fabricate content.** If a field is missing, hide the section — do not fill placeholders.
+- **`source.json` must never be edited manually** — it is regenerated by the pipeline.
+- **All fee values** go through `core.utils.format_fee()`. No inline fee formatting.
+- **Specialization names** are normalised via `core.utils.normalize_specialization_name()`.
+- **Workspace slug** must never leak into UI titles, headers, or footers.
+- **Listing pages** (programs, specializations, blog) are compiled automatically — never created manually.
+- Match existing code conventions; do not introduce new dependencies without flagging them.
+
+---
+
+## Current Branch
+
+Run `git branch --show-current` from the repo root to confirm.
+
+---
+
+## Links to Other .agent Files
+
+| File | Purpose |
+|---|---|
+| [PROJECT.md](.agent/PROJECT.md) | Purpose, page types, goals, data flow |
+| [ARCHITECTURE.md](.agent/ARCHITECTURE.md) | Full pipeline with diagrams |
+| [RULES.md](.agent/RULES.md) | Permanent project rules |
+| [ROADMAP.md](.agent/ROADMAP.md) | Completed / current / next / future |
+| [memory/active.md](.agent/memory/active.md) | What's being worked on right now |
+| [memory/decisions.md](.agent/memory/decisions.md) | Architecture Decision Records |
+| [memory/regressions.md](.agent/memory/regressions.md) | Every known regression + fix |
+| [memory/history.md](.agent/memory/history.md) | Session-by-session history |
+| [systems/parser.md](.agent/systems/parser.md) | Ingestion & parsing subsystem |
+| [systems/renderer.md](.agent/systems/renderer.md) | Jinja2 rendering engine |
+| [systems/templates.md](.agent/systems/templates.md) | HTML templates |
+| [systems/editor.md](.agent/systems/editor.md) | React admin frontend |
+| [systems/publishing.md](.agent/systems/publishing.md) | Builder & static export |
+| [systems/seo.md](.agent/systems/seo.md) | SEO, structured data, sitemaps |
+| [audits/latest.md](.agent/audits/latest.md) | Most recent codebase audit |
+| [tasks/current.md](.agent/tasks/current.md) | Active sprint tasks |
+| [tasks/backlog.md](.agent/tasks/backlog.md) | Future improvements |
