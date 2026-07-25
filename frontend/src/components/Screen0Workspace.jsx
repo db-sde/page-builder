@@ -388,6 +388,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         parent_slug: record.parent_slug || parentSlug,
         acf_data: data,
         raw_acf_data: acf_data,
+        field_state: record.field_state || {},
         images: {},
         page_action: 'edit'
       });
@@ -411,6 +412,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         parent_slug: draft.parent_slug,
         acf_data: draft.data || {},
         raw_acf_data: draft.data || {},
+        field_state: draft.field_state || {},
         images: draft.images || {},
         page_action: draft.identity_mode || 'import',
       });
@@ -491,6 +493,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         parent_slug: null,
         acf_data: null,
         raw_acf_data: null,
+        field_state: {},
         images: {}
       });
     } catch (err) {

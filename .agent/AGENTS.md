@@ -36,6 +36,7 @@ It is **not** a CMS. It is a **pipeline** — ingestion → transformation → c
 4. **Listing pages are system-generated** — `Pages/programs/`, `Pages/specializations/`, `Pages/blog/` are auto-rebuilt during compilation. Never hand-edit them.
 5. **Lead capture is decoupled** — static pages link to `LEAD_BASE_URL` (a separate hosted React app). No lead logic lives in the page builder backend.
 6. **Two-pass compiler** — Pass 1 indexes all `source.json` files; Pass 2 re-renders with full relationship context injected.
+7. **Field ownership is backend-owned** — `core/field_definitions.py` is the canonical post-parser contract for University, Course, and Specialization fields. Transformers and templates consume values; they do not classify ownership.
 
 ---
 
@@ -86,6 +87,7 @@ backend/workspace/compiler.py   # Two-pass workspace compiler
 backend/workspace/builder.py    # Static site exporter (Pass 4)
 backend/workspace/knowledge.py  # University knowledge base (shared fields across pages)
 backend/core/router.py          # page_type → transformer class map
+backend/core/field_definitions.py # Canonical field ownership + field-state generation
 backend/core/site_config.py     # Per-tenant nav/footer/contact config
 backend/core/utils.py           # format_fee, normalize_specialization_name, etc.
 backend/templates/              # 7 Jinja2 HTML templates (one per page type)
@@ -106,6 +108,8 @@ Ingestion: parser.py → extractor.py → adapter.py (merge micro + local)
     ↓
 extract_metadata_from_json() in main.py
     ↓ normalise, detect page_type, heuristic parent detection
+build_field_state() in core/field_definitions.py
+    ↓ ownership/missing metadata accompanies editor data; values stay unchanged
 Transformer (core/router.py → transformers/<type>.py)
     ↓
 save_page() → workspaces/<uni>/<Type>/<slug>/source.json + draft .html
@@ -150,6 +154,7 @@ Run `git branch --show-current` from the repo root to confirm.
 | [memory/decisions.md](.agent/memory/decisions.md) | Architecture Decision Records |
 | [memory/regressions.md](.agent/memory/regressions.md) | Every known regression + fix |
 | [memory/history.md](.agent/memory/history.md) | Session-by-session history |
+| [systems/schema-pipeline.md](.agent/systems/schema-pipeline.md) | Three-layer model: Field Definitions → Page Requirements → Page State (Preview prep) |
 | [systems/parser.md](.agent/systems/parser.md) | Ingestion & parsing subsystem |
 | [systems/renderer.md](.agent/systems/renderer.md) | Jinja2 rendering engine |
 | [systems/templates.md](.agent/systems/templates.md) | HTML templates |

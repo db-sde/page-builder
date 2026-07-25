@@ -145,3 +145,35 @@ contact info in its pages.
 - `backend/core/site_config.py`
 
 **Date:** Commit `532b518`.
+
+---
+
+## ADR-007: Backend-Owned Post-Parser Field Contract
+
+**Problem:** Parsed fields had no shared ownership/completeness contract. The editor had
+an incomplete UI-specific required-field list, while renderer fallbacks implicitly decided
+what missing content meant.
+
+**Decision:** `backend/core/field_definitions.py` is the single canonical ownership map for
+University, Course, and Specialization fields. After metadata extraction, APIs generate a
+non-mutating `field_state` containing value, source, missing, required, optional, manual,
+and derived flags. The React session carries it; it is not persisted into `source.json`.
+
+**Reason:** Field ownership must be known before transformation/rendering, while parser JSON
+and current production output must remain unchanged in Phase 1.
+
+**Trade-offs:** The existing `frontend/src/fieldSchema.js` remains temporarily for current UI
+labels and health-display behaviour. A later editor phase may consume `field_state` directly.
+Renderer fabrication remains unchanged until Phase 2.
+
+**Affected files:**
+- `backend/core/field_definitions.py`
+- `backend/main.py`
+- `frontend/src/App.jsx`
+- `frontend/src/api.js`
+- `frontend/src/fieldSchema.js`
+- `frontend/src/components/Screen0Workspace.jsx`
+- `frontend/src/components/Screen1Upload.jsx`
+- `frontend/src/components/Screen2Review.jsx`
+
+**Date:** 2026-07-24.

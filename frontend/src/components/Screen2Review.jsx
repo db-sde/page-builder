@@ -294,6 +294,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         university_slug: result.university_slug || session.university_slug,
         parent_slug:     result.parent_slug,
         acf_data:        result.acf_data,
+        field_state:     result.field_state || {},
         images:          imageUrls,
         raw_acf_data:    rawWithMeta,
         htmlContent:     htmlText,

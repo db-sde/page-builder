@@ -22,11 +22,14 @@ export async function renderHtml(payload) {
   return res.data;
 }
 
-export async function parseDocx(file, pageType) {
+export async function parseDocx(file, pageType, universitySlug = null) {
   const formData = new FormData();
   formData.append('file', file);
   if (pageType && pageType !== 'auto') {
     formData.append('page_type', pageType);
+  }
+  if (universitySlug) {
+    formData.append('university_slug', universitySlug);
   }
 
   const endpoint = `${BASE}/parse-docx`;
@@ -285,4 +288,3 @@ export async function publishDraft(universitySlug, pageType, slug) {
     return { status: 'saved' };
   }
 }
-

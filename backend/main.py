@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from core.router import get_transformer
+from core.field_definitions import build_field_state
+from core.page_requirements import build_page_state
 from renderer.engine import render_resolved
 from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
@@ -373,6 +375,13 @@ async def ingest_acf(req: IngestRequest):
         ctx = transformer.transform()
         import json
         ctx["ctx_json"] = json.dumps(ctx, default=str)
+        field_state = build_field_state(page_type, acf_data, {
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+        })
+        page_state = build_page_state(page_type, field_state)
         return {
             "status": "ok",
             "context": ctx,
@@ -380,7 +389,9 @@ async def ingest_acf(req: IngestRequest):
             "slug": slug,
             "university_slug": university_slug,
             "parent_slug": parent_slug,
-            "acf_data": acf_data
+            "acf_data": acf_data,
+            "field_state": field_state,
+            "page_state": page_state,
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -637,7 +648,8 @@ def forward_to_micro_pipeline(file_bytes: bytes, filename: str, page_type: str |
 @app.post("/parse-docx")
 async def parse_docx_endpoint(
     file: UploadFile = File(...),
-    page_type: str | None = Form(default=None)
+    page_type: str | None = Form(default=None),
+    university_slug: str | None = Form(default=None),
 ):
     """Parse a .docx document into ACF JSON fields. If it's a blog page type, parse using generic parser; otherwise use micro-pipeline."""
     if not file.filename:
@@ -889,9 +901,11 @@ async def parse_docx_endpoint(
                     result["payload"] = merged_payload
                     result["validation_warnings"] = warnings
 
-        # Collect table warnings from cleaned_blocks
+        # Collect table warnings from whichever post-parser block list this
+        # branch produced. Non-blog uploads retain the original parsed blocks.
+        warning_blocks = cleaned_blocks if is_blog_or_generic else blocks
         table_warnings = []
-        for b in cleaned_blocks:
+        for b in warning_blocks:
             if b.get("type") == "table" and b.get("warning"):
                 info = b.get("warning_info") or {}
                 table_warnings.append({
@@ -903,7 +917,27 @@ async def parse_docx_endpoint(
         result["table_warnings"] = table_warnings
 
         from core.router import normalize_value
-        return normalize_value(result)
+        normalized_result = normalize_value(result)
+        normalized_payload = normalized_result.get("payload") if isinstance(normalized_result, dict) else None
+        normalized_page_type = (normalized_result.get("page_type") or detected_type) if isinstance(normalized_result, dict) else None
+        if isinstance(normalized_payload, dict) and normalized_page_type in ("university", "course", "specialization"):
+            metadata_input = {
+                "payload": normalized_payload,
+                "page_type": normalized_page_type,
+            }
+            if university_slug:
+                metadata_input["university_slug"] = university_slug
+            slug, resolved_type, resolved_university, parent_slug, _ = extract_metadata_from_json(metadata_input)
+            normalized_result["field_state"] = build_field_state(resolved_type, normalized_payload, {
+                "page_type": resolved_type,
+                "slug": slug,
+                "university_slug": resolved_university,
+                "parent_slug": parent_slug,
+            })
+            normalized_result["page_state"] = build_page_state(
+                resolved_type, normalized_result["field_state"]
+            )
+        return normalized_result
 
     except Exception as e:
         import traceback
@@ -1248,6 +1282,13 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             ensure_metadata(university_slug, req.metadata_overrides)
 
         # Save to workspace
+        field_state = build_field_state(page_type, acf_data, {
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+        })
+        page_state = build_page_state(page_type, field_state)
         result = save_page(
             university_slug=university_slug,
             page_type=page_type,
@@ -1277,6 +1318,8 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
 
         return {
             "status": "saved",
+            "field_state": field_state,
+            "page_state": page_state,
             **result,
         }
     except HTTPException as he:
@@ -1439,21 +1482,39 @@ async def get_workspace_page_endpoint(
         page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
         source_path = page_dir / "source.json"
         
+        record = None
         if not source_path.exists():
             # Specialization flat directory search fallback
             if page_type == "specialization":
                 for p in (WORKSPACES_ROOT / university_slug / "Specializations").glob("*/source.json"):
                     try:
-                        record = json.loads(p.read_text(encoding="utf-8"))
-                        if record.get("slug") == slug:
-                            return record
+                        candidate = json.loads(p.read_text(encoding="utf-8"))
+                        if candidate.get("slug") == slug:
+                            record = candidate
+                            break
                     except Exception:
                         pass
-            raise HTTPException(status_code=404, detail="Page source.json not found")
-        
-        record = read_source(source_path)
+            if record is None:
+                raise HTTPException(status_code=404, detail="Page source.json not found")
+        else:
+            record = read_source(source_path)
+
         if not record:
             raise HTTPException(status_code=404, detail="Failed to read page source")
+        record_data = record.get("data") if isinstance(record.get("data"), dict) else {}
+        record["field_state"] = build_field_state(
+            record.get("page_type") or page_type,
+            record_data,
+            {
+                "page_type": record.get("page_type") or page_type,
+                "slug": record.get("slug") or slug,
+                "university_slug": record.get("university_slug") or university_slug,
+                "parent_slug": record.get("parent_slug") or parent_slug,
+            },
+        )
+        record["page_state"] = build_page_state(
+            record.get("page_type") or page_type, record["field_state"]
+        )
         return record
     except HTTPException as he:
         raise he

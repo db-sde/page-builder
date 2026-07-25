@@ -6,21 +6,39 @@ Last updated: 2026-07-24
 
 ## What Is Being Worked On?
 
-A full **schema-coverage audit** was completed 2026-07-24, tracing the latest Micro App JSON
-schema (University / Course / Specialization) end-to-end. Read-only — no code changed.
-Deliverables at repo root: `SCHEMA_COVERAGE_REPORT.md`, `PIPELINE_TRACE.md`,
-`HARDCODED_CONTENT_AUDIT.md`, `TEMPLATE_AUDIT.md`, `PLATFORM_AUDIT.md`.
-Updated `.agent`: `audits/latest.md`, `memory/regressions.md` (REG-010, REG-011), `systems/seo.md`.
+**Schema-driven content pipeline Phase 2** implemented 2026-07-24 (on top of Phase 1).
+Added the template-derived **Page Requirements** + **Page State** layer
+(`backend/core/page_requirements.py`): per template section — which schema fields it uses,
+whether it can render, missing required/optional fields, and `fabricated_when_empty`/`data_source`
+flags. `page_state` now rides alongside `field_state` in `/ingest-acf`, `/parse-docx`,
+`/save-page`, and existing-page reads. Read-only metadata — no template/renderer/production change.
+Full model documented in [systems/schema-pipeline.md](../systems/schema-pipeline.md).
+
+Phase 1 (still in place): one post-parser ownership contract per field
+(`backend/core/field_definitions.py`), exposed as `field_state`.
+
+Three-layer model: **Field Definitions** (schema — what data exists) →
+**Page Requirements** (templates — what data is displayed) → **Page State** (render readiness).
 
 ---
 
 ## Why?
 
-To verify whether the platform fully supports the new Micro-App schema before any further changes.
+Phase 1 makes missing/manual/derived/optional state explicit after parsing. Phase 2 makes
+*page requirements* explicit: only fields a template actually uses count toward completion, so
+unused schema fields (faculty, `*_heading`, university-dropped content) never warn — and each
+section knows whether it can render, ready for Preview placeholders and renderer cleanup.
 
 ---
 
-## Key finding (must address before further feature work)
+## Current boundary
+
+- Ownership: `backend/core/field_definitions.py`; page requirements: `backend/core/page_requirements.py`
+- Parser JSON unchanged; unused fields preserved and classified (never warn)
+- `field_state` / `page_state` are transient API/editor metadata, not part of `source.json`
+- Templates, renderer, compiler, builder, routing, SEO, publishing, image behaviour **unchanged**
+
+## Key finding still to address
 
 The pipeline is schema-ready for scalar data but **NOT schema-faithful for editorial content**:
 - `renderer/engine.py` fabricates content on empty collections (fake reviews/jobs/recruiters/
@@ -34,17 +52,19 @@ The pipeline is schema-ready for scalar data but **NOT schema-faithful for edito
 
 ## What Remains?
 
-**From the audit (highest priority — not yet started):**
-1. Remove fabricated fallbacks in `engine.py`; guard syllabus section (REG-010)
-2. Render university schema content + faculty section
-3. Consume `*_heading` fields; expose repeaters in the editor
-4. Fix R6 slug-in-email (REG-011); parameterise GA via `metadata.json["ga_id"]`
+**Phase 3 (next):**
+1. Preview placeholder UI — frontend consumes `page_state.sections` (renderable / missing / placeholders)
+2. Remove fabricated fallbacks in `engine.py`; guard syllabus section (REG-010) — use the
+   `fabricated_when_empty` flags as the removal map; update `PAGE_REQUIREMENTS` as templates change
+3. Render university schema content + faculty section where product-approved
+4. Consume `*_heading` fields; expose repeaters in the editor
+5. Fix R6 slug-in-email (REG-011); parameterise GA via `metadata.json["ga_id"]`
 
 **Pre-existing TODOs / ROADMAP:**
-5. Responsive CSS refinement (768–1024px)
-6. Contact app polish (loading states, validation UX)
-7. Redis caching TODO in `engine.py`; AI gap-fill TODO in `base.py`
-8. Tests — parser, extractor, adapter, compiler all lack unit tests
+6. Responsive CSS refinement (768–1024px)
+7. Contact app polish (loading states, validation UX)
+8. Redis caching TODO in `engine.py`; AI gap-fill TODO in `base.py`
+9. Tests — parser, extractor, adapter, compiler still lack focused unit tests
 
 ---
 

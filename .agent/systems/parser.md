@@ -51,6 +51,9 @@ that match the target page schema.
   ```
 - `merge_micro_and_local(micro, local)` → `dict` — micro wins, local fills gaps
 - `adapt_schema(payload, page_type)` → `dict` — normalised field names
+- `build_field_state(page_type, values, derived_values)` → `dict` — post-parser ownership
+  and completeness metadata; this runs after the Micro/local merge and metadata extraction,
+  not inside the parser
 
 ---
 
@@ -70,6 +73,7 @@ that match the target page schema.
 | `backend/ingestion/extractor.py` | Blocks → ACF JSON (fuzzy heading anchors) |
 | `backend/ingestion/adapter.py` | Schema adapter, micro+local merge |
 | `backend/ingestion/ingest.py` | CLI entrypoint for standalone testing |
+| `backend/core/field_definitions.py` | Canonical post-parser field ownership contract |
 
 ---
 
@@ -100,3 +104,13 @@ these anchors to decide which section the following blocks belong to.
 - **No image extraction from DOCX:** Images embedded in DOCX are ignored. Images must
   be uploaded separately via the Review UI.
 - **No footnote or endnote parsing:** These are silently dropped.
+
+---
+
+## Ownership Boundary After Parsing
+
+The Micro App remains the parsing authority. Once its JSON has been adapted and merged,
+the API determines page identity and calls `build_field_state()`. The returned metadata
+describes `source`, `required`, `optional`, `manual`, `derived`, `missing`, and `value` for
+each University/Course/Specialization field. It does not alter parser JSON and is not a
+replacement for parsing or schema validation.

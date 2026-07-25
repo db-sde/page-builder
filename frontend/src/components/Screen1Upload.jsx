@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { parseDocx, saveTempJson } from '../api';
+import { ingestAcf, parseDocx, saveTempJson } from '../api';
 
 export default function Screen1Upload({ session, updateSession, onNext }) {
   const [activeTab, setActiveTab] = useState('docx'); // 'docx' or 'json'
@@ -9,13 +9,12 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       : ''
   );
   const [file, setFile] = useState(null);
-  const [autoDetect, setAutoDetect] = useState(false);
-  const [pageType, setPageType] = useState('course');
+  const [pageType, setPageType] = useState('');
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = (acf_data, detectedType, validationWarnings = [], tableWarnings = []) => {
+  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], parsedFieldState = null) => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType;
     
@@ -59,7 +58,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       }
     }
 
-    let parent_slug = data.parent_slug || null; // Backend heuristic resolves the correct parent for specializations
+    let parent_slug = data.parent_slug || parsedFieldState?.parent_slug?.value || null;
 
     // Clean metadata keys from data block to prevent duplicate editing fields in Step 2
     delete data.slug;
@@ -67,19 +66,34 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     delete data.university_slug;
     delete data.parent_slug;
 
+    let field_state = parsedFieldState || {};
+    if (!parsedFieldState) {
+      const result = await ingestAcf({
+        acf_data: {
+          ...data,
+          slug,
+          page_type,
+          university_slug,
+          parent_slug,
+        }
+      });
+      field_state = result.field_state || {};
+    }
+
     updateSession({
       acf_data: data,
       slug,
       page_type,
       university_slug,
       parent_slug,
+      field_state,
       validation_warnings: validationWarnings,
       table_warnings: tableWarnings
     });
     onNext();
   };
 
-  const handleNextJson = () => {
+  const handleNextJson = async () => {
     setError('');
     let parsed;
     try {
@@ -91,7 +105,14 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     
     let payload = parsed.payload || parsed.data || parsed;
     let page_type = parsed.page_type || null;
-    processPayload(payload, page_type);
+    setParsing(true);
+    try {
+      await processPayload(payload, page_type);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to classify page fields.');
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handleNextDocx = async () => {
@@ -99,16 +120,26 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       setError('Please select a Word document (.docx) to parse.');
       return;
     }
+    if (!pageType) {
+      setError('Please select a Page Type.');
+      return;
+    }
     setError('');
     setParsing(true);
 
     try {
-      const res = await parseDocx(file, autoDetect ? null : pageType);
+      const res = await parseDocx(file, pageType, session.workspace?.slug || null);
       if (!res || !res.payload) {
         throw new Error('Failed to parse document or empty payload returned.');
       }
       await saveTempJson(res);
-      processPayload(res.payload, res.page_type, res.validation_warnings || [], res.table_warnings || []);
+      await processPayload(
+        res.payload,
+        res.page_type || pageType,
+        res.validation_warnings || [],
+        res.table_warnings || [],
+        res.field_state || null
+      );
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || err.message || 'Error occurred while calling the parser API.');
@@ -255,63 +286,43 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
 
               {/* Options */}
               <div style={{ borderTop: '1px solid var(--color-border-light)', paddingTop: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text-primary)' }}>Auto-detect page type</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>Uses text analysis to identify the template type</div>
+                <div>
+                  <label style={label}>Page Type <span style={{ color: 'var(--color-orange)' }}>*</span></label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {[
+                      { value: 'course', label: '🎓 Course Page' },
+                      { value: 'specialization', label: '🔬 Specialization Page' },
+                      { value: 'university', label: '🏛️ University Page' },
+                      { value: 'blog', label: '✍️ Blog Page' }
+                    ].map((opt) => {
+                      const active = pageType === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => { setPageType(opt.value); setError(''); }}
+                          className="btn"
+                          style={{
+                            flex: '1 1 calc(50% - 5px)',
+                            padding: '14px 18px',
+                            background: active ? 'var(--color-navy)' : '#fff',
+                            color: active ? '#fff' : 'var(--color-text-primary)',
+                            border: active ? '1.5px solid var(--color-navy)' : '1.5px solid var(--color-border)',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 700,
+                            boxShadow: active ? 'var(--shadow-sm)' : 'none',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            display: 'inline-block'
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <label className="toggle-wrap" htmlFor="toggle-auto-detect">
-                    <div className="toggle">
-                      <input
-                        type="checkbox"
-                        id="toggle-auto-detect"
-                        checked={autoDetect}
-                        onChange={(e) => setAutoDetect(e.target.checked)}
-                      />
-                      <span className="toggle-slider" />
-                    </div>
-                  </label>
                 </div>
-
-                {!autoDetect && (
-                  <div style={{ animation: 'fadeIn 0.2s ease' }}>
-                    <label style={label}>Page Type</label>
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      {[
-                        { value: 'course', label: '🎓 Course Page' },
-                        { value: 'specialization', label: '🔬 Specialization Page' },
-                        { value: 'university', label: '🏛️ University Page' },
-                        { value: 'blog', label: '✍️ Blog Page' }
-                      ].map((opt) => {
-                        const active = pageType === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setPageType(opt.value)}
-                            className="btn"
-                            style={{
-                              flex: '1 1 calc(50% - 5px)',
-                              padding: '14px 18px',
-                              background: active ? 'var(--color-navy)' : '#fff',
-                              color: active ? '#fff' : 'var(--color-text-primary)',
-                              border: active ? '1.5px solid var(--color-navy)' : '1.5px solid var(--color-border)',
-                              borderRadius: 'var(--radius-md)',
-                              fontWeight: 700,
-                              boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                              textAlign: 'center',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              display: 'inline-block'
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ) : (
@@ -350,7 +361,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         {activeTab === 'docx' ? (
           <button
             onClick={handleNextDocx}
-            disabled={!file || parsing}
+            disabled={!file || !pageType || parsing}
             className="btn btn-primary btn-lg"
           >
             {parsing ? 'Parsing Document…' : 'Parse & Import Document →'}
@@ -358,9 +369,10 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         ) : (
           <button
             onClick={handleNextJson}
+            disabled={parsing}
             className="btn btn-primary btn-lg"
           >
-            Continue to Review →
+            {parsing ? 'Classifying Fields…' : 'Continue to Review →'}
           </button>
         )}
       </div>

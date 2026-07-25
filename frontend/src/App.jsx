@@ -15,6 +15,7 @@ export default function App() {
     parent_slug: '',
     acf_data: {},
     raw_acf_data: {},
+    field_state: {},
     images: {},
     context: null,
     htmlContent: null,

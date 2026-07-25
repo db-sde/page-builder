@@ -50,6 +50,7 @@ App.jsx (session state, step routing)
   parent_slug: '',
   acf_data: {},                        // extracted + edited ACF field dict
   raw_acf_data: {},                    // original from parser (before edits)
+  field_state: {},                     // backend-owned field ownership/completeness map
   images: {},                          // { hero_image_url: '/assets/images/...', ... }
   context: null,                       // transformer context dict
   htmlContent: null,                   // preview HTML string
@@ -93,8 +94,9 @@ App.jsx (session state, step routing)
 
 ## Field Schema (`fieldSchema.js`)
 
-Defines which fields each page type requires. Used by `Screen2Review.jsx` and
-`FieldHealthPanel.jsx` to compute completeness and show impact warnings.
+Legacy presentation metadata used by `Screen2Review.jsx` and `FieldHealthPanel.jsx` to
+render labels/sections and the current health UI. It is not the canonical ownership
+contract. Phase 1 deliberately leaves this UI behaviour unchanged.
 
 ```javascript
 export const FIELD_SCHEMA = {
@@ -107,6 +109,11 @@ export const FIELD_SCHEMA = {
   blog: [...],
 }
 ```
+
+The canonical post-parser ownership data comes from
+`backend/core/field_definitions.py`. `/parse-docx` and `/ingest-acf` return `field_state`,
+which `Screen1Upload` and `Screen2Review` carry in the session. Existing-page reads also
+return a transiently generated `field_state`; it is not written into `source.json`.
 
 ---
 

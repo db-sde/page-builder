@@ -44,6 +44,20 @@ Raw .docx file
 │  - Runs normalize_specialization_name() on spec name fields         │
 └─────────────────────────────────┘
       │
+      │  Parsed values + derived page identity
+      ▼
+┌─────────────────────────────────┐
+│  Post-Parser Field Contract     │
+│                                 │
+│  core/field_definitions.py      │
+│    PAGE_FIELD_DEFINITIONS       │  Canonical ownership per page type
+│    build_field_state()          │  value/source/missing/required/optional
+│                                 │  /manual/derived for every field
+│                                 │
+│  Field state is returned by     │  /parse-docx and /ingest-acf and is
+│  carried in the editor session. │  It never changes parsed field values.
+└─────────────────────────────────┘
+      │
       │  resolved = {slug, page_type, university_slug, parent_slug, raw}
       ▼
 ┌─────────────────────────────────┐
@@ -199,6 +213,23 @@ When a specialization is uploaded without a `parent_slug`:
 3. The administrator can override or confirm the match in the Review screen before saving.
 4. At compile time, the compiler uses `parent_slug` to inject the parent course record
    and compute sibling specializations.
+
+---
+
+## Post-Parser Field Ownership
+
+`backend/core/field_definitions.py` is the sole ownership contract for Micro App
+University, Course, and Specialization fields:
+
+- `AUTO`: supplied by the parser-stage JSON (including adapter/local fallback additions)
+- `MANUAL`: editor-owned values such as reviews and uploaded image fields
+- `DERIVED`: identity already produced by `extract_metadata_from_json()`
+- `optional`: orthogonal to ownership; optional values may remain empty
+
+`build_field_state()` reports each field's current value and missing state without
+normalising, removing, or filling it. `/parse-docx`, `/ingest-acf`, saved-page reads,
+and the React session carry this metadata. Transformers, renderer, templates, compiler,
+and builder do not own or modify the classification.
 
 ---
 

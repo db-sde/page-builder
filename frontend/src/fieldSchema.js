@@ -1,5 +1,6 @@
-// Source of truth — what each page type needs.
-// Each entry: key (ACF field name), label (human), required, section (page area), impact (if missing)
+// Legacy UI presentation metadata retained for the current health panel.
+// Field ownership is canonical in backend/core/field_definitions.py and arrives as field_state.
+// Do not add new ownership rules here; a later UI phase will consume field_state directly.
 export const FIELD_SCHEMA = {
   course: [
     // Required
@@ -94,12 +95,18 @@ export function isPlaceholder(val) {
   return false;
 }
 
+export function isImageField(key) {
+  if (!key) return false;
+  const k = String(key).toLowerCase();
+  return k.includes('image') || k.includes('logo') || k.includes('favicon') || k.includes('photo') || k.includes('banner');
+}
+
 /**
  * Diff ACF data against schema for a page type.
  * Returns { present, missing, requiredMissing, schema }
  */
 export function diffFields(acf_data, page_type) {
-  const schema = FIELD_SCHEMA[page_type] || [];
+  const schema = (FIELD_SCHEMA[page_type] || []).filter(f => !isImageField(f.key));
   const present = [];
   const missing = [];
   const requiredMissing = [];

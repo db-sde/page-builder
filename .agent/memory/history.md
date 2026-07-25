@@ -4,6 +4,58 @@ One section per development session. Newest first.
 
 ---
 
+## 2026-07-24 — Schema-Driven Content Pipeline Phase 1
+
+**What changed:**
+- Added the canonical University/Course/Specialization field ownership contract in
+  `backend/core/field_definitions.py`.
+- Added non-mutating field-state generation after parser/metadata processing.
+- Returned field state from `/parse-docx`, `/ingest-acf`, workspace saves, and existing-page reads.
+- Carried field state through the React editor session without changing the current UI.
+- Added focused unit tests for schema coverage, ownership flags, missing-state reporting,
+  derived identity, extension-field preservation, and input immutability.
+- Fixed the non-blog `/parse-docx` warning collection branch to read its existing parsed blocks;
+  the previous code referenced a blog-only local variable.
+
+**Files modified:** backend field contract/API plumbing, frontend session plumbing, tests,
+and relevant `.agent` architecture/editor/parser memory.
+
+**Outcome:**
+- Every audited schema field now has an explicit owner and completeness state before rendering.
+- Parser values and production HTML behaviour remain unchanged; no template, transformer,
+  renderer, compiler, builder, route, SEO, publishing, workspace format, or image-flow changes.
+
+**Next steps:**
+- Phase 2 can consume this contract to remove renderer fabrication and add preview warnings.
+
+---
+
+## 2026-07-24 — Schema-Driven Pipeline Phase 2 (Page Requirements + Page State)
+
+**What changed:**
+- Added `backend/core/page_requirements.py` — template-derived `PAGE_REQUIREMENTS`
+  (university/course/specialization) + `build_page_state()` / `build_page_state_from_values()`.
+- Wired `page_state` alongside the existing `field_state` in `backend/main.py` (ingest-acf,
+  parse-docx, save-page, source-record read). Additive JSON only.
+- Tests: `backend/tests/test_page_requirements.py` (9) + extended `test_post_parser_pipeline.py`.
+  Full suite 16/16 green (`uv run python -m unittest discover -s tests`).
+- Docs: `.agent/systems/schema-pipeline.md` (three-layer model + Preview usage), linked from AGENTS.md.
+
+**Files modified:** `core/page_requirements.py` (new), `main.py` (4 additive spots), tests,
+`.agent/systems/schema-pipeline.md` (new), `AGENTS.md`. No templates/renderer/builder/compiler/
+workspace/routing/SEO/storage changes.
+
+**Outcome:**
+- Section-level render readiness now derivable per page; unused schema fields (faculty, `*_heading`,
+  university-dropped content) are classified and excluded from completion — never warn.
+- Fabricated-content sections flagged (`fabricated_when_empty`) so Phase 3 can remove fake fallbacks
+  (REG-010) with a data signal instead of guessing.
+
+**Next steps:** Phase 3 — Preview placeholder UI (frontend consumes `page_state`) and renderer
+cleanup (remove fabricated fallbacks), which will also update `PAGE_REQUIREMENTS` as templates change.
+
+---
+
 ## 2026-07-24 — Micro-App Schema Coverage Audit
 
 **What changed:**
