@@ -496,7 +496,37 @@ def clean_html_tables(html: str) -> str:
     return re.sub(r'(<table[^>]*>)(.*?)</table>', repl, html, flags=re.DOTALL | re.IGNORECASE)
 
 
-def render_resolved(resolved: dict, standalone: bool = False) -> str:
+def _build_preview_panel(sections: list[dict]) -> str:
+    """Preview-only indicator listing sections that cannot render yet.
+
+    Production never receives this — it is appended after rendering, so preview
+    and production share exactly one rendering pipeline and one template.
+    """
+    if not sections:
+        return ""
+    rows = []
+    for section in sections:
+        missing = []
+        for entry in section.get("missing_required", []):
+            missing.append(" or ".join(entry) if isinstance(entry, (list, tuple)) else str(entry))
+        detail = ", ".join(missing) if missing else "no content yet"
+        rows.append(
+            '<li style="margin:4px 0"><strong>{label}</strong> — missing: {detail}</li>'.format(
+                label=section.get("label", section.get("section", "")), detail=detail
+            )
+        )
+    return (
+        '<div data-preview-indicator style="position:fixed;left:16px;bottom:16px;z-index:9999;'
+        'max-width:340px;background:#1C1B22;color:#F6F4FB;border-radius:10px;padding:14px 16px;'
+        'font:13px/1.5 system-ui,sans-serif;box-shadow:0 12px 30px -12px rgba(0,0,0,.6)">'
+        '<div style="font-weight:800;margin-bottom:6px">Preview — incomplete sections</div>'
+        '<ul style="margin:0;padding-left:18px">' + "".join(rows) + "</ul>"
+        '<div style="margin-top:8px;opacity:.7;font-size:12px">Hidden in production.</div>'
+        "</div>"
+    )
+
+
+def render_resolved(resolved: dict, standalone: bool = False, preview: bool = False) -> str:
     from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
 
     uni_slug = resolved.get("university_slug") or "nmims"
@@ -791,27 +821,17 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for f in fee_plans
     ]
-    if not fee_list:
-        fee_list = [
-            {"plan": "Semester-wise", "amt": "₹50,000 / semester", "total": "₹2,00,000", "bg": "#fff"},
-            {"plan": "Annual", "amt": "₹96,000 / year", "total": "₹1,92,000", "bg": "#F6F4FB"},
-            {"plan": "One-time (Full Program)", "amt": "₹1,80,000 once", "total": "₹1,80,000", "bg": "#fff"}
-        ]
+    # No fabricated fee plans. An empty list hides the fee section (production)
+    # or shows a placeholder indicator (preview).
     ctx["fees_json"] = json.dumps(fee_list, ensure_ascii=False)
     
     # 6. Admission Steps
     steps_list = parse_admission_html((ctx.get("admission") or {}).get("steps") if ctx.get("admission") else "")
     if not steps_list:
+        # Knowledge base is real, shared university data — not fabrication.
         steps_raw = resolve_field(raw_dict, knowledge, "admission_steps")
         if steps_raw:
             steps_list = parse_admission_html(steps_raw)
-        else:
-            steps_list = [
-                {"n": "1", "t": "Register on the university portal and verify your mobile number."},
-                {"n": "2", "t": "Complete the application form and choose Online MBA with your preferred specialization."},
-                {"n": "3", "t": "Upload graduation marksheets, photo ID and a passport-size photograph."},
-                {"n": "4", "t": "Pay the first installment online — enrollment and LMS access follow within 7 working days."}
-            ]
     ctx["steps_json"] = json.dumps(steps_list, ensure_ascii=False)
     
     # 7. Job profiles
@@ -833,15 +853,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for j in jobs_raw
     ]
-    if not job_list:
-        job_list = [
-            {"t": "Marketing Manager", "s": "₹12.5 LPA"},
-            {"t": "Financial Analyst", "s": "₹9.8 LPA"},
-            {"t": "HR Business Partner", "s": "₹10.2 LPA"},
-            {"t": "Operations Manager", "s": "₹11.4 LPA"},
-            {"t": "Business Analyst", "s": "₹10.8 LPA"},
-            {"t": "Product Manager", "s": "₹16.5 LPA"}
-        ]
+    # No fabricated job titles or salaries.
     ctx["jobs_json"] = json.dumps(job_list, ensure_ascii=False)
     
     # 8. Reviews
@@ -863,12 +875,8 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for r in reviews_raw
     ]
-    if not review_list:
-        review_list = [
-            {"q": "\"Weekend live classes fit perfectly around my job. The electives were genuinely hands-on.\"", "a": "— Sneha Kulkarni, Online MBA (2024)"},
-            {"q": "\"The capstone project with an industry mentor was the highlight — it became the centerpiece of my promotion case.\"", "a": "— Rohit Verma, Online MBA (2023)"},
-            {"q": "\"Transparent fees, easy EMI, responsive support team. Exactly what I needed as a working parent.\"", "a": "— Deepa Krishnan, Online MBA (2025)"}
-        ]
+    # No fabricated testimonials. Reviews are a MANUAL field — see
+    # core/field_definitions.py; if none were supplied the section stays hidden.
     ctx["reviews_json"] = json.dumps(review_list, ensure_ascii=False)
     
     # 9. FAQs
@@ -892,35 +900,12 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
         }
         for f in faqs_raw
     ]
-    if not faq_list:
-        faq_list = [
-            {"q": "Is the Online MBA equivalent to a regular MBA?", "a": "Yes. Under UGC regulations, online degrees from entitled universities are equivalent to on-campus degrees for employment and higher education.", "sign": "+", "disp": "none"},
-            {"q": "When can I choose my specialization?", "a": "Specializations are selected at the end of year one, before semester 3 begins.", "sign": "+", "disp": "none"},
-            {"q": "How are exams conducted?", "a": "Term-end exams are online and remotely proctored. Internal assignments contribute 30% and term-end exams 70% of your grade.", "sign": "+", "disp": "none"},
-            {"q": "Is there any campus immersion?", "a": "Campus immersion is optional. Convocation is held on-campus, but no visit is mandatory.", "sign": "+", "disp": "none"},
-            {"q": "Can I get a refund if I withdraw?", "a": "Refunds follow UGC's refund policy — a full refund is available within the notified withdrawal window after admission.", "sign": "+", "disp": "none"}
-        ]
+    # No fabricated FAQs. These previously also leaked into the FAQPage JSON-LD.
     ctx["faq_data_json"] = json.dumps(faq_list, ensure_ascii=False)
  
     # 10. Syllabus Semester 1 & 2 / Semester 3 & 4
     syllabus_years = parse_syllabus_html(ctx.get("syllabus") or resolve_field(raw_dict, knowledge, "syllabus_content", ""))
-    if not syllabus_years:
-        syllabus_years = [
-            {
-                "label": "Year I",
-                "semesters": [
-                    { "title": "Semester I", "subjects": ["Management Theory & Practice", "Organisational Behaviour", "Marketing Management", "Business Economics", "Financial Accounting & Analysis", "Information Systems for Managers"] },
-                    { "title": "Semester II", "subjects": ["Business Communication", "Essentials of HRM", "Business Law", "Strategic Management", "Operations Management", "Decision Science & Analytics"] }
-                ]
-            },
-            {
-                "label": "Year II",
-                "semesters": [
-                    { "title": "Semester III (Specialization Electives)", "subjects": ["Specialization Course I", "Specialization Course II", "Specialization Course III", "Research Methodology", "International Business", "Cost & Management Accounting"] },
-                    { "title": "Semester IV (Specialization + Capstone)", "subjects": ["Specialization Course IV", "Specialization Course V", "Business Ethics & CSR", "Entrepreneurship", "Capstone Project"] }
-                ]
-            }
-        ]
+    # No fabricated curriculum. An empty syllabus hides the section.
     ctx["syllabus_years_json"] = json.dumps(syllabus_years, ensure_ascii=False)
  
     # Specialization specific other specs list
@@ -949,28 +934,21 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": sibling_slug,
         })
     if len(other_specs_list) <= 1:
-        other_specs_list = resolve_list(raw_dict, knowledge, "other_specs")
-        if other_specs_list:
-            other_specs_list = [
-                {
-                    "name": s.get("name") or s.get("other_spec_name") or "",
-                    "fee": clean_fee(s.get("fee") or ""),
-                    "cur": False,
-                    "href": build_public_route("specialization", s.get("slug"), uni_slug) if s.get("slug") else "",
-                    "slug": s.get("slug") or ""
-                }
-                for s in other_specs_list
-            ]
-        else:
-            other_specs_list = [
-                {"name": "Marketing Management", "fee": "₹2,00,000", "cur": True, "href": "", "slug": ""},
-                {"name": "Financial Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Human Resource Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Operations & Supply Chain", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "Business Analytics", "fee": "₹2,16,000", "cur": False, "href": "", "slug": ""},
-                {"name": "IT & Systems Management", "fee": "₹2,00,000", "cur": False, "href": "", "slug": ""},
-                {"name": "International Business", "fee": "₹2,08,000", "cur": False, "href": "", "slug": ""}
-            ]
+        # No workspace siblings — fall back to the page's own `other_specs`
+        # schema field. If that is empty too, the comparison table is dropped
+        # entirely (a table listing only the current page is not a comparison).
+        schema_specs = resolve_list(raw_dict, knowledge, "other_specs")
+        other_specs_list = [
+            {
+                "name": s.get("name") or s.get("other_spec_name") or "",
+                "fee": clean_fee(s.get("fee") or s.get("other_spec_fee") or ""),
+                "cur": False,
+                "href": build_public_route("specialization", s.get("slug"), uni_slug) if s.get("slug") else "",
+                "slug": s.get("slug") or ""
+            }
+            for s in schema_specs
+            if isinstance(s, dict)
+        ]
     ctx["other_specs_json"] = json.dumps(other_specs_list, ensure_ascii=False)
     other_specs_formatted = []
     for i, item in enumerate(other_specs_list):
@@ -993,19 +971,12 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
  
  
     # University specific features, recruiters, financing, testimonials
+    # features / recruiters / financing / banks come from the university
+    # knowledge base only. No hardcoded stats, recruiter logos or EMI figures.
     features_list = resolve_list(raw_dict, knowledge, "features")
-    if not features_list:
-        features_list = [
-            {"stat": "Live", "t": "Weekend Classes", "d": "Plus lifetime access to all recordings on the LMS."},
-            {"stat": "120+", "t": "Expert Faculty", "d": "Learn from academics and industry practitioners."},
-            {"stat": "4 Sem", "t": "Capstone Project", "d": "Industry-mentored capstone to apply your skills."},
-            {"stat": "24 months", "t": "No-cost EMI", "d": "Flexible fee plans starting from ₹8,334 per month."}
-        ]
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
-    
+
     recruiters_list = resolve_list(raw_dict, knowledge, "recruiters")
-    if not recruiters_list:
-        recruiters_list = ["Tata", "Indiamart", "Wockhardt", "Zalaris", "Milkbasket", "Shopx"]
     ctx["recruiters_json"] = json.dumps(recruiters_list, ensure_ascii=False)
     
     # testimonials is reviews mapped for homepage
@@ -1021,17 +992,9 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     
     # financing for homepage
     financing_list = resolve_list(raw_dict, knowledge, "financing")
-    if not financing_list:
-        financing_list = [
-            {"stat": "₹8,334", "t": "No-cost EMI", "d": "Flexible plans starting from ₹8,334 per month."},
-            {"stat": "3–12 months", "t": "EMI tenures", "d": "Choose a 3, 6, 9 or 12-month repayment plan."},
-            {"stat": "20% off", "t": "Defence scholarship", "d": "For armed forces personnel & their family."}
-        ]
     ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
-    
+
     banks_list = resolve_list(raw_dict, knowledge, "banks")
-    if not banks_list:
-        banks_list = ['HDFC', 'ICICI', 'Axis', 'Citi', 'Standard Chartered', 'HSBC', 'Kotak Mahindra']
     ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
 
     # Programs list for homepage (enriched from workspace courses if available)
@@ -1052,21 +1015,17 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             uni_programs.append({
                 "level": level,
                 "name": data.get("program_name") or data.get("course_name") or slug.replace("-", " ").title(),
-                "dur": data.get("duration") or "2 Years · 4 Sem",
-                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or "") or "₹2,00,000",
+                "dur": data.get("duration") or "",
+                "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
                 "feeUnit": "total course",
-                "d": data.get("hero_description") or "Industry-aligned specializations, taught by expert faculty.",
+                "d": data.get("hero_description") or "",
                 "href": build_public_route("course", slug, uni_slug),
                 "featured": i == 0,
                 "mode": data.get("mode") or "100% Online",
             })
     else:
-        dur_val = resolve_field({}, knowledge, "duration", "2 Years · 4 Sem")
-        fee_val = (ctx.get("sticky_bar") or {}).get("fee") or clean_fee(resolve_field({}, knowledge, "starting_fee", "")) or "₹2,00,000"
-        mode_val = resolve_field({}, knowledge, "mode", "100% Online")
-        uni_programs = [
-            {"level": "Postgraduate", "name": "Online MBA", "dur": dur_val, "fee": fee_val, "feeUnit": "total course", "elig": "Bachelor's, 50%", "d": "Seven industry-aligned specializations, taught by expert faculty.", "href": ctx["course_href"], "featured": True, "mode": mode_val}
-        ]
+        # No courses in the workspace yet — no invented "Online MBA" card.
+        uni_programs = []
 
     # Map mk(p) styling attributes for homepage cards
     for p in uni_programs:
@@ -1093,8 +1052,8 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": slug,
             "href": build_public_route("course", slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
-            "duration": data.get("duration") or "2 Years",
-            "eligibility": data.get("eligibility_summary") or "Bachelor's degree",
+            "duration": data.get("duration") or "",
+            "eligibility": data.get("eligibility_summary") or "",
             "description": data.get("hero_description") or "",
             "mode": data.get("mode") or "100% Online",
         })
@@ -1122,7 +1081,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             "slug": sp_slug,
             "href": build_public_route("specialization", sp_slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or ""),
-            "duration": data.get("duration") or "2 Years",
+            "duration": data.get("duration") or "",
             "description": data.get("hero_description") or "",
         })
     ctx["spec_groups_json"] = json.dumps(list(spec_groups_map.values()), ensure_ascii=False)
@@ -1151,13 +1110,7 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
                 "image": img_url,
                 "hero_image_url": img_url,
             })
-    else:
-        # Demo fallback — only shown when workspace contains no blogs
-        blog_posts = [
-            {"tag": "Guide", "title": "How to choose the right MBA specialization", "excerpt": "Marketing, finance, HR or analytics? A practical framework to match a track to your goals and background.", "meta": "6 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
-            {"tag": "Finance", "title": "Online MBA fees & EMI options, fully explained", "excerpt": "Semester-wise, annual and one-time plans compared — plus how no-cost EMI actually works.", "meta": "5 min · Dec 2025", "href": "#", "image": "", "hero_image_url": ""},
-            {"tag": "Admissions", "title": f"{uni_name} Online MBA eligibility & admission, step by step", "excerpt": "Documents, deadlines and the exact portal flow — everything you need before you apply.", "meta": "7 min · Nov 2025", "href": "#", "image": "", "hero_image_url": ""},
-        ]
+    # No demo blog posts when the workspace has none (see REG-001).
     ctx["posts"] = blog_posts[:3]
     ctx["blog_posts"] = blog_posts
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
@@ -1269,6 +1222,25 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
     ctx["heroCrumb"] = '#9A93A8'
     ctx["heroChip"] = 'background:#F6F4FB;border:1px solid #E9E5F2;color:#5737C5'
 
+    # Preview vs production. The ONLY difference: preview marks sections that
+    # cannot render yet. Production hides them silently. Same renderer, same
+    # template, same context otherwise.
+    incomplete_sections: list[dict] = []
+    if preview:
+        from core.editing_state import build_editing_state
+        editing_state = build_editing_state(page_type, raw_dict, {
+            "page_type": page_type,
+            "slug": resolved.get("slug"),
+            "university_slug": uni_slug,
+            "parent_slug": resolved.get("parent_slug"),
+        })
+        incomplete_sections = [
+            s for s in editing_state.get("sections", [])
+            if not s["renderable"] and s["data_source"] == "page"
+        ]
+    ctx["preview_mode"] = preview
+    ctx["preview_incomplete_sections"] = incomplete_sections
+
     ctx["ctx_json"] = json.dumps(ctx, default=str)
     ctx["standalone"] = standalone  # controls nav/footer visibility in templates
     template_name = TEMPLATE_MAP.get(resolved["page_type"], f"{resolved['page_type']}.html")
@@ -1375,5 +1347,14 @@ def render_resolved(resolved: dict, standalone: bool = False) -> str:
             match = re.search(r"</head>", html_out, re.IGNORECASE)
             if match:
                 html_out = html_out[:match.start()] + scripts + "\n" + html_out[match.start():]
+
+    if preview:
+        panel = _build_preview_panel(incomplete_sections)
+        if panel:
+            match = re.search(r"</body>", html_out, re.IGNORECASE)
+            if match:
+                html_out = html_out[:match.start()] + panel + html_out[match.start():]
+            else:
+                html_out += panel
 
     return html_out

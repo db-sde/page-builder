@@ -6,65 +6,70 @@ Last updated: 2026-07-24
 
 ## What Is Being Worked On?
 
-**Schema-driven content pipeline Phase 2** implemented 2026-07-24 (on top of Phase 1).
-Added the template-derived **Page Requirements** + **Page State** layer
-(`backend/core/page_requirements.py`): per template section — which schema fields it uses,
-whether it can render, missing required/optional fields, and `fabricated_when_empty`/`data_source`
-flags. `page_state` now rides alongside `field_state` in `/ingest-acf`, `/parse-docx`,
-`/save-page`, and existing-page reads. Read-only metadata — no template/renderer/production change.
-Full model documented in [systems/schema-pipeline.md](../systems/schema-pipeline.md).
+**Schema-driven content pipeline — Phase 3 complete (2026-07-24).** The pipeline is now the
+editing workflow described in [systems/schema-pipeline.md](../systems/schema-pipeline.md):
 
-Phase 1 (still in place): one post-parser ownership contract per field
-(`backend/core/field_definitions.py`), exposed as `field_state`.
+```
+Upload DOCX -> parse -> detect page type -> load blueprint -> auto-populate
+  -> Editing State -> operator fills only manual fields + images -> preview -> publish
+```
 
-Three-layer model: **Field Definitions** (schema — what data exists) →
-**Page Requirements** (templates — what data is displayed) → **Page State** (render readiness).
+Four layers: **Field Definitions** (schema) -> **Page Requirements** (templates) ->
+**Page Blueprint** (build contract) -> **Editing State** (what is left to do).
+
+Phase 3 also removed every fabricated fallback from the renderer, transformers and templates
+(REG-010) and the workspace-slug email leak (REG-011). Preview and production share one
+renderer; the only difference is placeholder indicators.
 
 ---
 
 ## Why?
 
-Phase 1 makes missing/manual/derived/optional state explicit after parsing. Phase 2 makes
-*page requirements* explicit: only fields a template actually uses count toward completion, so
-unused schema fields (faculty, `*_heading`, university-dropped content) never warn — and each
-section knows whether it can render, ready for Preview placeholders and renderer cleanup.
+So the editor opens on an almost-complete page and the operator only completes what the
+system genuinely cannot know — while the output stays 100% data-driven.
 
 ---
 
 ## Current boundary
 
-- Ownership: `backend/core/field_definitions.py`; page requirements: `backend/core/page_requirements.py`
-- Parser JSON unchanged; unused fields preserved and classified (never warn)
-- `field_state` / `page_state` are transient API/editor metadata, not part of `source.json`
-- Templates, renderer, compiler, builder, routing, SEO, publishing, image behaviour **unchanged**
+- Ownership `core/field_definitions.py`; template requirements `core/page_requirements.py`;
+  build contract `core/page_blueprint.py`; editor payload `core/editing_state.py`
+- Parser JSON unchanged; unused schema fields preserved, reported, never warned about
+- `field_state` / `page_state` / `editing_state` are API/editor metadata, not `source.json`
+- Auto-population fills only explicitly declared defaults (currently `mode`) — never content
+- Compiler, builder, workspace layout, routing, SEO, publishing and storage format unchanged
 
-## Key finding still to address
+## Known impact to watch
 
-The pipeline is schema-ready for scalar data but **NOT schema-faithful for editorial content**:
-- `renderer/engine.py` fabricates content on empty collections (fake reviews/jobs/recruiters/
-  syllabus/FAQs/fees) — violates R1/R2. See REG-010.
-- All `*_heading` fields, `faculty_members`, `faculty_intro`, `validity`, `certificate_heading`,
-  `linked_*` are unconsumed (zero references).
-- `university.html` drops parsed `about/why_choose/emi/exam/placement/facts/accreditations`.
-- R6 slug leak at `specialization.html:429` (REG-011).
+University pages are shorter where sections had no real data: `features`, `recruiters`,
+`banks`, `financing` come only from `university_knowledge.json` `shared_lists`, empty in both
+current workspaces. `facts` and `accreditations` are parsed and populated but `university.html`
+still does not render them — a pre-existing template gap; adding sections is product work.
 
 ---
 
 ## What Remains?
 
-**Phase 3 (next):**
-1. Preview placeholder UI — frontend consumes `page_state.sections` (renderable / missing / placeholders)
-2. Remove fabricated fallbacks in `engine.py`; guard syllabus section (REG-010) — use the
-   `fabricated_when_empty` flags as the removal map; update `PAGE_REQUIREMENTS` as templates change
-3. Render university schema content + faculty section where product-approved
-4. Consume `*_heading` fields; expose repeaters in the editor
-5. Fix R6 slug-in-email (REG-011); parameterise GA via `metadata.json["ga_id"]`
+**Product decisions (blocked on a human, not on code):**
+1. Should `university.html` render the already-parsed `facts` and `accreditations`?
+   The data exists and the transformer builds it; the template has no such sections.
+   Phase 3 deliberately did not add sections automatically.
+2. Should section titles come from the `*_heading` schema fields instead of hardcoded text?
+3. Populate `university_knowledge.json` `shared_lists` (features / recruiters / banks /
+   financing) for each workspace, or accept those university sections staying hidden.
+
+**Follow-ups:**
+4. Drive the editor's field list and image slots from `GET /page-blueprint` so
+   `frontend/src/fieldSchema.js` stops duplicating the backend schema.
+5. Expose repeaters (highlights, faqs, reviews, job_profiles, fee_plans) in the editor —
+   they are still not editable anywhere.
+6. Parameterise GA via `metadata.json["ga_id"]` (still hardcoded to `nmims-2` in `builder.py`).
 
 **Pre-existing TODOs / ROADMAP:**
-6. Responsive CSS refinement (768–1024px)
-7. Contact app polish (loading states, validation UX)
-8. Redis caching TODO in `engine.py`; AI gap-fill TODO in `base.py`
-9. Tests — parser, extractor, adapter, compiler still lack focused unit tests
+7. Responsive CSS refinement (768–1024px)
+8. Contact app polish (loading states, validation UX)
+9. Redis caching TODO in `engine.py`; AI gap-fill TODO in `base.py`
+10. Tests — parser, extractor, adapter, compiler still lack focused unit tests
 
 ---
 

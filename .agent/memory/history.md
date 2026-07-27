@@ -30,6 +30,42 @@ and relevant `.agent` architecture/editor/parser memory.
 
 ---
 
+## 2026-07-24 — Phase 3: Editing Workflow + Fake-Content Removal
+
+**What changed:**
+- `core/page_blueprint.py` (new) — one build contract per page type: ordered sections plus
+  required / optional / manual / derived / image fields and explicit defaults.
+- `core/editing_state.py` (new) — `apply_auto_population()` (declared defaults only) and
+  `build_editing_state()` (fields + sections + `needs_attention` + `ready`).
+- `main.py` — auto-population runs before the editor opens; `editing_state` returned by
+  `/ingest-acf`, `/parse-docx`, `/save-to-workspace` and the page read; new `GET /page-blueprint`.
+- **Removed all fabricated content** from `renderer/engine.py`, `transformers/course.py`,
+  `transformers/specialization.py`, `transformers/base.py` and the templates (REG-010),
+  and the workspace-slug email leak (REG-011). Dead `spec_desc_map` deleted.
+- Empty sections are now guarded: hidden in production, placeholder in preview.
+- `render_resolved(..., preview=False)` — one renderer for both modes; preview adds
+  in-template placeholders plus an "incomplete sections" panel, nothing else.
+- Frontend: `editing_state` carried through the session; `FieldHealthPanel` now derives its
+  rows from the backend state (unused schema fields never warn), with `diffFields` as the
+  blog fallback.
+- Tests: `test_page_blueprint`/`test_editing_state` (13) and `test_no_fabricated_content` (6).
+  Suite 35/35 green. Verified against the real `nmims-2` and `ignou` workspaces.
+
+**Outcome:**
+- Upload → 7 of 9 required course fields already filled; the operator's whole to-do list is
+  the two images. Pages are fully data-driven; no fake reviews/jobs/recruiters/syllabus/FAQs.
+
+**Known impact:** university pages shrink where sections had no real data — `features`,
+`recruiters`, `banks`, `financing` exist only in `university_knowledge.json` `shared_lists`,
+which is empty in both current workspaces. Populate the knowledge base, or decide as product
+work whether `university.html` should render the already-parsed `facts` / `accreditations`.
+
+**Next steps:** product decision on the university page sections and `*_heading` consumption;
+optionally drive the editor's field list and image slots from `GET /page-blueprint` so
+`fieldSchema.js` stops duplicating the schema.
+
+---
+
 ## 2026-07-24 — Schema-Driven Pipeline Phase 2 (Page Requirements + Page State)
 
 **What changed:**

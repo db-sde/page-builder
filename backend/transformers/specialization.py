@@ -57,6 +57,15 @@ class SpecializationTransformer(BaseTransformer):
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
 
+        # Badge is built from real approval data — never a "Most Popular"
+        # style claim the document did not make.
+        badge_parts = []
+        if naac:
+            badge_parts.append(f"NAAC {naac} Accredited")
+        if ugc_display:
+            badge_parts.append(ugc_display)
+        badge = " · ".join(badge_parts) if badge_parts else None
+
         hero_image_alt = raw.get("hero_image_alt", "")
         if not hero_image_alt:
             spec_name = raw.get("spec_name", "")
@@ -84,7 +93,7 @@ class SpecializationTransformer(BaseTransformer):
                     (mode, None),
                     ("No Entrance Exam" if raw.get("spec_name") else None, None),
                 ]),
-                "badge": "Most Popular Specialization" if raw.get("spec_name") else None,
+                "badge": badge,
                 "cta_primary": {"label": "Download Brochure", "href": "/contact"},
                 "cta_secondary": {"label": "Enquire Now", "href": "/contact"},
                 "stat_card": {

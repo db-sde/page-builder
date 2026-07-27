@@ -5,11 +5,11 @@ This is the most important file for preventing repeated mistakes.
 
 ---
 
-## REG-010: Fabricated Fallback Content in Renderer & Templates (OPEN — not yet fixed)
+## REG-010: Fabricated Fallback Content in Renderer & Templates (FIXED 2026-07-24)
 
-**Status:** OPEN. Discovered in the 2026-07-24 schema-coverage audit. Documented, not fixed
-(the audit was read-only). This is the inverse of REG-001: REG-001 fixed *listing* cards,
-but the same fabricate-on-empty anti-pattern is alive across the *detail* pages.
+**Status:** FIXED in the Phase 3 pipeline refactor. Discovered in the 2026-07-24
+schema-coverage audit. This was the inverse of REG-001: REG-001 fixed *listing* cards,
+but the same fabricate-on-empty anti-pattern was alive across the *detail* pages.
 
 **Cause:** `renderer/engine.py::render_resolved` rebuilds most repeater collections and, when the
 schema/source value is empty, substitutes hardcoded fabricated content instead of hiding the
@@ -32,11 +32,21 @@ section title (no `*_heading` schema field is consumed).
 recruiters, syllabus, FAQs and accreditation claims. Because `engine.py` repopulates the
 collections, template `{% if %}` guards are effectively always true. Directly violates R1 and R2.
 
-**How to avoid / fix direction:** delete the empty-collection fallbacks; let empty = hidden
-section; guard the syllabus section; move section-title text to `*_heading` schema fields (or
-neutral constants); make `university.html` render `about/why_choose/emi/exam/placement/facts/
-accreditations/faculty` from the transformer instead of hardcoded marketing. See
-`HARDCODED_CONTENT_AUDIT.md` and `PLATFORM_AUDIT.md` at repo root for the full list.
+**Fix:** every empty-collection fallback in `engine.py` was removed, the transformer
+fallbacks (admission steps, accreditation prose, "Most Popular" badge, EMI clause) were
+removed, the fabricated facts in the templates were removed, and empty sections are now
+guarded so they hide in production / show a placeholder in preview. Kept-vs-removed
+boundary: `.agent/systems/schema-pipeline.md`.
+
+**How to avoid:** never add an `if not <collection>: <collection> = [...]` fallback in the
+renderer or a transformer. Empty means the section is hidden. `backend/tests/
+test_no_fabricated_content.py` renders sparse pages of all three types and fails if any of
+the removed strings return — extend that list when adding content-bearing fields.
+
+**Still open (product decision, not a regression):** `university.html` renders neither
+`facts` nor `accreditations` even though both are parsed and populated, and section titles
+still ignore the `*_heading` schema fields. Adding those sections is deliberate product
+work — templates decide what is displayed.
 
 **Files involved:** `backend/renderer/engine.py`, `backend/transformers/course.py`,
 `backend/transformers/specialization.py`, `backend/templates/university.html`,
@@ -44,9 +54,10 @@ accreditations/faculty` from the transformer instead of hardcoded marketing. See
 
 ---
 
-## REG-011: Workspace Slug Leaks into Fallback Email (OPEN)
+## REG-011: Workspace Slug Leaks into Fallback Email (FIXED 2026-07-24)
 
-**Status:** OPEN (documented 2026-07-24). Violates R6.
+**Status:** FIXED in the Phase 3 refactor — the fallback was deleted; the contact line now
+renders only when `site.email` is set. Violated R6.
 
 **Cause:** `templates/specialization.html:429` falls back to
 `admissions@{{ university_slug }}online.edu`, placing the internal workspace slug (e.g. `nmims-2`)

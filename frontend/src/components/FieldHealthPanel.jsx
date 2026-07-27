@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { diffFields } from '../fieldSchema';
+import { diffFields, FIELD_SCHEMA } from '../fieldSchema';
 
 // ── palette helpers ─────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -86,11 +86,59 @@ function SectionBlock({ title, titleColor, bgColor, borderColor, children }) {
 }
 
 // ── FieldHealthPanel ──────────────────────────────────────────────────────────
-export default function FieldHealthPanel({ acf_data, page_type, onAddField }) {
+/**
+ * Derive the panel rows from the backend Editing State.
+ *
+ * The backend already knows which fields the template actually uses, which are
+ * required, and which are unused schema fields that must never warn — so the
+ * frontend does not recompute any of it. `diffFields` remains the fallback for
+ * page types with no blueprint (e.g. blog).
+ */
+function fromEditingState(editing_state, page_type) {
+  const schema = FIELD_SCHEMA[page_type] || [];
+  const labels = Object.fromEntries(schema.map(f => [f.key, f]));
+  const describe = (name, field) => labels[name] || {
+    key: name,
+    label: field.label || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    section: (field.sections && field.sections[0]) || 'Page',
+    required: field.required,
+    impact: field.image
+      ? 'Image is required before the site can be built'
+      : 'Section using this field stays hidden',
+  };
+
+  const present = [];
+  const requiredMissing = [];
+  const optionalMissing = [];
+
+  for (const [name, field] of Object.entries(editing_state.fields || {})) {
+    // Infrastructure (slug/page_type/...) and fields no template uses are
+    // preserved in the data but never shown as work for the operator.
+    if (field.infrastructure) continue;
+    if (!field.used_by_template && !field.required) continue;
+
+    const row = describe(name, field);
+    if (!field.missing) present.push(row);
+    else if (field.needs_attention) requiredMissing.push(row);
+    else optionalMissing.push(row);
+  }
+  return { present, requiredMissing, optionalMissing };
+}
+
+export default function FieldHealthPanel({ acf_data, page_type, onAddField, editing_state }) {
   const [showPresent, setShowPresent] = useState(false);
 
-  const { present, missing, requiredMissing } = diffFields(acf_data, page_type);
-  const optionalMissing = missing.filter(f => !f.required);
+  const hasBackendState = editing_state && editing_state.fields;
+  let present, requiredMissing, optionalMissing;
+  if (hasBackendState) {
+    ({ present, requiredMissing, optionalMissing } = fromEditingState(editing_state, page_type));
+  } else {
+    const diff = diffFields(acf_data, page_type);
+    present = diff.present;
+    requiredMissing = diff.requiredMissing;
+    optionalMissing = diff.missing.filter(f => !f.required);
+  }
+  const missing = [...requiredMissing, ...optionalMissing];
   const total = present.length + missing.length;
 
   if (total === 0) return null; // unknown page type — don't render

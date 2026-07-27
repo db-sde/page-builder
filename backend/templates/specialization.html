@@ -84,7 +84,7 @@
         <div style="font-size:12.5px;color:#EAE7FD;margin-bottom:14px">
           <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a> › <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a> › {{ hero.title }}
         </div>
-        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#E04015;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge | default('Most Popular Specialization') }}</div>
+        {% if hero.badge %}<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#E04015;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge }}</div>{% endif %}
         <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ parent_program_name }} in<br>{{ hero.title }}</h1>
         <div class="rich-content content-body" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
@@ -111,10 +111,12 @@
           <span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#E4DCF7;letter-spacing:.04em;text-align:center">[{{ hero.title }} photo / learner photo<br>— 480 × 420 — ]</span>
         </div>
         {% endif %}
+        {% if hero.stat_card %}
         <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
-          <div style="font-size:24px;font-weight:800;color:#E04015">{{ hero.stat_card.value | default('₹14.2L') }}</div>
-          <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label | default('Avg. salary after specialization') }}</div>
+          <div style="font-size:24px;font-weight:800;color:#E04015">{{ hero.stat_card.value }}</div>
+          <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label }}</div>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -233,6 +235,7 @@
       </section>
       {% endif %}
 
+      {% if syllabus_years %}
       <section id="syllabus" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
@@ -256,6 +259,8 @@
           </div>
         {% endfor %}
       </section>
+      {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Syllabus&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -425,8 +430,6 @@
         <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
           {% if site.email %}
           <span>Email: {{ site.email }}</span>
-          {% else %}
-          <span>Email: admissions@{{ university_slug }}online.edu</span>
           {% endif %}
           {% if site.address %}
           <span>{{ site.address }}</span>
@@ -446,7 +449,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi }}</small>{% endif %}</div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>

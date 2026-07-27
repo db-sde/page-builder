@@ -295,6 +295,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         parent_slug:     result.parent_slug,
         acf_data:        result.acf_data,
         field_state:     result.field_state || {},
+        editing_state:   result.editing_state || {},
         images:          imageUrls,
         raw_acf_data:    rawWithMeta,
         htmlContent:     htmlText,
@@ -343,6 +344,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         acf_data={liveAcf}
         page_type={session.page_type}
         onAddField={handleAddField}
+        editing_state={session.editing_state}
       />
 
       {/* ── Table Ingestion Warnings ── */}

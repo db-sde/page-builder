@@ -16,6 +16,7 @@ export default function App() {
     acf_data: {},
     raw_acf_data: {},
     field_state: {},
+    editing_state: {},
     images: {},
     context: null,
     htmlContent: null,

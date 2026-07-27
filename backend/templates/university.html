@@ -81,7 +81,7 @@
     <div class="hero-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1.12fr .88fr;gap:46px;align-items:center">
       <div>
         {% if naac_grade or ugc_approved %}
-        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ heroBadge }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }} · {% endif %}NIRF #24</div>
+        <div style="display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:18px;{{ heroBadge }}">{% if naac_grade %}NAAC {{ naac_grade }} Accredited{% endif %}{% if naac_grade and ugc_approved %} · {% endif %}{% if ugc_approved %}UGC {{ ugc_approved }}{% endif %}</div>
         {% endif %}
         <h1 style="font-size:46px;font-weight:800;line-height:1.1;letter-spacing:-.015em;color:{{ heroH1 }}">{{ hero.full_name | default("Online Degrees from " ~ hero.title) }}</h1>
         <div style="font-size:16.5px;color:{{ heroSub }};max-width:520px;margin-top:18px">{{ hero.description | safe }}</div>
@@ -90,11 +90,11 @@
           <a class="btn-hero" href="{{ lead_url_enquiry }}" style="font-weight:700;font-size:15px;padding:14px 26px;border-radius:9px;{{ heroSecBtn }}">Enquire Now</a>
         </div>
         <div class="hero-stats" style="display:flex;gap:34px;margin-top:34px">
-          <div><div style="font-size:28px;font-weight:800;color:#E04015">{{ established_year | default(stats[0].v if stats else '2010') }}</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">Established</div></div>
+          {% if established_year %}<div><div style="font-size:28px;font-weight:800;color:#E04015">{{ established_year }}</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">Established</div></div>{% endif %}
           {% if naac_grade %}
           <div style="border-left:1px solid {{ heroStatDivider }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#E04015">{{ naac_grade }}</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">NAAC Grade</div></div>
           {% endif %}
-          <div style="border-left:1px solid {{ heroStatDivider }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#E04015">UGC</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">Approved Degrees</div></div>
+          {% if ugc_approved %}<div style="border-left:1px solid {{ heroStatDivider }};padding-left:34px"><div style="font-size:28px;font-weight:800;color:#E04015">UGC</div><div style="font-size:13px;color:{{ heroStatLabel }};font-weight:600">Approved Degrees</div></div>{% endif %}
         </div>
       </div>
       <div style="position:relative">
@@ -122,14 +122,17 @@
   </div>
 
   <!-- ===== ACCREDITATION STRIP ===== -->
+  {% if naac_grade or ugc_approved %}
   <div style="background:#3A2A7A;color:#EAE7FD">
     <div style="max-width:1180px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;font-size:13px;font-weight:600">
       <span style="color:#fff;font-weight:700">Recognised &amp; Accredited:</span>
-      {% if naac_grade %}<span>NAAC {{ naac_grade }}</span><span style="opacity:.4">|</span>{% endif %}{% if ugc_approved %}<span>UGC {{ ugc_approved }}</span><span style="opacity:.4">|</span>{% endif %}<span>AIU Member</span><span style="opacity:.4">|</span><span>NIRF #24 Management</span><span style="opacity:.4">|</span><span>WES Recognised</span>
+      {% if naac_grade %}<span>NAAC {{ naac_grade }}</span>{% endif %}{% if naac_grade and ugc_approved %}<span style="opacity:.4">|</span>{% endif %}{% if ugc_approved %}<span>UGC {{ ugc_approved }}</span>{% endif %}
     </div>
   </div>
+  {% endif %}
 
   <!-- ===== PROGRAMS ===== -->
+  {% if programs %}
   <div id="programs" style="background:#fff;border-top:1px solid #ECE8F6;border-bottom:1px solid #ECE8F6">
     <div style="max-width:1180px;margin:0 auto;padding:66px 20px">
       <div style="text-align:center;margin-bottom:38px">
@@ -166,8 +169,11 @@
       <div style="text-align:center;margin-top:30px;font-size:13.5px;color:#6E6A78">All programs are UGC-entitled{% if naac_grade %} &amp; NAAC {{ naac_grade }} accredited{% endif %}</div>
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Programs&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== SPECIALIZATIONS ===== -->
+  {% if specs %}
   <div style="max-width:1180px;margin:0 auto;padding:64px 20px 20px">
     <div style="text-align:center;margin-bottom:34px">
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Specializations</div>
@@ -186,15 +192,17 @@
       {% endfor %}
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Specializations&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== WHY US ===== -->
+  {% if features %}
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 20px">
     <div class="why-us-grid" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;align-items:center">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Why {{ university_name }} Online</div>
         <h2 style="font-size:32px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.15">A legacy of excellence, reimagined for the way you learn today</h2>
-        <p style="color:#6E6A78;font-size:15px;margin-top:14px">Live weekend classes, lifetime recordings, real business cases and a career-services team that gets you hired — all backed by one of India's most respected management institutions.</p>
-      </div>
+              </div>
       <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         {% for f in features %}
           <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:20px">
@@ -206,8 +214,11 @@
       </div>
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Why Choose&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== ADMISSION PROCESS ===== -->
+  {% if admission %}
   <div id="admissions" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
     <div style="text-align:center;margin-bottom:34px">
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Admissions</div>
@@ -224,15 +235,17 @@
       {% endfor %}
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Admission Process&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== FEES & FINANCING ===== -->
+  {% if financing or banks %}
   <div id="fees" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
     <div class="why-us-grid" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:38px 36px;display:grid;grid-template-columns:.95fr 1.05fr;gap:40px;align-items:center">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Fees &amp; Financing</div>
         <h2 style="font-size:30px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.18">Learn now, pay your way</h2>
-        <p style="color:#6E6A78;font-size:15px;margin-top:12px">No-cost EMI, education loans and scholarships make a {{ university_name }} Online degree easy to fund. EMI is available on credit cards from leading banks.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px">
           {% for b in banks %}
             <span style="font-size:12.5px;font-weight:700;color:#434346;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:8px;padding:7px 12px">{{ b }}</span>
           {% endfor %}
@@ -253,8 +266,11 @@
       </div>
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Fees & Financing&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== RECRUITERS ===== -->
+  {% if recruiters %}
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 16px">
     <div style="background:#fff;border:1px solid #E9E5F2;border-radius:16px;padding:30px 28px;text-align:center">
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.12em;color:#706A80;text-transform:uppercase">Alumni hired at</div>
@@ -265,8 +281,11 @@
       </div>
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Recruiters&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== TESTIMONIALS ===== -->
+  {% if testimonials %}
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 20px">
     <div style="text-align:center;margin-bottom:30px">
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Student Voices</div>
@@ -285,8 +304,11 @@
       {% endfor %}
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Testimonials&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== FAQ ===== -->
+  {% if faqs %}
   <div style="max-width:1180px;margin:0 auto;padding:56px 20px 0">
     <div>
       <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">FAQs</div>
@@ -304,13 +326,15 @@
       </div>
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;FAQs&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   <!-- ===== CTA BAND ===== -->
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 20px">
     <div style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:18px;padding:44px 40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;color:#fff">
       <div>
         <div style="font-size:27px;font-weight:800">Ready to advance your career?</div>
-        <div style="color:#D9D2F2;font-size:15px;margin-top:6px">EMI from {{ site.whatsapp_emi | default('₹8,334/month') }} · Scholarships available.</div>
+        <div style="color:#D9D2F2;font-size:15px;margin-top:6px">{% if site.whatsapp_emi %}EMI from {{ site.whatsapp_emi }}{% endif %}</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <a href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px 26px;border-radius:9px">Enquire Now</a>
@@ -322,6 +346,7 @@
   </div>
 
   <!-- ===== BLOG PREVIEW ===== -->
+  {% if posts %}
   <div style="max-width:1180px;margin:0 auto;padding:54px 20px 30px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:24px">
       <div>
@@ -355,6 +380,8 @@
 
     </div>
   </div>
+  {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Blog Preview&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
   </main>
 

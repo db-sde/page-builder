@@ -3,6 +3,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from core.router import get_transformer
 from core.field_definitions import build_field_state
 from core.page_requirements import build_page_state
+from core.page_blueprint import build_page_blueprint, SUPPORTED_PAGE_TYPES
+from core.editing_state import apply_auto_population, build_editing_state
 from renderer.engine import render_resolved
 from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
@@ -360,10 +362,32 @@ async def save_temp_json(req: SaveTempRequest):
 class IngestRequest(BaseModel):
     acf_data: dict[str, Any]
 
+@app.get("/page-blueprint")
+async def page_blueprint_endpoint(page_type: str | None = None):
+    """Return the build contract(s) the editor needs.
+
+    Without `page_type`, returns every supported page type. The blueprint is the
+    single source of truth for field lists, image slots, required/manual/derived
+    ownership, and template section order — the editor should not duplicate it.
+    """
+    if page_type:
+        blueprint = build_page_blueprint(page_type)
+        if not blueprint:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No blueprint for page_type '{page_type}'. Supported: {', '.join(SUPPORTED_PAGE_TYPES)}",
+            )
+        return blueprint
+    return {pt: build_page_blueprint(pt) for pt in SUPPORTED_PAGE_TYPES}
+
+
 @app.post("/ingest-acf")
 async def ingest_acf(req: IngestRequest):
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        # Automatic population: fill explicitly declared defaults so the editor
+        # never asks for information the system can already supply.
+        acf_data, _auto_filled = apply_auto_population(page_type, acf_data)
         resolved = {
             "slug": slug,
             "page_type": page_type,
@@ -382,9 +406,16 @@ async def ingest_acf(req: IngestRequest):
             "parent_slug": parent_slug,
         })
         page_state = build_page_state(page_type, field_state)
+        editing_state = build_editing_state(page_type, acf_data, {
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+        }, auto_filled_names=_auto_filled)
         return {
             "status": "ok",
             "context": ctx,
+            "editing_state": editing_state,
             "page_type": page_type,
             "slug": slug,
             "university_slug": university_slug,
@@ -464,7 +495,7 @@ async def preview_html(req: RenderRequest):
             "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
-        html = render_resolved(resolved, standalone=standalone)
+        html = render_resolved(resolved, standalone=standalone, preview=True)
         return HTMLResponse(content=html)
     except Exception as e:
         import traceback
@@ -514,7 +545,7 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
             "raw": enriched_record["raw"]
         }
         standalone = page_type in ("course", "specialization", "blog")
-        html = render_resolved(resolved, standalone=standalone)
+        html = render_resolved(resolved, standalone=standalone, preview=True)
         return HTMLResponse(content=html)
     except HTTPException:
         raise
@@ -928,6 +959,9 @@ async def parse_docx_endpoint(
             if university_slug:
                 metadata_input["university_slug"] = university_slug
             slug, resolved_type, resolved_university, parent_slug, _ = extract_metadata_from_json(metadata_input)
+            # Automatic population happens before the editor ever opens.
+            normalized_payload, _auto_filled = apply_auto_population(resolved_type, normalized_payload)
+            normalized_result["payload"] = normalized_payload
             normalized_result["field_state"] = build_field_state(resolved_type, normalized_payload, {
                 "page_type": resolved_type,
                 "slug": slug,
@@ -936,6 +970,14 @@ async def parse_docx_endpoint(
             })
             normalized_result["page_state"] = build_page_state(
                 resolved_type, normalized_result["field_state"]
+            )
+            normalized_result["editing_state"] = build_editing_state(
+                resolved_type, normalized_payload, {
+                    "page_type": resolved_type,
+                    "slug": slug,
+                    "university_slug": resolved_university,
+                    "parent_slug": parent_slug,
+                }, auto_filled_names=_auto_filled
             )
         return normalized_result
 
@@ -1289,6 +1331,12 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             "parent_slug": parent_slug,
         })
         page_state = build_page_state(page_type, field_state)
+        editing_state = build_editing_state(page_type, acf_data, {
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+        })
         result = save_page(
             university_slug=university_slug,
             page_type=page_type,
@@ -1320,6 +1368,7 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             "status": "saved",
             "field_state": field_state,
             "page_state": page_state,
+            "editing_state": editing_state,
             **result,
         }
     except HTTPException as he:
@@ -1514,6 +1563,16 @@ async def get_workspace_page_endpoint(
         )
         record["page_state"] = build_page_state(
             record.get("page_type") or page_type, record["field_state"]
+        )
+        record["editing_state"] = build_editing_state(
+            record.get("page_type") or page_type,
+            record_data,
+            {
+                "page_type": record.get("page_type") or page_type,
+                "slug": record.get("slug") or slug,
+                "university_slug": record.get("university_slug") or university_slug,
+                "parent_slug": record.get("parent_slug") or parent_slug,
+            },
         )
         return record
     except HTTPException as he:

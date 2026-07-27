@@ -37,42 +37,10 @@ class CourseTransformer(BaseTransformer):
             about_content_val = f"<p>{raw['hero_description']}</p>"
         raw["about_content"] = about_content_val
 
-        # ── Fallback: admission_steps ───────────────────────────────────────────────
-        admission_steps_val = self.resolve("admission_steps", (
-            "<p><strong>Step 1.</strong> Visit the official university online admission portal and register.</p>"
-            "<p><strong>Step 2.</strong> Fill in personal, contact, and academic details in the application form.</p>"
-            "<p><strong>Step 3.</strong> Upload scanned copies of required documents (graduation marksheet, ID proof, photograph).</p>"
-            "<p><strong>Step 4.</strong> Pay the program admission fee online to confirm your enrollment.</p>"
-        ))
+        # admission_steps comes from the document or the university knowledge
+        # base only — never a fabricated set of steps.
+        admission_steps_val = self.resolve("admission_steps")
         raw["admission_steps"] = admission_steps_val
-
-        spec_desc_map = {
-            "marketing": "Brand, digital & consumer strategy",
-            "digital marketing": "SEO, SEM, social media & analytics",
-            "human resource management": "Talent acquisition & HR analytics",
-            "event management": "Event planning, operations & PR",
-            "travel & tourism management": "Tourism, hospitality & leisure management",
-            "ib (international business)": "Global trade & cross-border strategy",
-            "international business": "Global trade & cross-border strategy",
-            "business analytics": "Data-driven business decision making",
-            "hospital management": "Hospital administration & clinical operations",
-            "banking & insurance": "Risk management, commercial banking & underwriting",
-            "entrepreneurship": "New venture creation, scaling & strategy",
-            "operations management": "Operations, logistics & process design",
-            "retail management": "Retail operations & consumer experience",
-            "it (information technology)": "Digital transformation, ERP & IT systems",
-            "information technology": "Digital transformation, ERP & IT systems",
-            "logistics & supply chain management": "Supply chain, lean & procurement",
-            "finance": "Corporate finance, banking & investment",
-            "disaster management": "Crisis response, mitigation & recovery",
-            "airlines & airport management": "Aviation management & airline operations",
-            "data science & artificial intelligence": "Big data, machine learning & AI systems",
-            "general management": "Leadership, organizational behavior & strategy",
-            "fintech": "Financial technology, blockchain & analytics",
-            "media management": "Media planning, journalism & entertainment",
-            "brand management": "Brand positioning & value creation",
-            "healthcare & hospital management": "Hospital administration & healthcare policy"
-        }
 
         spec_items = []
         if my_specs:
@@ -180,17 +148,12 @@ class CourseTransformer(BaseTransformer):
             "about": about_content_val,
             "highlights": highlights or None,
 
-            # Accreditations built from flat fields
+            # Accreditations built from flat fields. Titles only — the previous
+            # descriptions asserted invented claims about the university.
             "accreditations": [
                 card for card in [
-                    {
-                        "title": "NAAC " + naac,
-                        "description": f"{uni_name or 'The university'} holds NAAC Grade {naac} — among India's highest-rated private universities."
-                    } if naac else None,
-                    {
-                        "title": ugc_display,
-                        "description": "Offered under UGC (ODL & Online Programmes) Regulations, 2020 — fully valid for jobs and higher studies."
-                    } if ugc_display else None
+                    {"title": "NAAC " + naac, "description": ""} if naac else None,
+                    {"title": ugc_display, "description": ""} if ugc_display else None
                 ] if card is not None
             ] or None,
 

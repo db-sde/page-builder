@@ -117,7 +117,7 @@
         {% if hero.stat_card %}
         <div style="position:absolute;left:18px;bottom:18px;background:#fff;color:#1C1B22;border-radius:11px;padding:12px 16px;box-shadow:0 14px 30px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px">
           <div style="font-size:26px;font-weight:800;color:#E04015">{{ hero.stat_card.value }}</div>
-          <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label }}<br><span style="color:#6E6A78;font-weight:600">Highest Category Rating</span></div>
+          <div style="font-size:12px;font-weight:700;line-height:1.25">{{ hero.stat_card.label }}</div>
         </div>
         {% endif %}
       </div>
@@ -185,7 +185,7 @@
           {% for acc in accreditations %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ acc.title }}</h4>
-              <p style="font-size:13px;color:#6E6A78">{{ acc.description }}</p>
+              {% if acc.description %}<p style="font-size:13px;color:#6E6A78">{{ acc.description }}</p>{% endif %}
             </div>
           {% endfor %}
         </div>
@@ -196,7 +196,6 @@
       <section id="specializations" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Specializations</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
-        <p style="font-size:14.5px;margin-bottom:16px">Choose your specialization at the start of year two. Each track replaces semester 3 and 4 electives with domain-focused courses and a specialization capstone.</p>
         {% if specs | length > 6 %}
         <div style="max-height:300px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#D9CFF0 transparent">
         {% endif %}
@@ -271,6 +270,7 @@
       </section>
       {% endif %}
 
+      {% if syllabus_years %}
       <section id="syllabus" style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:28px;margin-bottom:24px;scroll-margin-top:84px">
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Syllabus</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
@@ -294,6 +294,8 @@
           </div>
         {% endfor %}
       </section>
+      {% elif preview_mode %}<div data-preview-placeholder style="max-width:1180px;margin:0 auto;padding:16px 20px"><div style="border:1px dashed #C9BEEA;border-radius:12px;padding:22px;text-align:center;color:#6E6A78;font-size:13.5px;background:#FBFAFF">Section &ldquo;Syllabus&rdquo; has no content yet &mdash; hidden in production.</div></div>
+  {% endif %}
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -462,7 +464,7 @@
       {% endif %}
     </div>
     <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <span>{{ site.copyright | default("© 2026 NMIMS Online. All rights reserved.") }}</span>
+      <span>{{ site.copyright | default("© 2026 " ~ university_name ~ ". All rights reserved.") }}</span>
       <span>Privacy Policy · Terms · Refund Policy</span>
     </div>
   </footer>
@@ -470,7 +472,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | default('₹2,00,000') }}</b><small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi | default('₹8,334/mo') }}</small></div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi }}</small>{% endif %}</div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>

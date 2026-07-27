@@ -120,7 +120,7 @@ class BaseTransformer(ABC):
         # Ensure ₹ prefix
         if not clean.startswith("₹"):
             clean = f"₹{clean}"
-        return f"No-cost EMI from approximately {clean} · Semester-wise payment lets you start with just ₹50,000."
+        return f"No-cost EMI from approximately {clean}."
 
     @abstractmethod
     def transform(self) -> dict:

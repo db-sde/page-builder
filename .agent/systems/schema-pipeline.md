@@ -1,155 +1,223 @@
-# systems/schema-pipeline.md — Schema-Driven Content Pipeline (Field Definitions → Page Requirements → Page State)
+# systems/schema-pipeline.md — Schema-Driven Content Pipeline
 
-Status: Phase 2 complete (2026-07-24). **Read-only metadata layer.** It changes no
-rendering, templates, transformers, builder, compiler, workspace, routing, SEO, or
-storage. It prepares data the admin **Preview** will consume later and that the
-**renderer cleanup** (Phase 3) will use to drop fabricated fallbacks.
+The complete lifecycle of a page, from `.docx` upload to published HTML.
+
+Status: **Phase 3 complete (2026-07-24)** — editing workflow + fake-content removal.
+Phases 1 and 2 built the metadata layers; Phase 3 turned them into the editing
+workflow and made rendering fully data-driven.
 
 ---
 
-## The three-layer model
+## The editor workflow (what all of this exists to support)
 
-Two different questions, deliberately kept separate:
+```
+Upload DOCX
+  ↓  parser extracts everything it can            (external Micro App)
+  ↓  page type detected                           (main.extract_metadata_from_json)
+  ↓  page blueprint loaded                        (core/page_blueprint.py)
+  ↓  derived fields resolved                      (slug / university_slug / parent_slug)
+  ↓  explicit defaults auto-filled                (core/editing_state.apply_auto_population)
+  ↓  Editing State built                          (core/editing_state.build_editing_state)
+  ↓  editor opens on an almost-complete page — only manual fields are empty
+  ↓  operator fills what is left + uploads images
+  ↓  Preview  = same renderer, placeholders for incomplete sections
+  ↓  Publish  = same renderer, incomplete sections hidden
+```
+
+There are no other steps. Anything that adds one should be questioned.
+
+---
+
+## The four layers
 
 | Layer | File | Question it answers | Source of truth |
 |---|---|---|---|
-| **1. Field Definitions** | `backend/core/field_definitions.py` | *"What data exists?"* — the schema of a parsed page + who owns each field | the Micro-App JSON schema |
-| **2. Page Requirements** | `backend/core/page_requirements.py` | *"What data does this page's template actually use?"* | the Jinja2 **templates** |
-| **3. Page State** | `backend/core/page_requirements.py::build_page_state` | *"Given the parsed values, which template sections can render, and which missing fields actually matter?"* | Layers 1 + 2 + parser values |
+| **1. Field Definitions** | `core/field_definitions.py` | *What data exists?* — schema + ownership (AUTO / MANUAL / DERIVED, required) | the Micro-App JSON schema |
+| **2. Page Requirements** | `core/page_requirements.py` | *What does the template display?* — sections, per-section fields | the Jinja2 **templates** |
+| **3. Page Blueprint** | `core/page_blueprint.py` | *What is needed to build this page type?* — layers 1+2 in one contract | layers 1 + 2 |
+| **4. Editing State** | `core/editing_state.py` | *Given the parsed values, what is left to do?* | blueprint + parser values |
 
 ```
 Field Definitions ─┐
-Page Requirements ─┼─► build_page_state() ─► Page State  (section-level readiness)
-Parser Values ─────┘        (via field_state)
+Page Requirements ─┼─► Page Blueprint ─┐
+                                       ├─► Editing State ─► editor + preview
+Parser JSON ───────────────────────────┘
 ```
 
 > **Schema ≠ Template.** The schema defines *available* data; the template defines
-> *displayed* data. A field can exist in the schema and stay in `field_state` while
-> no section renders it — e.g. `faculty_members`, every `*_heading`, and (on the
-> university page) `about_content` / `why_choose_content` / `emi_content` / etc.
-> These are **unused schema fields**. They stay in the schema, stay editable, and
-> **must never generate page-completion warnings**.
+> *displayed* data. Fields the template does not use — `faculty_members`, every
+> `*_heading`, `validity`, `linked_*` — are **kept in the data, reported as
+> `unused_schema_fields`, and never warned about**. Templates are never forced to
+> render every schema field, and sections are never added automatically.
+
+Supported page types: `university`, `course`, `specialization`. Blog keeps the
+legacy blog parser and has no blueprint (all builders return `{}` for it).
 
 ---
 
-## Layer 1 — Field Definitions (Phase 1)
+## Parser responsibilities
 
-`PAGE_FIELD_DEFINITIONS[page_type][field] = {source, required, optional, manual, derived}`
-- `source`: `AUTO` (parser), `MANUAL` (operator upload, e.g. images), `DERIVED` (slug/page_type/…).
-- `build_field_state(page_type, values, derived_values)` → per-field
-  `{name, source, required, optional, manual, derived, missing, value}`.
-- Parser-extension fields outside the canonical schema are kept (as `AUTO`) so the editor still sees them.
-- Read-only: never mutates parsed values. Unsupported page types (e.g. `blog`) return `{}`.
+The parser (external Micro App, `MICRO_APP_URL`; `ingestion/` is the local
+fallback) owns extraction. **Assume it is correct.**
 
-## Layer 2 — Page Requirements (Phase 2)
+- If a value is missing from the parser JSON, that is a parser problem.
+- The pipeline never compensates for a parser failure and never fabricates a value.
+- `ingestion/adapter.py` merges micro (wins) with the local parser (fills gaps),
+  normalises field names and coerces simple types. Nothing else invents data.
 
-`PAGE_REQUIREMENTS[page_type] = [ section, … ]`, read straight from the templates.
-Defined for `university`, `course`, `specialization` (blog keeps its legacy parser).
+## Page Blueprint responsibilities
 
-Each **section** carries:
-- `section`, `label`
-- `required` — is the section essential to the page (**only the hero is**)
-- `required_fields` — fields that gate the section. An entry may be a plain name
-  (must be present) or a **list = any-of** (e.g. course About renders from
-  `about_content` OR `hero_description`)
-- `optional_fields` — rendered when present, not required
-- `always_rendered` — template emits the section even with no data (no `{% if %}` guard)
-- `fabricated_when_empty` — the renderer injects hardcoded/fabricated content when the
-  real fields are empty (Phase 3 cleanup target; see `HARDCODED_CONTENT_AUDIT.md`)
-- `data_source` — `page` | `workspace` (courses/specs/blogs, resolved at compile time) | `shared` (knowledge base / site config / hardcoded marketing)
+`build_page_blueprint(page_type)` returns the single contract the editor needs:
 
-Helper: `template_field_usage(page_type)` → `{field: [section_ids]}`.
+- `sections` — ordered (`order` = template order) with `label`, `required`,
+  `required_fields` (a nested list means *any-of*), `optional_fields`,
+  `always_rendered`, `data_source` (`page` / `workspace` / `shared`)
+- `fields` — every schema field with ownership, `image`, `used_by_template`,
+  `sections`, and any declared `default`
+- `required_fields` / `optional_fields` / `manual_fields` / `derived_fields` /
+  `image_fields` / `template_fields` / `defaults`
 
-### Why some sections have no `required_fields`
-Workspace- and shared-sourced sections (programs grid, specializations grid,
-recruiters, why-choose, blog preview, other-specs comparison) are not filled from
-this page's own fields, so their real-data readiness is decided outside a single
-page. They are marked with `data_source` and (where applicable) `fabricated_when_empty`.
+Image fields are just manual fields whose name ends in `_image_url`; they carry
+`label` / `hint` / `dims` so the upload UI needs no second hardcoded list.
+There is **no separate image workflow**.
 
-## Layer 3 — Page State (Phase 2)
+Exposed over HTTP: `GET /page-blueprint` (all) or `GET /page-blueprint?page_type=course`.
 
-`build_page_state(page_type, field_state)` (or `build_page_state_from_values(...)`) returns:
+## Field ownership
+
+| Source | Meaning | Examples |
+|---|---|---|
+| `AUTO` | parser supplies it | `program_name`, `about_content`, `faqs` |
+| `MANUAL` | only a human can supply it | `hero_image_url`, `certificate_image_url`, `reviews` |
+| `DERIVED` | the pipeline computes it | `slug`, `page_type`, `university_slug`, `parent_slug` |
+
+## Automatic population
+
+`apply_auto_population(page_type, values)` fills **only** the defaults declared in
+`page_blueprint.EXPLICIT_DEFAULTS` (currently `mode = "100% Online"` for course and
+specialization — mirroring what the transformers already did, now visible instead
+of hidden). It returns a new dict and the list of names it filled; it never
+invents editorial content. It runs at `/ingest-acf` and `/parse-docx`, before the
+editor opens.
+
+## Editing State
+
+`build_editing_state(page_type, values, derived_values)` returns everything the
+editor screen needs, so the frontend computes nothing:
 
 ```jsonc
 {
   "page_type": "course",
-  "sections": [
-    {
-      "section": "about", "label": "About", "required": false,
-      "fields_used": ["about_content", "hero_description"],
-      "required_fields": [["about_content", "hero_description"]],
-      "optional_fields": [],
-      "renderable": false,                 // any-of group unsatisfied
-      "missing_required": [["about_content", "hero_description"]],
-      "missing_optional": [],
-      "always_rendered": false,
-      "fabricated_when_empty": false,
-      "data_source": "page"
+  "fields": {                      // every field, already classified
+    "hero_image_url": {
+      "value": null, "source": "MANUAL", "required": true, "optional": false,
+      "manual": true, "derived": false, "missing": true, "image": true,
+      "used_by_template": true, "infrastructure": false, "sections": ["hero"],
+      "auto_filled": false, "in_schema": true, "needs_attention": true,
+      "label": "Hero Image", "hint": "...", "dims": "480 × 420px"
     }
-    // …
-  ],
-  "unused_schema_fields": ["about_heading", "faculty_members", "validity", …],
-  "infrastructure_fields": ["_meta", "page_type", "slug", "university_slug", "parent_slug"],
-  "field_usage": { "faculty_members": {"used_by_template": false, "sections": []}, … },
-  "summary": {
-    "required_sections_incomplete": [],    // essential (hero) sections not renderable
-    "optional_sections_incomplete": ["about"],
-    "renderable_sections": ["seo", "hero", "stats", …],
-    "fabricated_sections": ["fees", "syllabus", "jobs", "reviews", "faqs", "admission"]
-  }
+  },
+  "sections": [ { "section": "about", "renderable": false,
+                  "missing_required": [["about_content","hero_description"]],
+                  "missing_optional": [], "filled_fields": [], "completion": 0.0 } ],
+  "auto_filled": ["mode"],
+  "needs_attention": ["certificate_image_url", "hero_image_url"],  // required + missing
+  "optional_suggestions": ["reviews"],        // manual + optional: offered, never a warning
+  "missing_images": ["certificate_image_url", "hero_image_url"],
+  "unused_schema_fields": ["about_heading", "faculty_members", "..."],
+  "summary": { "required_total": 9, "required_complete": 7, "ready": false, "..." : [] }
 }
 ```
 
-- `renderable` = no `required_fields` missing (any-of groups satisfied if ≥1 member present).
-- `unused_schema_fields` = defined fields not used by any section (excluding infrastructure). **These never warn.**
-- `infrastructure_fields` = `_meta` + all `DERIVED` fields — routing/plumbing, never "unused", never warn.
-- Pure/read-only: does not mutate `field_state` or values. Unsupported page types return `{}`.
+`needs_attention` is the operator's entire to-do list. A page is `ready` when it
+is empty. Unused schema fields can never appear in it.
+
+Returned alongside `field_state` and `page_state` by `/ingest-acf`, `/parse-docx`,
+`/save-to-workspace`, and the workspace page read.
 
 ---
 
-## Only template-used fields count toward completion
+## Preview flow vs production flow
 
-Page completion is derived **only** from sections' `required_fields`
-(`summary.required_sections_incomplete` / `optional_sections_incomplete`). Fields in
-`unused_schema_fields` are excluded by construction, so an absent `faculty_members`
-or `about_heading` cannot mark a page incomplete.
+**One renderer, one template, one pipeline.** `render_resolved(resolved, standalone, preview)`.
+
+| | Preview (`preview=True`) | Production (default) |
+|---|---|---|
+| Renderer | `renderer/engine.py` | same |
+| Template | same | same |
+| Context | same | same |
+| Sections with no data | placeholder indicator | hidden |
+| Fabricated filler | never | never |
+
+Preview is used by `/preview-html` and `/preview-file` only. Everything else —
+compiler, builder, workspace save, download — renders in production mode.
+
+Preview adds two things and nothing else:
+1. In-template placeholders (`{% elif preview_mode %}`) for guarded sections.
+2. A fixed "incomplete sections" panel appended after render (`_build_preview_panel`),
+   built from the same Editing State the editor uses.
+
+Both are marked with `data-preview-placeholder` / `data-preview-indicator` and are
+absent from production output.
 
 ---
 
-## Where it is wired
+## No fabricated content (Phase 3 change — see REG-010)
 
-`build_page_state` runs next to `build_field_state` in `backend/main.py`, and
-`page_state` is added to the same responses that already carry `field_state`:
-- `POST /ingest-acf`
-- `POST /parse-docx` (university/course/specialization branch)
-- `POST /save-page`
-- the source-record read used by preview
+The renderer used to substitute hardcoded editorial content whenever a field was
+empty. All of it is gone:
 
-Purely additive JSON. No endpoint changed shape destructively; no render path touched.
+| Removed | Was in |
+|---|---|
+| fake named student reviews | `engine.py` |
+| fake job profiles + salaries | `engine.py` |
+| hardcoded recruiter list | `engine.py` |
+| fabricated 2-year MBA syllabus | `engine.py` |
+| hardcoded FAQs (also leaked into `FAQPage` JSON-LD) | `engine.py` |
+| fabricated fee plans | `engine.py` |
+| features / financing / banks filler | `engine.py` |
+| hardcoded other-specialization comparison table | `engine.py` |
+| demo blog posts | `engine.py` |
+| invented "Online MBA" program card | `engine.py` |
+| hardcoded admission steps | `transformers/course.py`, `engine.py` |
+| invented accreditation claims | `transformers/course.py` |
+| "Most Popular Specialization" badge | `transformers/specialization.py` |
+| "start with just ₹50,000" EMI clause | `transformers/base.py` |
+| `NIRF #24`, `AIU Member`, `WES Recognised`, `default('2010')` | `university.html` |
+| `₹14.2L` salary, `₹2,00,000` / `₹8,334/mo` defaults | `specialization.html`, `course.html` |
+| `admissions@{{university_slug}}online.edu` (R6 leak, REG-011) | `specialization.html` |
+| NMIMS copyright defaults | `course.html`, `blog.html` |
 
----
+**Kept deliberately:** page layouts, section order, UI labels, navigation, buttons,
+CTA copy, design text, and brand-neutral formatting defaults (`mode`, `Contact for fee`).
+Only *content* became data-driven.
 
-## How Preview will use Page State (future — no UI yet)
+Sections whose data is empty are now guarded and hidden (`university.html`
+programs / specializations / why-choose / admission / fees / recruiters /
+testimonials / FAQ / blog; `course.html` + `specialization.html` syllabus).
 
-The frontend Preview will read `page_state.sections` to show, per section:
-- `label`, `fields_used`
-- `renderable` → render normally vs. show a placeholder
-- `missing_required` → "this required section is incomplete: add X"
-- `missing_optional` → soft hints, no warning weight
-- `fabricated_when_empty` + `data_source` → mark sections currently backed by fake or
-  workspace/shared content, so Preview and the Phase 3 renderer cleanup can
-  distinguish real data from fabricated fallback.
+**Consequence to know:** university pages get visibly shorter where those sections
+had no real data. `features`, `recruiters`, `banks`, and `financing` come only from
+`university_knowledge.json` `shared_lists`, which is empty in existing workspaces —
+so those sections now disappear until populated. `facts` and `accreditations` *are*
+parsed and populated but `university.html` still does not render them (a pre-existing
+template gap, not a regression). Adding those sections is a product decision, not an
+automatic one.
 
-No placeholder UI and no renderer change were made in this phase — only the data.
+Guard test: `backend/tests/test_no_fabricated_content.py` renders sparse pages of all
+three types and asserts none of the removed strings reappear.
 
 ---
 
 ## Boundaries (YAGNI)
 
-No rule engine, no plugin system, no new rendering engine. Page Requirements are plain
-static Python dicts read from the templates. When a template changes (e.g. Phase 3 makes
-the university page render `about_content` and add a faculty section), update the
-matching `PAGE_REQUIREMENTS` section — the templates remain the source of truth.
+No rendering engine #2, no plugin system, no configurable rule engine, no dynamic
+schema builder, no storage-format change. Blueprints are plain static Python dicts
+read from the templates. Compiler, builder, workspace layout, routing, SEO and
+publishing are untouched.
+
+**When a template changes, update the matching `PAGE_REQUIREMENTS` section** — the
+templates remain the source of truth for what is displayed.
 
 See also: `systems/parser.md`, `systems/renderer.md`, `systems/templates.md`,
-and root `SCHEMA_COVERAGE_REPORT.md` / `HARDCODED_CONTENT_AUDIT.md`.
+`memory/regressions.md` (REG-010, REG-011), and root `SCHEMA_COVERAGE_REPORT.md`.

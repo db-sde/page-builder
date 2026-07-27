@@ -14,7 +14,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], parsedFieldState = null) => {
+  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], parsedFieldState = null, parsedEditingState = null) => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType;
     
@@ -67,6 +67,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
     delete data.parent_slug;
 
     let field_state = parsedFieldState || {};
+    let editing_state = parsedEditingState || {};
     if (!parsedFieldState) {
       const result = await ingestAcf({
         acf_data: {
@@ -78,6 +79,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         }
       });
       field_state = result.field_state || {};
+      editing_state = result.editing_state || {};
     }
 
     updateSession({
@@ -87,6 +89,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       university_slug,
       parent_slug,
       field_state,
+      editing_state,
       validation_warnings: validationWarnings,
       table_warnings: tableWarnings
     });
@@ -138,7 +141,8 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         res.page_type || pageType,
         res.validation_warnings || [],
         res.table_warnings || [],
-        res.field_state || null
+        res.field_state || null,
+        res.editing_state || null
       );
     } catch (err) {
       console.error(err);
