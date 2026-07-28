@@ -1,0 +1,573 @@
+{
+  "identity": {
+    "slug": "ignou",
+    "university_name": "IGNOU Online",
+    "university_full_name": "Indira Gandhi National Open University"
+  },
+  "approvals": {
+    "naac_grade": "A++",
+    "ugc_status": "UGC-DEB",
+    "aicte_status": "",
+    "nirf_rank": ""
+  },
+  "hero_stats": {
+    "established_year": "1985",
+    "num_programs": "8",
+    "starting_fee": "₹12,900"
+  },
+  "assets": {
+    "logo": "",
+    "favicon": "",
+    "hero_image": "/assets/images/university-hero.png"
+  },
+  "content": {
+    "why_choose": "Choosing IGNOU online courses offers numerous benefits: affordable quality education with remote access, flexible study schedules suitable for working professionals with better work-life balance, government-recognized degrees with global acceptance, digital learning access without relocation costs, and the opportunity to continue education alongside full-time employment.",
+    "placement": "IGNOU online degrees hold equal academic credibility to traditional regular degrees as mandated by UGC-DEB. IGNOU graduates are fully eligible for government competitive exams (UPSC, SSC, Banking, Public Sector Undertakings) and private corporate career opportunities.",
+    "exam": "IGNOU online exams and continuous assessments are conducted digitally via the official IGNOU Samarth Portal, offering complete remote flexibility for working professionals.",
+    "emi": "IGNOU online courses offer the most affordable fee structure compared to other institutions. Students pay fees on a per-semester/annual basis without requiring heavy upfront lump-sum payments.",
+    "faculty_intro": "",
+    "admission_steps": "['Step 1. Visit the official IGNOU online admission portal and register yourself.', 'Step 2. Once you have generated your registration ID, log in to the portal.', 'Step 3. Start filling out the IGNOU online application form with personal and academic details.', 'Step 4. Attach the required supporting documents (ID proof, mark sheets, photo, digital signature).', 'Step 5. Pay the applicable IGNOU online admission fee (INR 300 /- non-refundable).', 'Step 6. Once the university verifies your details, the admission confirmation letter & LMS access is forwarded to your registered email.']"
+  },
+  "shared_lists": {
+    "accreditations": [
+      {
+        "name": "UGC-DEB",
+        "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+      },
+      {
+        "name": "NAAC A++",
+        "description": "Highest grade accreditation awarded by NAAC for academic quality."
+      },
+      {
+        "name": "AIU Member",
+        "description": "Member of Association of Indian Universities for national degree equivalence."
+      },
+      {
+        "name": "AICTE Approved",
+        "description": "Approved for technical and management courses (MBA, MCA)."
+      }
+    ],
+    "facts": [],
+    "recruiters": [],
+    "banks": [],
+    "features": []
+  },
+  "contact": {
+    "email": "",
+    "address": "",
+    "phone": "",
+    "whatsapp": ""
+  },
+  "conflicts": [
+    {
+      "field": "identity.university_name",
+      "existing": "IGNOU Online",
+      "incoming": "Ignou",
+      "source": "course"
+    },
+    {
+      "field": "identity.university_full_name",
+      "existing": "Indira Gandhi National Open University",
+      "incoming": "IGNOU Online",
+      "source": "course"
+    },
+    {
+      "field": "approvals.ugc_status",
+      "existing": "UGC-DEB",
+      "incoming": "Entitled",
+      "source": "course"
+    },
+    {
+      "field": "hero_stats.starting_fee",
+      "existing": "₹12,900",
+      "incoming": "INR 52,000/-",
+      "source": "course"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-hero.png",
+      "source": "course"
+    },
+    {
+      "field": "content.placement",
+      "existing": "IGNOU online degrees hold equal academic credibility to traditional regular degrees as mandated by UGC-DEB. IGNOU graduates are fully eligible for government competitive exams (UPSC, SSC, Banking, Public Sector Undertakings) and private corporate career opportunities.",
+      "incoming": "<p>To assist students in developing a successful and prominent professional career, IGNOU Online has a Campus Placement Cell (CPC). The main objective of CPC is to align every student enrolled in the IGNOU online MCA course with the right recruiter at the right place. Simultaneously, there are multiple MNCs and global business corporations partnered with IGNOU online, which recruit skilled candidates every year, some of which are mentioned below:</p><ul><li>Zee Media</li><li>Pratham</li><li>Axis bank</li><li>Amazon</li><li>Doordarshan</li><li>TCS</li></ul>",
+      "source": "course"
+    },
+    {
+      "field": "content.admission_steps",
+      "existing": "['Step 1. Visit the official IGNOU online admission portal and register yourself.', 'Step 2. Once you have generated your registration ID, log in to the portal.', 'Step 3. Start filling out the IGNOU online application form with personal and academic details.', 'Step 4. Attach the required supporting documents (ID proof, mark sheets, photo, digital signature).', 'Step 5. Pay the applicable IGNOU online admission fee (INR 300 /- non-refundable).', 'Step 6. Once the university verifies your details, the admission confirmation letter & LMS access is forwarded to your registered email.']",
+      "incoming": "<h3>Online MCA Admission Process</h3><p>The detailed step-by-step IGNOU online MCA admission process is listed below:</p><ol><li>Visit the official IGNOU Online Admission Portal and opt for the online programs.</li><li>Click on the \"Apply Now\" tab and register yourself.</li><li>After registering, start filling out the IGNOU online application form.</li><li>Fill out your personal and professional information in the application form.</li><li>Attach the supporting documents along with the application form.</li><li>Pay the non-refundable application fee and submit your application form.</li><li>Once the application is approved, the university will provide you with an admission confirmation letter.</li></ol>",
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "University Grants Commission",
+          "body_descriptor": "UGC Approved",
+          "body_detail": null
+        },
+        {
+          "body_name": "All India Council for Technical Education",
+          "body_descriptor": "AICTE Recognized",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Assessment and Accreditation Council",
+          "body_descriptor": "A++ Grade",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Institutional Ranking Framework",
+          "body_descriptor": "NIRF Ranking",
+          "body_detail": "Ranks #1 under open university category"
+        },
+        {
+          "body_name": "Association of Indian Universities",
+          "body_descriptor": "AIU Affiliated",
+          "body_detail": null
+        },
+        {
+          "body_name": "Commonwealth of Learning",
+          "body_descriptor": "COL Designated",
+          "body_detail": null
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "hero_stats.num_programs",
+      "existing": "8",
+      "incoming": "2",
+      "source": "course"
+    },
+    {
+      "field": "hero_stats.starting_fee",
+      "existing": "₹12,900",
+      "incoming": "INR 66,000 /-",
+      "source": "course"
+    },
+    {
+      "field": "content.placement",
+      "existing": "IGNOU online degrees hold equal academic credibility to traditional regular degrees as mandated by UGC-DEB. IGNOU graduates are fully eligible for government competitive exams (UPSC, SSC, Banking, Public Sector Undertakings) and private corporate career opportunities.",
+      "incoming": "<p><strong>IGNOU Online University</strong> partners with a range of leading companies and organizations to support students with placement and job opportunities. These partnerships offer students opportunities for job placements and career development. The Campus and Placement Cell of IGNOU collaborates with reputed firms in the industry to ensure that every student is placed upon completion of the Online MBA program, but does not guarantee it. Here are some of the top placement partners for IGNOU Online MBA -</p><ul><li>HDFC Bank</li><li>Angel Broking</li><li>Deloitte</li><li>Accenture</li><li>Capgemini, etc</li></ul>",
+      "source": "course"
+    },
+    {
+      "field": "content.admission_steps",
+      "existing": "['Step 1. Visit the official IGNOU online admission portal and register yourself.', 'Step 2. Once you have generated your registration ID, log in to the portal.', 'Step 3. Start filling out the IGNOU online application form with personal and academic details.', 'Step 4. Attach the required supporting documents (ID proof, mark sheets, photo, digital signature).', 'Step 5. Pay the applicable IGNOU online admission fee (INR 300 /- non-refundable).', 'Step 6. Once the university verifies your details, the admission confirmation letter & LMS access is forwarded to your registered email.']",
+      "incoming": "<h3>Online MBA Admission Process</h3><p>Working professional and fresh graduates who are willing to pursue the IGNOU Online MBA program are required to follow the step-by-step admission process of the program listed below:</p><ol><li>Visit the official IGNOU website and register yourself.</li><li>Click on Apply Now tab and start filling out your IGNOU online MBA application process.</li><li>Fill in the required details and attach the supporting documents along with the application form.</li><li>Pay the program fee and submit the application form.</li><li>Print out the application form for future reference and wait for admission confirmation from the university.</li></ol>",
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "UGC",
+          "body_descriptor": "Approved",
+          "body_detail": "University Grants Commission"
+        },
+        {
+          "body_name": "AICTE",
+          "body_descriptor": "Recognized",
+          "body_detail": "All India Council for Technical Education"
+        },
+        {
+          "body_name": "NAAC",
+          "body_descriptor": "A++",
+          "body_detail": "Highest grade"
+        },
+        {
+          "body_name": "NIRF",
+          "body_descriptor": "#1 Ranking",
+          "body_detail": "Open university category"
+        },
+        {
+          "body_name": "AIU",
+          "body_descriptor": "Affiliated",
+          "body_detail": "Association of Indian Universities"
+        },
+        {
+          "body_name": "COL",
+          "body_descriptor": "Designated",
+          "body_detail": "Commonwealth of Learning"
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "University Grants Commission",
+          "body_descriptor": "UGC Approved",
+          "body_detail": null
+        },
+        {
+          "body_name": "All India Council for Technical Education",
+          "body_descriptor": "AICTE Recognized",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Assessment and Accreditation Council",
+          "body_descriptor": "NAAC Grade A++",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Institutional Ranking Framework",
+          "body_descriptor": "NIRF Ranking",
+          "body_detail": "#1 in open university category"
+        },
+        {
+          "body_name": "Association of Indian Universities",
+          "body_descriptor": "AIU Affiliated",
+          "body_detail": null
+        },
+        {
+          "body_name": "Commonwealth of Learning",
+          "body_descriptor": "COL Designated",
+          "body_detail": null
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-2-hero.png",
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "University Grants Commission",
+          "body_descriptor": "UGC Approved",
+          "body_detail": null
+        },
+        {
+          "body_name": "All India Council for Technical Education",
+          "body_descriptor": "AICTE Recognized",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Assessment and Accreditation Council",
+          "body_descriptor": "NAAC Grade A++",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Institutional Ranking Framework",
+          "body_descriptor": "NIRF Ranked",
+          "body_detail": "#1 in open university category"
+        },
+        {
+          "body_name": "Association of Indian Universities",
+          "body_descriptor": "AIU Affiliated",
+          "body_detail": null
+        },
+        {
+          "body_name": "Commonwealth of Learning",
+          "body_descriptor": "COL Designated",
+          "body_detail": null
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "University Grants Commission",
+          "body_descriptor": "UGC Approved",
+          "body_detail": null
+        },
+        {
+          "body_name": "All India Council for Technical Education",
+          "body_descriptor": "AICTE Recognized",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Assessment and Accreditation Council",
+          "body_descriptor": "NAAC",
+          "body_detail": "Grade A++"
+        },
+        {
+          "body_name": "National Institutional Ranking Framework",
+          "body_descriptor": "NIRF",
+          "body_detail": "Rank #1 in open university category"
+        },
+        {
+          "body_name": "Association of Indian Universities",
+          "body_descriptor": "AIU Affiliated",
+          "body_detail": null
+        },
+        {
+          "body_name": "Commonwealth of Learning",
+          "body_descriptor": "COL Designated",
+          "body_detail": null
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-3-hero.png",
+      "source": "course"
+    },
+    {
+      "field": "content.placement",
+      "existing": "IGNOU online degrees hold equal academic credibility to traditional regular degrees as mandated by UGC-DEB. IGNOU graduates are fully eligible for government competitive exams (UPSC, SSC, Banking, Public Sector Undertakings) and private corporate career opportunities.",
+      "incoming": "<p><strong>IGNOU Online University</strong> partners with a range of leading companies and organizations to support students with placement and job opportunities. These partnerships offer students opportunities for job placements and career development. The Campus and Placement Cell of IGNOU collaborates with reputed firms in the industry to ensure that every student is placed upon completion of the Online MBA program, but does not guarantee it. Here are some of the top placement partners for IGNOU Online MBA:</p><ul><li>HDFC Bank</li><li>Angel Broking</li><li>Deloitte</li><li>Accenture</li><li>Capgemini, etc</li></ul>",
+      "source": "course"
+    },
+    {
+      "field": "shared_lists.accreditations",
+      "existing": [
+        {
+          "name": "UGC-DEB",
+          "description": "Recognized by University Grants Commission Distance Education Bureau for equivalent degree status."
+        },
+        {
+          "name": "NAAC A++",
+          "description": "Highest grade accreditation awarded by NAAC for academic quality."
+        },
+        {
+          "name": "AIU Member",
+          "description": "Member of Association of Indian Universities for national degree equivalence."
+        },
+        {
+          "name": "AICTE Approved",
+          "description": "Approved for technical and management courses (MBA, MCA)."
+        }
+      ],
+      "incoming": [
+        {
+          "body_name": "University Grants Commission",
+          "body_descriptor": "UGC Approved",
+          "body_detail": null
+        },
+        {
+          "body_name": "All India Council for Technical Education",
+          "body_descriptor": "AICTE Recognized",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Assessment and Accreditation Council",
+          "body_descriptor": "NAAC Grade A++",
+          "body_detail": null
+        },
+        {
+          "body_name": "National Institutional Ranking Framework",
+          "body_descriptor": "NIRF Ranked",
+          "body_detail": "#1 Open University Category"
+        },
+        {
+          "body_name": "Association of Indian Universities",
+          "body_descriptor": "AIU Affiliated",
+          "body_detail": null
+        },
+        {
+          "body_name": "Commonwealth of Learning",
+          "body_descriptor": "COL Designated",
+          "body_detail": null
+        }
+      ],
+      "source": "course"
+    },
+    {
+      "field": "identity.university_name",
+      "existing": "IGNOU Online",
+      "incoming": "Ignou",
+      "source": "specialization"
+    },
+    {
+      "field": "approvals.ugc_status",
+      "existing": "UGC-DEB",
+      "incoming": "Entitled",
+      "source": "specialization"
+    },
+    {
+      "field": "hero_stats.num_programs",
+      "existing": "8",
+      "incoming": "2",
+      "source": "specialization"
+    },
+    {
+      "field": "hero_stats.starting_fee",
+      "existing": "₹12,900",
+      "incoming": "INR 62,000/-",
+      "source": "specialization"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-in-financial-management-hero.png",
+      "source": "specialization"
+    },
+    {
+      "field": "content.placement",
+      "existing": "IGNOU online degrees hold equal academic credibility to traditional regular degrees as mandated by UGC-DEB. IGNOU graduates are fully eligible for government competitive exams (UPSC, SSC, Banking, Public Sector Undertakings) and private corporate career opportunities.",
+      "incoming": "<p><strong>IGNOU Online University</strong> partners with a range of leading companies and organizations to support students with placement and job opportunities. These partnerships offer students opportunities for job placements and career development. The Campus and Placement Cell of IGNOU collaborates with reputed firms in the industry to ensure that every student is placed upon completion of the Online MBA program, but does not guarantee it. Here are some of the top placement partners for IGNOU Online MBA -</p><ul><li>HDFC Bank</li><li>Angel Broking</li><li>Deloitte</li><li>Accenture</li><li>Capgemini, etc</li></ul>",
+      "source": "specialization"
+    },
+    {
+      "field": "content.exam",
+      "existing": "IGNOU online exams and continuous assessments are conducted digitally via the official IGNOU Samarth Portal, offering complete remote flexibility for working professionals.",
+      "incoming": "<p>IGNOU Online conducts its end-term examination twice a year, mainly in June &amp; December. The online examination form should be filled out through the student portal or the official website of IGNOU meanwhile, the exam fee is Rs 200/- per course.</p><p>The End-Term theory-based examinations are conducted in online mode but at the chosen examination center by the student. It also provides an admit card which you can download from the portal 15 days before the exam commencement date for the students to get recognized at the centre. However, the assignments that can be handwritten scanned copies, or else typed are accepted which students need to submit on the online portal.</p>",
+      "source": "specialization"
+    },
+    {
+      "field": "content.emi",
+      "existing": "IGNOU online courses offer the most affordable fee structure compared to other institutions. Students pay fees on a per-semester/annual basis without requiring heavy upfront lump-sum payments.",
+      "incoming": "IGNOU Online does not provide EMI facility, but offers semester-wise fee payment plans for budget-friendly payment options.",
+      "source": "specialization"
+    },
+    {
+      "field": "content.admission_steps",
+      "existing": "['Step 1. Visit the official IGNOU online admission portal and register yourself.', 'Step 2. Once you have generated your registration ID, log in to the portal.', 'Step 3. Start filling out the IGNOU online application form with personal and academic details.', 'Step 4. Attach the required supporting documents (ID proof, mark sheets, photo, digital signature).', 'Step 5. Pay the applicable IGNOU online admission fee (INR 300 /- non-refundable).', 'Step 6. Once the university verifies your details, the admission confirmation letter & LMS access is forwarded to your registered email.']",
+      "incoming": "<h3>Online MBA Admission Process</h3><p>Working professional and fresh graduates who are willing to pursue the IGNOU Online MBA program are required to follow the step-by-step admission process of the program listed below:</p><ol><li>Visit the official IGNOU website and register yourself.</li><li>Click on Apply Now tab and start filling out your IGNOU online MBA application process.</li><li>Fill in the required details and attach the supporting documents along with the application form.</li><li>Pay the program fee and submit the application form.</li><li>Print out the application form for future reference and wait for admission confirmation from the university.</li></ol>",
+      "source": "specialization"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-in-human-resource-management-hero.png",
+      "source": "specialization"
+    },
+    {
+      "field": "content.emi",
+      "existing": "IGNOU online courses offer the most affordable fee structure compared to other institutions. Students pay fees on a per-semester/annual basis without requiring heavy upfront lump-sum payments.",
+      "incoming": "IGNOU does not provide EMI options. Fees are paid in a semester pattern, making the online MBA in HRM highly affordable and cost-effective.",
+      "source": "specialization"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-in-marketing-management-hero.png",
+      "source": "specialization"
+    },
+    {
+      "field": "content.emi",
+      "existing": "IGNOU online courses offer the most affordable fee structure compared to other institutions. Students pay fees on a per-semester/annual basis without requiring heavy upfront lump-sum payments.",
+      "incoming": "There is no EMI facility offered at IGNOU Online. Students can pay their fees in a semester pattern to make the fee structure extensively affordable for them.",
+      "source": "specialization"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/ignou-online-mba-in-operations-management-hero.png",
+      "source": "specialization"
+    },
+    {
+      "field": "content.emi",
+      "existing": "IGNOU online courses offer the most affordable fee structure compared to other institutions. Students pay fees on a per-semester/annual basis without requiring heavy upfront lump-sum payments.",
+      "incoming": "IGNOU online MBA in operation management does not offer an EMI facility due to the cost-effective fee structure. However, to assist students financially the university allows them to pay their program fees in a semester-wise plan.",
+      "source": "specialization"
+    },
+    {
+      "field": "identity.university_name",
+      "existing": "IGNOU Online",
+      "incoming": "Ignou",
+      "source": "blog"
+    },
+    {
+      "field": "assets.hero_image",
+      "existing": "/assets/images/university-hero.png",
+      "incoming": "/assets/images/blog-ignou-hero.png",
+      "source": "blog"
+    }
+  ]
+}
