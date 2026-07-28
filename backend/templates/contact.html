@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ seo_title }}</title>
+<meta name="description" content="{{ meta_description }}">
+{% if branding_favicon %}<link rel="icon" href="{{ branding_favicon }}">{% endif %}
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+{% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+{% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/contact.css">
+</head>
+<body class="contact-page">
+<div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;display:flex;flex-direction:column">
+
+  <!-- ===== PREBUILT TOP BAR ===== -->
+  {% if site.topbar_text %}<div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
+    <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
+      <span>{{ site.topbar_text }}</span>
+    </div>
+  </div>{% endif %}
+
+  <!-- ===== PREBUILT HEADER / NAVBAR ===== -->
+  <header style="background:#fff;border-bottom:1px solid #E9E5F2;position:sticky;top:0;z-index:50">
+    <div style="max-width:1180px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between">
+      <a href="{{ homepage_href }}" style="display:flex;align-items:center;gap:11px">
+        {% if branding_logo %}
+          <div style="height:44px;display:flex;align-items:center">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:240px;object-fit:contain;display:block" loading="eager" decoding="async">
+            </picture>
+          </div>
+        {% else %}
+          <div style="width:40px;height:40px;border-radius:9px;background:#FF5C35;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px">{{ university_letter }}</div>
+          <div style="line-height:1.04"><div style="font-weight:800;font-size:18px;color:#1C1B22">{{ university_name }} <span style="color:#E04015">Online</span></div><div style="font-size:12px;letter-spacing:.18em;color:#706A80;font-weight:700">DISTANCE &amp; ONLINE EDUCATION</div></div>
+        {% endif %}
+      </a>
+      <nav style="display:flex;align-items:center;gap:26px;font-size:14.5px;font-weight:600;color:#434346">
+        <a href="{{ homepage_href }}" style="color:#434346">Home</a>
+        <a href="{{ programs_listing_href }}" style="color:#434346">Programs</a>
+        <a href="{{ specs_listing_href }}" style="color:#434346">Specialisations</a>
+        <a href="{{ blog_listing_href }}" style="color:#434346">Blog</a>
+        <a href="{{ lead_url_enquiry }}" style="color:#1C1B22;font-weight:800">Contact</a>
+      </nav>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14px;padding:11px 20px;border-radius:8px">Apply Now</a>
+
+      <!-- Mobile Hamburger Button -->
+      <button id="mobile-menu-btn" style="display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:5px;width:40px;height:40px;align-items:center;justify-content:center" aria-expanded="false" aria-label="Open navigation">
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px;margin:3px 0"></div>
+        <div style="width:20px;height:2px;background:#1C1B22;border-radius:1px"></div>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-drawer">
+      <a href="{{ homepage_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Home</a>
+      <a href="{{ programs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Programs</a>
+      <a href="{{ specs_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Specialisations</a>
+      <a href="{{ blog_listing_href }}" style="font-size:16px;font-weight:700;color:#434346;padding:8px 0;border-bottom:1px solid #F6F4FB">Blog</a>
+      <a href="{{ lead_url_enquiry }}" style="font-size:16px;font-weight:700;color:#1C1B22;padding:8px 0;border-bottom:1px solid #F6F4FB">Contact</a>
+      <a href="{{ lead_url_apply }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:15px;padding:14px;border-radius:8px;text-align:center;margin-top:12px">Apply Now</a>
+    </div>
+  </header>
+
+  <main style="flex:1">
+    <!-- ===== TWO-COLUMN HERO & LEAD CAPTURE SECTION ===== -->
+    <section class="contact-hero-split" id="form-section">
+      <div class="contact-shell contact-hero-grid">
+        
+        <!-- LEFT COLUMN (40%): HEADLINE, SUBHEADING, BENEFIT CARDS & TRUST INDICATORS -->
+        <div class="contact-hero-info">
+          <div class="contact-breadcrumb">
+            <a href="{{ homepage_href }}">Home</a>
+            <span aria-hidden="true">›</span>
+            <span>Admissions &amp; Counselling</span>
+          </div>
+
+          <h1 class="contact-headline">Speak with an Admissions Advisor</h1>
+          <p class="contact-subheadline">Get programme information, curriculum details, and personalised admissions guidance.</p>
+
+          <!-- 4 BENEFIT CARDS -->
+          <div class="contact-benefit-grid">
+            <div class="contact-benefit-card">
+              <div class="contact-benefit-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </div>
+              <div>
+                <div class="contact-benefit-title">Official Brochure</div>
+                <div class="contact-benefit-sub">Detailed university guide</div>
+              </div>
+            </div>
+
+            <div class="contact-benefit-card">
+              <div class="contact-benefit-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+              </div>
+              <div>
+                <div class="contact-benefit-title">Programme Fees</div>
+                <div class="contact-benefit-sub">Available fee information</div>
+              </div>
+            </div>
+
+            <div class="contact-benefit-card">
+              <div class="contact-benefit-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              </div>
+              <div>
+                <div class="contact-benefit-title">Curriculum PDF</div>
+                <div class="contact-benefit-sub">Complete subject list</div>
+              </div>
+            </div>
+
+            <div class="contact-benefit-card">
+              <div class="contact-benefit-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              </div>
+              <div>
+                <div class="contact-benefit-title">Free Career Counselling</div>
+                <div class="contact-benefit-sub">1-on-1 advisor call</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRUST INDICATORS -->
+          <div class="contact-trust-list">
+            <div class="contact-trust-item"><span class="contact-trust-check">✓</span> Choose a published programme in the next step</div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN (60%): PREMIUM FLOATING STEPPED FORM CARD -->
+        <div class="contact-form-wrapper">
+          <div class="contact-form-card" data-contact-card>
+            <div data-contact-form-state>
+              
+              <!-- PROGRESS INDICATOR HEADER -->
+              <div class="contact-progress-header">
+                <div class="contact-progress-labels">
+                  <span class="contact-progress-step-text" data-step-text>Step 1 of 2</span>
+                  <span class="contact-progress-dots">
+                    <span class="contact-dot contact-dot--active" data-dot="1"></span>
+                    <span class="contact-dot" data-dot="2"></span>
+                  </span>
+                </div>
+                <div class="contact-progress-bar-track">
+                  <div class="contact-progress-bar-fill" data-progress-bar style="width: 50%;"></div>
+                </div>
+              </div>
+
+              {% if not contact_webhook %}
+                <div class="contact-form-notice">Online enquiry submission is not configured for this workspace yet.</div>
+              {% endif %}
+
+              <form class="contact-form" data-stepped-form{% if contact_webhook %} data-workspace-contact-form data-contact-webhook="{{ contact_webhook }}"{% endif %}>
+                <div class="contact-form-error" data-contact-error hidden></div>
+
+                <!-- STEP 1 FIELDS -->
+                <div class="contact-step-content contact-step-content--active" data-step-panel="1">
+                  <div class="contact-step-heading">Personal Details</div>
+
+                  <div class="contact-field">
+                    <label for="contact-name">Full Name <span class="req">*</span></label>
+                    <input class="form-control" id="contact-name" name="full_name" type="text" placeholder="e.g. Rahul Sharma" required autofocus{% if not contact_webhook %} disabled{% endif %}>
+                  </div>
+
+                  <div class="contact-field">
+                    <label for="contact-email">Email Address <span class="req">*</span></label>
+                    <input class="form-control" id="contact-email" name="email" type="email" placeholder="rahul@example.com" required{% if not contact_webhook %} disabled{% endif %}>
+                  </div>
+
+                  <div class="contact-field">
+                    <label for="contact-mobile">Mobile Number <span class="req">*</span></label>
+                    <input class="form-control" id="contact-mobile" name="mobile_number" type="tel" placeholder="Your mobile number" minlength="10" required{% if not contact_webhook %} disabled{% endif %}>
+                  </div>
+
+                  <button type="button" class="contact-next-btn" data-goto-step="2">
+                    <span>Continue to Step 2</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </button>
+                </div>
+
+                <!-- STEP 2 FIELDS -->
+                <div class="contact-step-content" data-step-panel="2" hidden>
+                  <div class="contact-step-top">
+                    <button type="button" class="contact-back-step-btn" data-goto-step="1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                      <span>Back to Step 1</span>
+                    </button>
+                    <div class="contact-step-heading">Course Interest</div>
+                  </div>
+
+                  <div class="contact-field">
+                    <label for="contact-interest">What are you interested in?</label>
+                    <div class="contact-select-wrap">
+                      <select class="form-control contact-select" id="contact-interest" name="program"{% if contact_programs %} required{% else %} disabled{% endif %}>
+                        {% if contact_programs %}
+                          <option value="" selected disabled>Select a programme</option>
+                          {% for program in contact_programs %}<option value="{{ program.name }}">{{ program.name }}</option>{% endfor %}
+                        {% else %}
+                          <option value="">No published programmes are currently available</option>
+                        {% endif %}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="contact-field">
+                    <label for="contact-city">City (Optional)</label>
+                    <input class="form-control" id="contact-city" name="city" type="text" placeholder="e.g. Mumbai, Delhi, Bangalore"{% if not contact_webhook %} disabled{% endif %}>
+                  </div>
+
+                  <!-- LARGE FULL-WIDTH CTA BUTTON -->
+                  <button class="contact-submit" type="submit"{% if not contact_webhook %} disabled{% endif %}>
+                    <span class="contact-submit-text">{% if contact_webhook %}Request Callback{% else %}Submission Not Configured{% endif %}</span>
+                    <span class="contact-submit-spinner" hidden></span>
+                  </button>
+
+                </div>
+              </form>
+
+              <!-- SOCIAL PROOF & PRIVACY NOTE -->
+              <div class="contact-form-footer">
+                <div class="contact-privacy-note">
+                  🔒 Your information is secure and will never be shared.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ADMISSIONS DESK DETAILS BLOCK -->
+    {% if contact_phone or contact_email or contact_address or contact_working_hours or contact_whatsapp %}
+      <section class="contact-shell contact-details-section">
+        <aside class="contact-details-card">
+          <h2>Admissions Desk Direct Info</h2>
+          <div class="contact-detail-grid">
+            {% if contact_phone %}
+              <div class="contact-detail">
+                <div class="contact-detail-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </div>
+                <div>
+                  <div class="contact-detail-label">Helpline Number</div>
+                  <div class="contact-detail-value"><a href="tel:{{ contact_phone | replace(' ', '') }}">{{ contact_phone }}</a></div>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if contact_email %}
+              <div class="contact-detail">
+                <div class="contact-detail-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </div>
+                <div>
+                  <div class="contact-detail-label">Official Email</div>
+                  <div class="contact-detail-value"><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></div>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if contact_working_hours %}
+              <div class="contact-detail">
+                <div class="contact-detail-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div>
+                  <div class="contact-detail-label">Working Hours</div>
+                  <div class="contact-detail-value">{{ contact_working_hours }}</div>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if contact_address %}
+              <div class="contact-detail">
+                <div class="contact-detail-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                </div>
+                <div>
+                  <div class="contact-detail-label">Campus Address</div>
+                  <div class="contact-detail-value">{{ contact_address }}</div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if contact_phone or contact_whatsapp %}
+            <div class="contact-detail-actions">
+              {% if contact_phone %}
+                <a class="contact-call" href="tel:{{ contact_phone | replace(' ', '') }}">Call Helpline</a>
+              {% endif %}
+              {% if contact_whatsapp %}
+                <a class="contact-whatsapp" href="https://wa.me/{{ contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp Advisor</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </aside>
+      </section>
+    {% endif %}
+
+    <!-- ===== THANK YOU MODAL POPUP (THEME ALIGNED) ===== -->
+    <div class="contact-modal-overlay" data-contact-success hidden>
+      <div class="contact-modal-card">
+        <button type="button" class="contact-modal-close" data-close-contact-modal aria-label="Close modal">&times;</button>
+        <div class="contact-modal-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <h2>Thank You!</h2>
+        <p class="contact-modal-msg">Your enquiry has been submitted successfully.</p>
+        <p class="contact-modal-sub">An admissions advisor will respond using the details you provided.</p>
+        <div class="contact-modal-actions">
+          <a href="{{ homepage_href }}" class="contact-modal-btn contact-modal-btn--primary">Back to Website</a>
+          <button type="button" class="contact-modal-btn contact-modal-btn--secondary" data-close-contact-modal>Submit Another Request</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== PREBUILT FOOTER ===== -->
+  {% set show_contact = site.email or site.address or contact_email or contact_address %}
+  <footer style="background:#6B4FC9;color:#EAE7FD;padding:48px 20px 26px;margin-top:40px">
+    <div class="site-footer-grid {% if show_contact %}site-footer-grid--4col{% else %}site-footer-grid--3col{% endif %}">
+      <div>
+        {% if branding_logo %}
+          <div style="height:40px;display:flex;align-items:center;margin-bottom:14px">
+            <picture style="display:block;height:100%">
+              <source type="image/webp" srcset="{{ branding_logo | webp_variant }}">
+              <img src="{{ branding_logo }}" alt="{{ university_name }}" width="{{ branding_logo | image_width }}" height="{{ branding_logo | image_height }}" style="max-height:100%;max-width:220px;object-fit:contain;display:block" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        {% else %}
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
+        {% endif %}
+        {% if meta_description %}<p style="font-size:13px;line-height:1.6;max-width:300px">{{ meta_description }}</p>{% endif %}
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a>
+          <a href="{{ specs_listing_href }}" style="color:#EAE7FD">Specialisations</a>
+        </div>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Company</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a>
+          <a href="{{ blog_listing_href }}" style="color:#EAE7FD">Blog</a>
+          <a href="{{ lead_url_enquiry }}" style="color:#EAE7FD">Admissions</a>
+        </div>
+      </div>
+      {% if show_contact %}
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Get in touch</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          {% if contact_email or site.email %}
+          <span>Email: {{ contact_email or site.email }}</span>
+          {% endif %}
+          {% if contact_address or site.address %}
+          <span>{{ contact_address or site.address }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      {% if site.copyright %}<span>{{ site.copyright }}</span>{% endif %}
+      <span>Privacy Policy · Terms · Refund Policy</span>
+    </div>
+  </footer>
+
+</div>
+<script src="/assets/js/public-runtime.js" defer></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ Build layout (target):
   ├── programs/index.html             ← Pages/programs/programs_listing.html
   ├── specializations/index.html      ← Pages/specializations/specializations_listing.html
   ├── blog/index.html                 ← Pages/blog/blog_listing.html
+  ├── contact/index.html              ← Pages/contact/contact.html
   ├── blog/<slug>/index.html          ← Blogs/<slug>/blog.html
   ├── <course-slug>/index.html        ← Courses/<slug>/course.html
   ├── <spec-slug>/index.html          ← Specializations/<slug>/specialization.html
@@ -55,7 +56,7 @@ from core.utils import build_public_route, build_public_url
 
 # Top-level reserved route segments — course/specialization slugs may
 # not collide with these (they are used by the listing pages).
-_RESERVED_SEGMENTS = {"programs", "specializations", "blog"}
+_RESERVED_SEGMENTS = {"programs", "specializations", "blog", "contact"}
 
 import threading
 _build_lock = threading.Lock()
@@ -85,6 +86,7 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
         "programs_listing":  "/programs",
         "specializations_listing": "/specializations",
         "blog_listing":      "/blog",
+        "contact":           "/contact",
         "course:<slug>":     "/<slug>",
         "specialization:<slug>": "/<slug>",
         "blog:<slug>":       "/blog/<slug>",
@@ -105,6 +107,7 @@ def _build_route_map(index: dict, university_slug: str) -> tuple[dict, list[dict
     route_map["programs_listing"] = "/programs"
     route_map["specializations_listing"] = "/specializations"
     route_map["blog_listing"] = "/blog"
+    route_map["contact"] = "/contact"
 
     # Courses + specializations share the top-level namespace.
     # Detect collisions (same slug, or slug colliding with a reserved segment).
@@ -286,13 +289,13 @@ def _write_routes_json(build_dir: Path, route_map: dict, kind_label: dict) -> No
     ordered: dict[str, str] = {}
     if "homepage" in route_map:
         ordered["/"] = kind_label.get("homepage", "homepage")
-    for key in ("programs_listing", "specializations_listing", "blog_listing"):
+    for key in ("programs_listing", "specializations_listing", "blog_listing", "contact"):
         if key in route_map:
             ordered[route_map[key]] = kind_label.get(key, key)
     rest = {
         route_map[k]: kind_label.get(k, k)
         for k in route_map
-        if k not in ("homepage", "programs_listing", "specializations_listing", "blog_listing")
+        if k not in ("homepage", "programs_listing", "specializations_listing", "blog_listing", "contact")
     }
     for r in sorted(rest.keys()):
         ordered[r] = rest[r]
@@ -351,6 +354,8 @@ def _write_sitemap(
             _add(route, lastmod=last_compiled_at, priority="0.9")
         elif key in ("specializations_listing", "blog_listing"):
             _add(route, lastmod=last_compiled_at, priority="0.8")
+        elif key == "contact":
+            _add(route, lastmod=last_compiled_at, priority="0.6")
         elif key.startswith("course:"):
             slug = key.split(":", 1)[1]
             _add(route, _lastmod(index["course"].get(slug)), "0.7")
@@ -519,6 +524,7 @@ def build_website(university_slug: str) -> dict:
         "programs_listing": (Path("Pages") / "programs", "programs"),
         "specializations_listing": (Path("Pages") / "specializations", "specializations"),
         "blog_listing": (Path("Pages") / "blog", "blog"),
+        "contact": (Path("Pages") / "contact", "contact"),
     }
     for kind, (sub, build_sub) in listing_dirs.items():
         html_path = ws_root / sub / _HTML_FILENAME[kind]
@@ -591,6 +597,7 @@ def build_website(university_slug: str) -> dict:
         "programs_listing": "programs_listing",
         "specializations_listing": "specializations_listing",
         "blog_listing": "blog_listing",
+        "contact": "contact",
     }
     for key in route_map:
         if key.startswith("course:"):

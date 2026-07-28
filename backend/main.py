@@ -1222,7 +1222,7 @@ async def create_workspace_endpoint(req: CreateWorkspaceRequest):
     """
     Create a new university workspace on disk:
     1. Writes metadata.json with university info.
-    2. Initialises the 3 system listing pages (Programs, Specializations, Blog).
+    2. Initialises the system pages (Programs, Specializations, Blog, Contact).
 
     Returns { university_slug, workspace_dir, pages_created }
     """
@@ -1234,7 +1234,7 @@ async def create_workspace_endpoint(req: CreateWorkspaceRequest):
 
         meta = ensure_metadata(slug, overrides)
 
-        # Initialise the 3 system listing pages
+        # Initialise the system pages
         listing_results = init_system_pages(slug)
 
         return {
@@ -1359,7 +1359,7 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             import logging
             logging.error(f"Failed to update university knowledge: {knowledge_err}")
 
-        # After saving user content, auto-re-render all 3 listing pages
+        # After saving user content, auto-re-render all system pages
         # so they always reflect the latest workspace state.
         try:
             from workspace.compiler import _build_index, _auto_render_listing_pages

@@ -5,6 +5,7 @@ from transformers.blog import BlogTransformer
 from transformers.programs_listing import ProgramsListingTransformer
 from transformers.specializations_listing import SpecializationsListingTransformer
 from transformers.blog_listing import BlogListingTransformer
+from transformers.contact import ContactTransformer
 
 TRANSFORMER_MAP = {
     "specialization": SpecializationTransformer,
@@ -14,6 +15,7 @@ TRANSFORMER_MAP = {
     "programs_listing": ProgramsListingTransformer,
     "specializations_listing": SpecializationsListingTransformer,
     "blog_listing": BlogListingTransformer,
+    "contact": ContactTransformer,
 }
 
 import re
@@ -44,4 +46,3 @@ def get_transformer(resolved: dict):
     if not cls:
         raise ValueError(f"No transformer for page_type: {page_type}")
     return cls(normalized_resolved)
-

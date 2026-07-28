@@ -14,6 +14,7 @@ Pass 1 — Index:
       "programs_listing":         { slug → record },
       "specializations_listing":  { slug → record },
       "blog_listing":             { slug → record },
+      "contact":                  { slug → record },
     }
 
 Pass 2 — Render:
@@ -57,6 +58,7 @@ _ALL_PAGE_TYPES = {
     "programs_listing",
     "specializations_listing",
     "blog_listing",
+    "contact",
 }
 
 def _build_index(university_slug: str) -> dict:
@@ -267,7 +269,7 @@ def _render_page(enriched: dict) -> str:
 
 def _auto_render_listing_pages(university_slug: str, index: dict) -> list[dict]:
     """
-    Automatically re-render the 3 system listing pages with fresh workspace data.
+    Automatically re-render the system pages with fresh workspace data.
     Called after all user-content pages have been compiled in Pass 2.
     Returns a list of result dicts: { pt, slug, success, error? }
     """
@@ -378,7 +380,7 @@ def compile_workspace(university_slug: str) -> dict:
             pages_failed += 1
             errors.append({"page_type": pt, "slug": slug, "error": str(e)})
 
-    # After user content, auto-render all 3 system listing pages
+    # After user content, auto-render all system pages
     listing_results = _auto_render_listing_pages(university_slug, index)
     listing_compiled = sum(1 for r in listing_results if r.get("success"))
     listing_failed = sum(1 for r in listing_results if not r.get("success"))

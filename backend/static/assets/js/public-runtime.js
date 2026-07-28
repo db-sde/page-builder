@@ -163,11 +163,139 @@
     });
   }
 
+  function initWorkspaceContactForms() {
+    // Step switcher logic
+    document.querySelectorAll('[data-goto-step]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var targetStep = btn.getAttribute('data-goto-step');
+        var formCard = btn.closest('[data-contact-card]') || document;
+
+        if (targetStep === '2') {
+          // Validate step 1 fields
+          var nameInput = formCard.querySelector('#contact-name');
+          var emailInput = formCard.querySelector('#contact-email');
+          var mobileInput = formCard.querySelector('#contact-mobile');
+
+          if (nameInput && !nameInput.checkValidity()) {
+            nameInput.reportValidity();
+            return;
+          }
+          if (emailInput && !emailInput.checkValidity()) {
+            emailInput.reportValidity();
+            return;
+          }
+          if (mobileInput && !mobileInput.checkValidity()) {
+            mobileInput.reportValidity();
+            return;
+          }
+        }
+
+        // Switch panel display
+        formCard.querySelectorAll('[data-step-panel]').forEach(function (panel) {
+          if (panel.getAttribute('data-step-panel') === targetStep) {
+            panel.hidden = false;
+          } else {
+            panel.hidden = true;
+          }
+        });
+
+        // Update progress text and bar fill
+        var stepText = formCard.querySelector('[data-step-text]');
+        var progressBar = formCard.querySelector('[data-progress-bar]');
+        var dots = formCard.querySelectorAll('[data-dot]');
+
+        if (stepText) stepText.textContent = 'Step ' + targetStep + ' of 2';
+        if (progressBar) progressBar.style.width = targetStep === '2' ? '100%' : '50%';
+        dots.forEach(function (dot) {
+          if (dot.getAttribute('data-dot') === targetStep) {
+            dot.classList.add('contact-dot--active');
+          } else {
+            dot.classList.remove('contact-dot--active');
+          }
+        });
+      });
+    });
+
+    document.querySelectorAll('form[data-workspace-contact-form]').forEach(function (form) {
+      var endpoint = form.getAttribute('data-contact-webhook');
+      if (!endpoint) return;
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var error = form.querySelector('[data-contact-error]');
+        var button = form.querySelector('[type="submit"]');
+        var spinnerText = form.querySelector('.contact-submit-spinner');
+        var defaultLabel = button ? button.innerHTML : '';
+
+        if (error) {
+          error.hidden = true;
+          error.textContent = '';
+        }
+        if (button) {
+          button.disabled = true;
+          if (spinnerText) spinnerText.hidden = false;
+        }
+
+        var values = new FormData(form);
+        var payload = {
+          source: 'Web Lead',
+          lead: {
+            full_name: values.get('full_name') || '',
+            mobile_number: values.get('mobile_number') || '',
+            email: values.get('email') || '',
+            city: values.get('city') || '',
+            program: values.get('program') || ''
+          }
+        };
+
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (response) {
+            if (!response.ok) throw new Error('Contact form failed');
+            var success = document.querySelector('[data-contact-success]');
+            if (success) success.hidden = false;
+          })
+          .catch(function () {
+            if (error) {
+              error.textContent = 'Unable to submit right now. Please try again in a few moments.';
+              error.hidden = false;
+            }
+          })
+          .finally(function () {
+            if (button) {
+              button.disabled = false;
+              button.innerHTML = defaultLabel;
+              if (spinnerText) spinnerText.hidden = true;
+            }
+          });
+      });
+    });
+
+    document.querySelectorAll('[data-close-contact-modal]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var success = document.querySelector('[data-contact-success]');
+        if (success) success.hidden = true;
+
+        // Reset form back to step 1
+        var form = document.querySelector('form[data-workspace-contact-form]');
+        if (form) {
+          form.reset();
+          var step1Btn = document.querySelector('[data-goto-step="1"]');
+          if (step1Btn) step1Btn.click();
+        }
+      });
+    });
+  }
+
   function init() {
     initMobileMenu();
     initFaqAccordion();
     initSyllabusTabs();
     initLeadForms();
+    initWorkspaceContactForms();
     wrapArticleTables();
     initExcerptToggle();
   }

@@ -85,6 +85,7 @@ TEMPLATE_MAP = {
     "programs_listing": "programs_listing.html",
     "specializations_listing": "specializations_listing.html",
     "blog_listing": "blog_listing.html",
+    "contact": "contact.html",
 }
 
 
@@ -149,6 +150,8 @@ def _build_structured_data(ctx: dict, resolved: dict, raw: dict, primary_domain:
         crumbs.append({"name": "Programs", "url": canonical_url})
     elif page_type == "specializations_listing":
         crumbs.append({"name": "Specializations", "url": canonical_url})
+    elif page_type == "contact":
+        crumbs.append({"name": "Contact", "url": canonical_url})
     elif page_type == "blog":
         crumbs.append({
             "name": "Blog",
@@ -254,68 +257,6 @@ def load_env():
                     os.environ[key.strip()] = val.strip()
 
 load_env()
-
-def build_lead_payload(
-    university_slug: str = None,
-    program_slug: str = None,
-    specialization_slug: str = None,
-    source: str = None,
-    uni_name: str = None,
-    logo_letter: str = None,
-    program_name: str = None,
-    specialization_name: str = None
-) -> str:
-    """Build a deterministic, URL-safe Base64 encoded JSON payload ignoring null/empty fields."""
-    import base64
-    import json
-    payload = {}
-    if university_slug and str(university_slug).strip():
-        payload["uni"] = str(university_slug).strip()
-    if program_slug and str(program_slug).strip():
-        payload["program"] = str(program_slug).strip()
-    if specialization_slug and str(specialization_slug).strip():
-        payload["specialization"] = str(specialization_slug).strip()
-    if source and str(source).strip():
-        payload["source"] = str(source).strip()
-    if uni_name and str(uni_name).strip():
-        payload["uni_name"] = str(uni_name).strip()
-    if logo_letter and str(logo_letter).strip():
-        payload["logo_letter"] = str(logo_letter).strip()
-    if program_name and str(program_name).strip():
-        payload["program_name"] = str(program_name).strip()
-    if specialization_name and str(specialization_name).strip():
-        payload["specialization_name"] = str(specialization_name).strip()
-    
-    json_bytes = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
-    return base64.urlsafe_b64encode(json_bytes).decode('utf-8')
-
-def build_lead_url(
-    uni_slug: str,
-    course_slug: str = None,
-    source: str = "page",
-    spec_slug: str = None,
-    uni_name: str = None,
-    logo_letter: str = None,
-    program_name: str = None,
-    specialization_name: str = None
-) -> str:
-    """Build a centralized lead capture URL with encoded payload."""
-    base = os.environ.get("LEAD_BASE_URL")
-    if not base:
-        raise ValueError("LEAD_BASE_URL environment variable is missing")
-        
-    base = base.rstrip("/")
-    payload = build_lead_payload(
-        university_slug=uni_slug,
-        program_slug=course_slug,
-        specialization_slug=spec_slug,
-        source=source,
-        uni_name=uni_name,
-        logo_letter=logo_letter,
-        program_name=program_name,
-        specialization_name=specialization_name
-    )
-    return f"{base}/form?d={payload}"
 
 class SyllabusHTMLParser(HTMLParser):
     def __init__(self):
@@ -616,6 +557,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["programs_listing_href"] = build_public_route("programs_listing")
     ctx["specs_listing_href"] = build_public_route("specializations_listing")
     ctx["blog_listing_href"] = build_public_route("blog_listing")
+    ctx["contact_href"] = build_public_route("contact")
 
     # 2. Program Display Name
     prog_name = None
@@ -679,63 +621,18 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
                 slug_val = slug_val[len(parent_val) + 1:]
             spec_name = slug_val.replace("-", " ").title()
 
-    # Centralized lead URL — no contact/lead forms in this project
-    # Centralized lead URL — only pass program_name/specialization_name on course/specialization pages
-    spec_slug_arg = resolved.get("slug") if page_type == "specialization" else None
-    course_slug_val = resolved.get("parent_slug") if page_type == "specialization" else (resolved.get("slug") if page_type == "course" else None)
-    
-    send_prog_name = prog_name if page_type in ("course", "specialization") else None
-    send_spec_name = spec_name if page_type == "specialization" else None
-
-    ctx["lead_url"] = build_lead_url(
-        uni_slug, course_slug_val, source=page_type, spec_slug=spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    
-    # Inject lead URLs context variables
-    ctx["lead_base_url"] = os.environ.get("LEAD_BASE_URL", "http://localhost:3001")
+    # Lead actions stay on the generated workspace site. The Contact page
+    # submits directly to its workspace-configured webhook when available.
     ctx["university_slug"] = uni_slug
     ctx["slug"] = resolved.get("slug") or ""
     ctx["parent_course_slug"] = resolved.get("parent_slug") or ""
     ctx["specialization_slug"] = resolved.get("slug") or ""
     
-    # Inject action-specific encoded lead URLs
-    ctx["lead_url_apply"] = build_lead_url(
-        uni_slug, course_slug_val, "apply", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_brochure"] = build_lead_url(
-        uni_slug, course_slug_val, "brochure", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_enquiry"] = build_lead_url(
-        uni_slug, course_slug_val, "enquiry", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_fees"] = build_lead_url(
-        uni_slug, course_slug_val, "fees", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_counselling"] = build_lead_url(
-        uni_slug, course_slug_val, "counselling", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_syllabus"] = build_lead_url(
-        uni_slug, course_slug_val, "syllabus", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
-    ctx["lead_url_whatsapp"] = build_lead_url(
-        uni_slug, course_slug_val, "whatsapp", spec_slug_arg,
-        uni_name=uni_name, logo_letter=logo_letter, program_name=send_prog_name,
-        specialization_name=send_spec_name
-    )
+    for key in (
+        "lead_url", "lead_url_apply", "lead_url_brochure", "lead_url_enquiry",
+        "lead_url_fees", "lead_url_counselling", "lead_url_syllabus", "lead_url_whatsapp",
+    ):
+        ctx[key] = ctx["contact_href"]
     
     if "parent_program_name" not in ctx:
         ctx["parent_program_name"] = prog_name

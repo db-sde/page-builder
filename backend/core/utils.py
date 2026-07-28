@@ -246,6 +246,8 @@ def build_public_route(page_type: str, slug: str = "", university_slug: str = ""
         return "/specializations"
     if page_type == "blog_listing":
         return "/blog"
+    if page_type == "contact":
+        return "/contact"
 
     public_slug = normalize_public_slug(slug, university_slug)
     if page_type == "blog":

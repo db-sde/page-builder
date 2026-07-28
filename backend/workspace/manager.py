@@ -22,7 +22,7 @@ Workspace layout (example — NMIMS):
       │   └── blog-001/
       │       ├── source.json
       │       └── blog.html
-      ├── Pages/                 ← System-generated listing pages
+      ├── Pages/                 ← System-generated pages
       │   ├── programs/
       │   │   ├── source.json
       │   │   └── programs_listing.html
@@ -32,6 +32,9 @@ Workspace layout (example — NMIMS):
       │   └── blog/
       │       ├── source.json
       │       └── blog_listing.html
+      │   └── contact/
+      │       ├── source.json
+      │       └── contact.html
       └── Assets/
           ├── images/
           └── downloads/
@@ -70,6 +73,7 @@ def resolve_page_dir(
     programs_listing      → workspaces/<uni>/Pages/programs/
     specializations_listing → workspaces/<uni>/Pages/specializations/
     blog_listing          → workspaces/<uni>/Pages/blog/
+    contact               → workspaces/<uni>/Pages/contact/
     """
     root = _workspace_root(university_slug)
 
@@ -95,6 +99,9 @@ def resolve_page_dir(
     elif page_type == "blog_listing":
         return root / "Pages" / "blog"
 
+    elif page_type == "contact":
+        return root / "Pages" / "contact"
+
     else:
         raise ValueError(f"Unknown page_type: {page_type}")
 
@@ -109,16 +116,18 @@ _HTML_FILENAME = {
     "programs_listing": "programs_listing.html",
     "specializations_listing": "specializations_listing.html",
     "blog_listing": "blog_listing.html",
+    "contact": "contact.html",
 }
 
-# All system-generated listing page types
-SYSTEM_PAGE_TYPES = ["programs_listing", "specializations_listing", "blog_listing"]
+# All system-generated page types
+SYSTEM_PAGE_TYPES = ["programs_listing", "specializations_listing", "blog_listing", "contact"]
 
 # Slugs for system pages
 SYSTEM_PAGE_SLUGS = {
     "programs_listing": "programs",
     "specializations_listing": "specializations",
     "blog_listing": "blog",
+    "contact": "contact",
 }
 
 
@@ -141,6 +150,7 @@ def _default_metadata(university_slug: str) -> dict:
             "head": "",
             "body_start": ""
         },
+        "contact_webhook": "",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_compiled_at": None,
     }
@@ -253,7 +263,7 @@ def save_page(
 
 def init_system_pages(university_slug: str) -> list[dict]:
     """
-    Create the 3 system-generated listing page stubs in the workspace.
+    Create the system-generated page stubs in the workspace.
     These are rendered with empty data initially and re-rendered by the compiler
     once content pages are added.
 
