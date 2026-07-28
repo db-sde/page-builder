@@ -19,11 +19,11 @@
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;display:flex;flex-direction:column">
 
   <!-- ===== PREBUILT TOP BAR ===== -->
-  {% if site.topbar_text %}<div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
+  <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
-      <span>{{ site.topbar_text }}</span>
+      <span>{% if site.topbar_text %}{{ site.topbar_text }}{% else %}Admissions open · Limited seats{% endif %}</span>
     </div>
-  </div>{% endif %}
+  </div>
 
   <!-- ===== PREBUILT HEADER / NAVBAR ===== -->
   <header style="background:#fff;border-bottom:1px solid #E9E5F2;position:sticky;top:0;z-index:50">
