@@ -28,7 +28,7 @@
   <!-- ===== TOP BAR ===== -->
   <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
-      <span>Admissions open for the 2026 batch · Limited seats</span>
+      <span>{% if site.topbar_text and site.topbar_text != 'Admissions open · Limited seats' %}{{ site.topbar_text }}{% endif %}</span>
     </div>
   </div>
 
@@ -85,11 +85,13 @@
           <a href="{{ homepage_href }}" style="color:#EAE7FD">Home</a> › <a href="{{ programs_listing_href }}" style="color:#EAE7FD">All Programs</a> › {{ hero.title }}
         </div>
         {% if hero.badge %}<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,92,53,.18);border:1px solid rgba(255,92,53,.45);color:#E04015;font-weight:700;font-size:12.5px;padding:6px 13px;border-radius:30px;margin-bottom:16px">{{ hero.badge }}</div>{% endif %}
-        <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{{ parent_program_name }} in<br>{{ hero.title }}</h1>
+        <h1 style="font-size:38px;font-weight:800;line-height:1.16;letter-spacing:-.01em">{% if parent_course_slug and parent_program_name %}{{ parent_program_name }} in<br>{% endif %}{{ hero.title }}</h1>
         <div class="rich-content content-body" style="font-size:16px;color:#D9D2F2;max-width:540px;margin-top:16px">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
+            {% if pill.label != 'No Entrance Exam' %}
             <span style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600">{{ pill.label }}</span>
+            {% endif %}
           {% endfor %}
         </div>
         <div class="hero-buttons" style="margin-top:26px">
@@ -108,7 +110,7 @@
         </picture>
         {% else %}
         <div style="border-radius:16px;min-height:410px;background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 14px,#6244C2 14px,#6244C2 28px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.55)">
-          <span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#E4DCF7;letter-spacing:.04em;text-align:center">[{{ hero.title }} photo / learner photo<br>— 480 × 420 — ]</span>
+          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#E4DCF7;letter-spacing:.04em;text-align:center">[{{ hero.title }} photo / learner photo<br>— 480 × 420 — ]</span>{% endif %}
         </div>
         {% endif %}
         {% if hero.stat_card %}
@@ -197,9 +199,9 @@
             {% endfor %}
           </table>
         </div>
-        {% if fees.note %}
+        {% if sticky_bar and sticky_bar.emi %}
         <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:14px">
-          {{ fees.note }}
+          EMI: {{ sticky_bar.emi }}
         </div>
         {% endif %}
       </section>
@@ -209,7 +211,7 @@
       <div style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:12px;padding:26px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
         <div style="color:#fff">
           <div style="font-size:19px;font-weight:800">Ready to specialise in {{ hero.title }}?</div>
-          <div style="color:#D9D2F2;font-size:14px;margin-top:4px">Get the complete specialization syllabus brochure online.</div>
+          <div aria-hidden="true" style="color:#D9D2F2;font-size:14px;margin-top:4px">&nbsp;</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <a href="{{ lead_url_enquiry }}" style="background:#FF5C35;color:#1C1B22;font-weight:800;font-size:14.5px;padding:13px 22px;border-radius:8px">Enquire Now</a>
@@ -309,7 +311,7 @@
                     {{ o.name }}
                   {% endif %}
                 </td>
-                <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ o.bg }};font-weight:{{ o.weight }};color:{{ o.color }};border-top:{{ o.bt }};border-bottom:{{ o.bb }}">{{ o.fee }}</td>
+                <td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ o.bg }};font-weight:{{ o.weight }};color:{{ o.color }};border-top:{{ o.bt }};border-bottom:{{ o.bb }}">{% if o.fee != 'Contact for fee' %}{{ o.fee }}{% endif %}</td>
               </tr>
             {% endfor %}
           </table>
@@ -352,7 +354,7 @@
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div class="card-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
           {% for j in jobs %}
-            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ j.t }}</h4><p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p></div>
+            <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px"><h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ j.t }}</h4>{% if j.s %}<p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p>{% endif %}</div>
           {% endfor %}
         </div>
       </section>
@@ -362,7 +364,7 @@
       <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:26px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;box-shadow:0 8px 24px rgba(46,26,107,.06)">
         <div>
           <div style="font-size:19px;font-weight:800;color:#1C1B22">Download the {{ hero.title }} specialization brochure</div>
-          <div style="color:#6E6A78;font-size:14px;margin-top:4px">Full syllabus, fee plans, faculty and placement data in one PDF.</div>
+          <div aria-hidden="true" style="color:#6E6A78;font-size:14px;margin-top:4px">&nbsp;</div>
         </div>
         <a href="{{ lead_url_brochure }}" style="background:#FF5C35;color:#1C1B22;font-weight:800;font-size:14.5px;padding:13px 24px;border-radius:8px">Download Brochure</a>
       </div>
@@ -372,7 +374,7 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Student Reviews</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         {% for rv in reviews %}
-          <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px"><p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p><b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b></div>
+          <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px"><p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p>{% if rv.a %}<b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b>{% endif %}</div>
         {% endfor %}
       </section>
       {% endif %}
@@ -408,7 +410,7 @@
         {% else %}
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
-        <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
+        {% if meta_description %}<p style="font-size:13px;line-height:1.6;max-width:300px">{{ meta_description }}</p>{% endif %}
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
@@ -439,7 +441,7 @@
       {% endif %}
     </div>
     <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <span>{% if site.copyright %}{{ site.copyright }}{% else %}© 2026 {{ university_name }} Online. All rights reserved.{% endif %}</span>
+      {% if site.copyright %}<span>{{ site.copyright }}</span>{% endif %}
       <span>Privacy Policy · Terms · Refund Policy</span>
     </div>
   </footer>
@@ -449,7 +451,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi }}</small>{% endif %}</div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">EMI: {{ sticky_bar.emi }}</small>{% endif %}</div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>

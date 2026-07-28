@@ -1,12 +1,17 @@
 # memory/active.md — Current Work
 
-Last updated: 2026-07-24
+Last updated: 2026-07-27
 
 ---
 
 ## What Is Being Worked On?
 
-**Schema-driven content pipeline — Phase 3 complete (2026-07-24).** The pipeline is now the
+**Template regression restoration complete (2026-07-27).** The original V2 presentation from
+`3970dc3e56348abf0fb5f82cd39de0ea19c802e1` is again the structural baseline for University,
+Course, and Specialization pages. Phase 3 data guards and fabricated-content removal remain.
+No CSS, parser, transformer, renderer, schema, compiler, builder, or editor code changed.
+
+The schema-driven content pipeline — Phase 3 complete (2026-07-24) — remains the
 editing workflow described in [systems/schema-pipeline.md](../systems/schema-pipeline.md):
 
 ```

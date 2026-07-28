@@ -5,6 +5,33 @@ This is the most important file for preventing repeated mistakes.
 
 ---
 
+## REG-012: Phase 4 Template Mapping Changed V2 Geometry (FIXED 2026-07-27)
+
+**Status:** FIXED. The last visually correct reference is
+`3970dc3e56348abf0fb5f82cd39de0ea19c802e1`; commit `5b65cd0` copied those V2 templates and
+their CSS into the unified paths byte-for-byte.
+
+**Cause:** Uncommitted Phase 4 template-mapping work added standalone University sections,
+made established grids conditionally one-column, removed persistent image/CTA/supporting-text
+containers, and allowed missing images to collapse columns. The Phase 1/2 commit `2bfe8a8`
+did not touch templates or CSS. Phase 3 commit `97a899b` added data guards and removed fabricated
+content but did not change CSS; its correctness fixes were not reverted. Experiment commits
+`c0a65aa` and `767454d` are not ancestors of the current `main` branch.
+
+**Fix:** Restored the V2 HTML geometry in `university.html`, `course.html`, and
+`specialization.html`; retained dynamic values, empty-data guards, preview-only placeholder text,
+and no-fabrication behavior. Parsed University facts reuse the existing Why-us card grid instead
+of introducing a new visual section. No CSS or backend pipeline code changed.
+
+**How to avoid:** Treat the V2 markup and CSS as a visual contract. Template data mapping may
+replace values and add guards, but must not change wrappers, grid columns, section ordering, or
+responsive class hooks without a separately approved design change.
+
+**Verification:** CSS hashes match V2; 35 tests pass; 39 real pages render; IGNOU and NMIMS
+compile with zero failures; responsive browser checks show no overflow.
+
+---
+
 ## REG-010: Fabricated Fallback Content in Renderer & Templates (FIXED 2026-07-24)
 
 **Status:** FIXED in the Phase 3 pipeline refactor. Discovered in the 2026-07-24

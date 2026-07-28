@@ -4,6 +4,24 @@ One section per development session. Newest first.
 
 ---
 
+## 2026-07-27 — V2 Template Regression Restoration
+
+**What changed:**
+- Audited `university.html`, `course.html`, and `specialization.html` against V2 reference
+  `3970dc3e56348abf0fb5f82cd39de0ea19c802e1` and the identical unified-template migration
+  in `5b65cd0`.
+- Restored the original wrappers, fixed grid geometry, persistent image containers, CTA rhythm,
+  and responsive class structure while keeping Phase 3 empty-data guards and no-fabrication rules.
+- Confirmed the current CSS files are byte-identical to the V2 reference; no CSS was changed.
+
+**Verification:** 35/35 backend tests passed; all 39 IGNOU/NMIMS workspace pages rendered in
+memory; both workspaces compiled with zero failures; the IGNOU browser audit found no horizontal
+overflow or console errors at the tested desktop/mobile layouts.
+
+**Outcome:** Original V2 visual structure with current dynamic data behavior. See REG-012.
+
+---
+
 ## 2026-07-24 — Schema-Driven Content Pipeline Phase 1
 
 **What changed:**

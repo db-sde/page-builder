@@ -28,7 +28,7 @@
   <!-- ===== TOP BAR ===== -->
   <div style="background:#6B4FC9;color:#EAE7FD;font-size:12.5px">
     <div style="max-width:1180px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;justify-content:center">
-      <span>Admissions open for the 2026 batch · Limited seats</span>
+      <span>{% if site.topbar_text and site.topbar_text != 'Admissions open · Limited seats' %}{{ site.topbar_text }}{% endif %}</span>
     </div>
   </div>
 
@@ -91,7 +91,9 @@
         <div class="rich-content content-body" style="font-size:16px;max-width:540px;margin-top:16px;color:{{ heroSub }}">{{ hero.description | safe }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px">
           {% for pill in hero.pills %}
+            {% if pill.label != 'No Entrance Exam' %}
             <span style="border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;{{ heroChip }}">{{ pill.label }}</span>
+            {% endif %}
           {% endfor %}
         </div>
         <div class="hero-buttons" style="margin-top:26px">
@@ -111,7 +113,7 @@
         </picture>
         {% else %}
         <div style="border-radius:16px;min-height:410px;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.35);{{ heroImg }}">
-          <span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ heroImgText }}">[{{ university_name }} campus / learner photo<br>— 480 × 420 — ]</span>
+          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ heroImgText }}">[{{ university_name }} campus / learner photo<br>— 480 × 420 — ]</span>{% endif %}
         </div>
         {% endif %}
         {% if hero.stat_card %}
@@ -214,7 +216,7 @@
       <div style="background:linear-gradient(120deg,#6B4FC9,#8A6BF0);border-radius:12px;padding:26px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
         <div style="color:#fff">
           <div style="font-size:19px;font-weight:800">Not sure which specialization fits you?</div>
-          <div style="color:#D9D2F2;font-size:14px;margin-top:4px">Get a personalised recommendation online — free.</div>
+          <div aria-hidden="true" style="color:#D9D2F2;font-size:14px;margin-top:4px">&nbsp;</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <a href="{{ lead_url_enquiry }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14.5px;padding:13px 22px;border-radius:8px">Enquire Now</a>
@@ -236,8 +238,8 @@
             {% endfor %}
           </table>
         </div>
-        {% if fees.note %}
-        <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:14px">{{ fees.note }}</div>
+        {% if sticky_bar and sticky_bar.emi %}
+        <div style="background:#FFF0EB;border:1px solid #FFD3C6;border-radius:8px;padding:12px 14px;font-size:13px;color:#9E3B22;margin-top:14px">EMI: {{ sticky_bar.emi }}</div>
         {% endif %}
       </section>
       {% endif %}
@@ -347,11 +349,11 @@
               <source type="image/webp" media="(max-width: 768px)" srcset="{{ certificate_image_url | webp_variant(768) }}">
               <source type="image/webp" media="(max-width: 1200px)" srcset="{{ certificate_image_url | webp_variant(1200) }}">
               <source type="image/webp" srcset="{{ certificate_image_url | webp_variant }}">
-              <img src="{{ certificate_image_url }}" alt="Sample Degree Certificate" width="{{ certificate_image_url | image_width }}" height="{{ certificate_image_url | image_height }}" style="max-width:100%;max-height:240px;display:block;object-fit:contain" loading="lazy" decoding="async">
+              <img src="{{ certificate_image_url }}" alt="{{ hero.title }} degree certificate" width="{{ certificate_image_url | image_width }}" height="{{ certificate_image_url | image_height }}" style="max-width:100%;max-height:240px;display:block;object-fit:contain" loading="lazy" decoding="async">
             </picture>
           </div>
           {% else %}
-          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px"><span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span></div>
+          <div style="border-radius:10px;border:1px solid #E9E5F2;background:repeating-linear-gradient(135deg,#EFEBF8,#EFEBF8 12px,#E4DEF4 12px,#E4DEF4 24px);min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px">{% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12px;color:#A99BD8;line-height:1.6;text-align:center">[ sample degree certificate<br>— 320 × 240 — ]</span>{% endif %}</div>
           {% endif %}
           <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:18px;display:flex;flex-direction:column;justify-content:center">
             <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">Your Degree Certificate</h4>
@@ -370,7 +372,7 @@
           {% for j in jobs %}
             <div style="background:#F6F4FB;border:1px solid #E9E5F2;border-radius:10px;padding:16px">
               <h4 style="font-size:14.5px;color:#1C1B22;font-weight:700;margin-bottom:4px">{{ j.t }}</h4>
-              <p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p>
+              {% if j.s %}<p style="font-size:13px;color:#6E6A78">Avg. salary: {{ j.s }}</p>{% endif %}
             </div>
           {% endfor %}
         </div>
@@ -380,8 +382,8 @@
       <!-- ===== INLINE CTA BAND 2 ===== -->
       <div style="background:#fff;border:1px solid #E9E5F2;border-radius:12px;padding:26px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;box-shadow:0 8px 24px rgba(46,26,107,.06)">
         <div>
-          <div style="font-size:19px;font-weight:800;color:#1C1B22">Get the detailed fee structure &amp; brochure</div>
-          <div style="color:#6E6A78;font-size:14px;margin-top:4px">Full syllabus, EMI plans and specialization details — delivered to your inbox.</div>
+          <div style="font-size:19px;font-weight:800;color:#1C1B22">Download the program brochure</div>
+          <div aria-hidden="true" style="color:#6E6A78;font-size:14px;margin-top:4px">&nbsp;</div>
         </div>
         <a href="{{ lead_url_brochure }}" style="background:#1C1B22;color:#F3C77C;font-weight:800;font-size:14.5px;padding:13px 24px;border-radius:8px">Download Brochure</a>
       </div>
@@ -393,7 +395,7 @@
         {% for rv in reviews %}
           <div style="background:#F6F4FB;border-left:4px solid #FF5C35;border-radius:8px;padding:16px;margin-bottom:14px">
             <p style="font-size:13.5px;font-style:italic;margin-bottom:8px">{{ rv.q }}</p>
-            <b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b>
+            {% if rv.a %}<b style="font-size:13px;color:#1C1B22">{{ rv.a }}</b>{% endif %}
           </div>
         {% endfor %}
       </section>
@@ -433,7 +435,7 @@
         {% else %}
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:36px;height:36px;border-radius:8px;background:#F3C77C;color:#1C1B22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">{{ university_letter }}</div><div style="font-weight:800;font-size:17px;color:#fff">{{ university_name }} <span style="color:#F3C77C">Online</span></div></div>
         {% endif %}
-        <p style="font-size:13px;line-height:1.6;max-width:300px">UGC-entitled online degree programs, built for working professionals who want to grow without pausing their careers.</p>
+        {% if meta_description %}<p style="font-size:13px;line-height:1.6;max-width:300px">{{ meta_description }}</p>{% endif %}
       </div>
       <div>
         <div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:12px">Programs</div>
@@ -464,7 +466,7 @@
       {% endif %}
     </div>
     <div style="max-width:1180px;margin:28px auto 0;padding-top:18px;border-top:1px solid #3E2A7A;font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <span>{{ site.copyright | default("© 2026 " ~ university_name ~ ". All rights reserved.") }}</span>
+      {% if site.copyright %}<span>{{ site.copyright }}</span>{% endif %}
       <span>Privacy Policy · Terms · Refund Policy</span>
     </div>
   </footer>
@@ -472,7 +474,7 @@
   <!-- ===== STICKY BOTTOM BAR ===== -->
   <div class="sticky-bottom-bar" style="position:fixed;left:0;right:0;bottom:0;background:#6B4FC9;color:#fff;z-index:60;box-shadow:0 -6px 18px rgba(0,0,0,.18)">
     <div class="sticky-bar-container" style="max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px">
-      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">Total program fee · EMI from {{ sticky_bar.emi }}</small>{% endif %}</div>
+      <div class="sticky-text-info"><b style="font-size:17px">{{ sticky_bar.fee | de }}</b>{% if sticky_bar.emi %}<small style="color:#EAE7FD;display:block;font-size:12px">EMI: {{ sticky_bar.emi }}</small>{% endif %}</div>
       <div class="sticky-button-wrap" style="display:flex;gap:10px">
         {% if site.whatsapp %}
         <a class="sticky-whatsapp" href="{{ lead_url_whatsapp }}" style="background:#25D366;color:#06301a;font-weight:800;font-size:14px;padding:10px 22px;border-radius:8px">WhatsApp</a>
