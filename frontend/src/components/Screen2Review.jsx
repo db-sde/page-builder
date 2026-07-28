@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
-import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree } from '../api';
-import FieldHealthPanel from './FieldHealthPanel';
-import AddFieldModal from './AddFieldModal';
+import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree, getPageBlueprint } from '../api';
+import SectionContentEditor from './SectionContentEditor';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
 
 // Image slots required per page type
 const IMAGE_SLOTS = {
   university: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Homepage Hero / Campus Banner', dims: '480 × 420px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'Homepage hero or campus banner', dims: '480 × 420px', required: true },
+    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
   ],
   course: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Right column of hero section — the main visual', dims: '480 × 420px' },
-    { key: 'certificate_image_url', label: 'Degree Certificate Image', hint: 'Sample degree certificate visual shown in Placement section', dims: '320 × 240px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'Main visual in the hero section', dims: '480 × 420px', required: true },
+    { key: 'certificate_image_url', label: 'Degree Certificate Image', hint: 'Sample certificate shown in the Placement section', dims: '320 × 240px', required: true },
+    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
   ],
   specialization: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Right column of hero section — the main visual', dims: '480 × 420px' },
+    { key: 'hero_image_url', label: 'Hero Image', hint: 'Main visual in the hero section', dims: '480 × 420px', required: true },
+    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
   ],
   blog: [
     { key: 'hero_image_url', label: 'Article Hero Image', hint: 'Main article header banner image displayed on the right of the title', dims: '460 × 340px' },
@@ -70,10 +72,20 @@ function initFields(acf_data, page_type) {
   return out;
 }
 
+function initStructuredFields(acfData) {
+  const output = {};
+  for (const [name, value] of Object.entries(acfData || {})) {
+    if (name === '_meta') continue;
+    if (Array.isArray(value)) output[name] = value;
+  }
+  return output;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Screen2Review({ session, updateSession, onNext, onBack }) {
   const [fields, setFields]       = useState(() => initFields(session.acf_data, session.page_type));
+  const [structuredFields, setStructuredFields] = useState(() => initStructuredFields(session.acf_data));
   const [imageUrls, setImageUrls] = useState(() => {
     const initImages = { ...session.images };
     const neededKeys = (IMAGE_SLOTS[session.page_type] || []).map(slot => slot.key);
@@ -86,7 +98,8 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   });
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
-  const [modalField, setModalField] = useState(null);   // field object or null
+  const [blueprint, setBlueprint] = useState(null);
+  const [blueprintLoading, setBlueprintLoading] = useState(false);
   const [heroImageAlt, setHeroImageAlt] = useState(() => {
     return session.acf_data?.hero_image_alt || '';
   });
@@ -101,6 +114,18 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   // ── Detected Specializations state (course only) ─────────────────────────
   const [workspaceSpecs, setWorkspaceSpecs] = useState([]);
   const [specStates, setSpecStates] = useState({});
+
+  useEffect(() => {
+    if (!['university', 'course', 'specialization'].includes(session.page_type)) return;
+    setBlueprintLoading(true);
+    getPageBlueprint(session.page_type)
+      .then(setBlueprint)
+      .catch(err => {
+        console.warn('Failed to load page blueprint:', err);
+        setError('The page editing contract could not be loaded. Please try again.');
+      })
+      .finally(() => setBlueprintLoading(false));
+  }, [session.page_type]);
 
   useEffect(() => {
     if (session.page_type !== 'course' || !session.university_slug) return;
@@ -204,36 +229,6 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
 
   const slots = IMAGE_SLOTS[session.page_type] || [];
 
-  // ── Field modal handlers ──────────────────────────────────────────────────
-  const handleAddField = (field) => {
-    setModalField(field);
-  };
-
-  const JSON_ARRAY_FIELDS = [
-    'highlights', 'fee_plans', 'job_profiles', 'faqs', 'reviews',
-    'accreditations', 'facts', 'programs_table', 'posts', 'categories',
-    'programs_list', 'other_specs'
-  ];
-
-  const handleSaveField = (key, rawValue) => {
-    if (JSON_ARRAY_FIELDS.includes(key)) {
-      // Parse and store directly in session.acf_data as a real array
-      try {
-        const parsed = JSON.parse(rawValue);
-        updateSession({
-          acf_data: { ...session.acf_data, [key]: parsed }
-        });
-      } catch {
-        // If invalid JSON, store as string in fields and let backend handle it
-        setFields(f => ({ ...f, [key]: rawValue }));
-      }
-    } else {
-      // Simple fields go into the editable fields state as strings
-      setFields(f => ({ ...f, [key]: rawValue }));
-    }
-    setModalField(null);
-  };
-
   // ── Generate preview ──────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
@@ -259,7 +254,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
 
     setLoading(true);
     try {
-      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), hero_image_alt: heroImageAlt };
+      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), ...structuredFields, hero_image_alt: heroImageAlt };
 
       // IMPORTANT: Always include metadata keys so the backend uses the correct
       // transformer. Without these, the backend auto-detects and can wrongly
@@ -308,10 +303,13 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     }
   };
 
-  // Split editable fields into simple vs complex
-  const simpleFields  = Object.entries(fields);
-
-  const liveAcf = { ...session.acf_data, ...fieldsToAcf(fields), ...imageUrls };
+  const editorValues = {
+    ...session.acf_data,
+    ...fieldsToAcf(fields),
+    ...structuredFields,
+    ...imageUrls,
+    hero_image_alt: heroImageAlt,
+  };
 
   const isListingPage = ['programs_listing', 'specializations_listing', 'blog_listing'].includes(session.page_type);
 
@@ -328,24 +326,16 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
       <div className="topbar">
         <div className="topbar-left">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 className="topbar-title">Review &amp; Images</h1>
+            <h1 className="topbar-title">Page Content</h1>
             {session.workspace && (
               <span className="badge badge--published" style={{ fontSize: 12, padding: '4px 10px', height: 'fit-content' }}>
                 📁 Workspace: {session.workspace.name}
               </span>
             )}
           </div>
-          <p className="topbar-subtitle">Check field health, edit extracted fields, and upload images before generating the page.</p>
+          <p className="topbar-subtitle">Review each page section, complete missing content, and add images before previewing.</p>
         </div>
       </div>
-
-      {/* ── Field Health Panel ── */}
-      <FieldHealthPanel
-        acf_data={liveAcf}
-        page_type={session.page_type}
-        onAddField={handleAddField}
-        editing_state={session.editing_state}
-      />
 
       {/* ── Table Ingestion Warnings ── */}
       {session.table_warnings && session.table_warnings.length > 0 && (
@@ -619,143 +609,37 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         </div>
       )}
 
-      {/* ── Simple text fields ── */}
-      {simpleFields.length > 0 && (
-
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-body" style={{ padding: 28 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Page Fields</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>Edit any field before generating the page.</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              {simpleFields.map(([key, val]) => {
-                const schema = FIELD_SCHEMA[session.page_type] || [];
-                const schemaField = schema.find(f => f.key === key);
-                const isRequired = schemaField ? schemaField.required : false;
-                const isFieldEmpty = val === '';
-                
-                return (
-                  <div key={key}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>{key}</label>
-                      {isRequired && <span style={{ fontSize: 11, color: '#c53030', fontWeight: 800 }}>Required</span>}
-                    </div>
-                    <input
-                      className="input"
-                      value={val}
-                      onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))}
-                      style={{ 
-                        width: '100%',
-                        borderColor: isFieldEmpty && isRequired ? '#feb2b2' : isFieldEmpty ? '#fde68a' : undefined,
-                        background: isFieldEmpty ? (isRequired ? '#fff8f8' : '#fffff4') : undefined,
-                      }}
-                    />
-                    {isFieldEmpty && (
-                      <div style={{ 
-                        color: isRequired ? '#c53030' : '#b45309', 
-                        fontSize: 11.5, 
-                        marginTop: 4, 
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}>
-                        <span>⚠</span> {isRequired ? 'Missing from uploaded document' : 'Not detected from source file'}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {blueprintLoading && (
+        <div className="card author-loading">Loading page sections…</div>
       )}
 
-      {/* ── Image upload slots ── */}
+      {!blueprintLoading && blueprint && (
+        <SectionContentEditor
+          blueprint={blueprint}
+          editingState={session.editing_state}
+          values={editorValues}
+          onChange={(name, value) => {
+            if (Array.isArray(value)) {
+              setStructuredFields(current => ({ ...current, [name]: value }));
+            } else {
+              setFields(current => ({ ...current, [name]: value }));
+            }
+          }}
+          slots={slots}
+          imageUrls={imageUrls}
+          heroImageAlt={heroImageAlt}
+          onImageChange={(name, value) => setImageUrls(current => ({ ...current, [name]: value }))}
+          onAltChange={setHeroImageAlt}
+          getImageUrl={getImageUrl}
+        />
+      )}
+
       {isListingPage && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-body" style={{ padding: 28, textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 4 }}>No Image Uploads Required</div>
             <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
               Listing pages are generated automatically from workspace data and do not require image assets.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!isListingPage && slots.length > 0 && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-body" style={{ padding: 28 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>Image Slots</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-              Upload images for this <strong>{session.page_type}</strong> page. All slots are optional — placeholders show if left empty.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {slots.map(slot => (
-                <div
-                  key={slot.key}
-                  style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: 20, display: 'grid', gridTemplateColumns: '1fr 200px', gap: 20, alignItems: 'center' }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 14.5 }}>{slot.label}</div>
-                    <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 3 }}>{slot.hint}</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 3 }}>Recommended: {slot.dims}</div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Image URL</label>
-                      <input
-                        className="input"
-                        placeholder="https://..."
-                        value={imageUrls[slot.key] || ''}
-                        onChange={e => setImageUrls(u => ({ ...u, [slot.key]: e.target.value }))}
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Or Upload Local Image</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onloadend = () => setImageUrls(u => ({ ...u, [slot.key]: reader.result }));
-                          reader.readAsDataURL(file);
-                        }}
-                        className="input"
-                        style={{ display: 'block', width: '100%', cursor: 'pointer' }}
-                      />
-                    </div>
-
-                    {slot.key === 'hero_image_url' && (
-                      <div style={{ marginTop: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 6 }}>Alt Text</label>
-                        <input
-                          className="input"
-                          placeholder="Alt text for accessibility / SEO..."
-                          value={heroImageAlt}
-                          onChange={e => setHeroImageAlt(e.target.value)}
-                          style={{ width: '100%' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Preview thumbnail */}
-                  <div style={{
-                    height: 120, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-border)',
-                    background: 'repeating-linear-gradient(135deg,#eef2f8,#eef2f8 10px,#e4ebf5 10px,#e4ebf5 20px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {imageUrls[slot.key] ? (
-                      <img src={getImageUrl(imageUrls[slot.key])} alt={slot.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontFamily: 'var(--font-code)', textAlign: 'center', padding: 8 }}>No image yet</span>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -783,14 +667,6 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         >{loading ? 'Generating…' : 'Generate Preview →'}</button>
       </div>
 
-      {/* ── Add Field Modal ── */}
-      {modalField && (
-        <AddFieldModal
-          field={modalField}
-          onSave={handleSaveField}
-          onClose={() => setModalField(null)}
-        />
-      )}
     </div>
   );
 }

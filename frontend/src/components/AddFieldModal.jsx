@@ -1,9 +1,5 @@
 import { useState } from 'react';
 
-// Fields that must be entered as a JSON array
-const JSON_FIELDS = new Set([]);
-
-// Fields that accept long HTML content
 const HTML_FIELDS = new Set([
   'about_content', 'eligibility_content', 'admission_steps', 'syllabus_content',
   'placement_content', 'why_choose_content', 'emi_content', 'exam_content',
@@ -11,49 +7,22 @@ const HTML_FIELDS = new Set([
 ]);
 
 const PLACEHOLDERS = {
-  // HTML
-  about_content:         '<p>Write the about section content here. Describe the program\'s highlights, history, and value proposition.</p>',
-  eligibility_content:   '<p>A bachelor\'s degree with minimum 50% aggregate marks from a UGC-recognised university. Working professionals and fresh graduates are both eligible.</p>',
-  admission_steps:       '<p>1. Register online at the Degreebaba portal<br>2. Fill the application form<br>3. Upload required documents<br>4. Pay first installment</p>',
-  syllabus_content:      '<p><strong>Year 1:</strong> Core management subjects including Marketing, Finance, HRM, Operations.<br><strong>Year 2:</strong> Specialization electives and capstone project.</p>',
-  placement_content:     '<p>Degreebaba Career Services offers virtual placement drives, a dedicated job board, employer webinars and one-on-one career coaching.</p>',
-  why_choose_content:    '<p>Describe why students should choose this university — legacy, rankings, industry connections, etc.</p>',
-  emi_content:           '<p>No-cost EMI from ₹8,334/month over 24 months. Education loans available via NBFC partners.</p>',
-  exam_content:          '<p>Online proctored examinations conducted at designated centres. Results published within 4 weeks of exam date.</p>',
-  certificate_description: '<p>On successful completion you receive a degree certificate identical to the on-campus program, valid for all jobs, higher studies, and government roles.</p>',
-};
-
-const DEFAULT_VALUES = {
-  program_name: 'Degreebaba Online MBA',
-  university_name: '',
-  spec_name: '',
-  hero_description: '',
-  duration: '2 Years',
-  mode: 'Online',
-  total_fee: '2,00,000',
-  naac_grade: 'A+',
-  ugc_status: 'UGC Entitled',
-  ugc_approved: 'UGC Approved',
-  seo_title: '',
-  meta_description: '',
-  emi_amount: '₹8,334/mo',
-  num_specializations: '5',
-  established_year: '1981',
-  starting_fee: '50,000',
-  num_programs: '8',
-  hero_title: '',
-  counselling_hours: 'Mon–Sat · 9 AM – 8 PM',
-  avg_response: 'Within 1 working hour',
-  admissions_status: 'Open for 2026 batch',
+  about_content: 'Write the About section content',
+  eligibility_content: 'Describe the eligibility criteria',
+  admission_steps: 'Describe the admission process',
+  syllabus_content: 'Enter the syllabus or curriculum',
+  placement_content: 'Describe placement and career support',
+  why_choose_content: 'Explain why students should choose this university',
+  emi_content: 'Describe EMI and financing options',
+  exam_content: 'Describe how examinations are conducted',
+  certificate_description: 'Describe the certificate awarded on completion',
 };
 
 export default function AddFieldModal({ field, onSave, onClose }) {
-  const isJson = JSON_FIELDS.has(field.key);
   const isHtml = HTML_FIELDS.has(field.key);
-  const isTextarea = isJson || isHtml;
+  const isTextarea = isHtml;
 
-  const defaultVal = PLACEHOLDERS[field.key] ?? DEFAULT_VALUES[field.key] ?? '';
-  const [value, setValue] = useState(defaultVal);
+  const [value, setValue] = useState('');
   const [error, setError] = useState('');
 
   const handleSave = () => {
@@ -94,9 +63,6 @@ export default function AddFieldModal({ field, onSave, onClose }) {
                 {field.required ? 'Required' : 'Optional'}
               </span>
             </div>
-            <code style={{ color: '#9fb4cc', fontSize: 12, fontFamily: 'var(--font-code)', marginTop: 4, display: 'block' }}>
-              {field.key}
-            </code>
           </div>
           <button
             onClick={onClose}
@@ -128,18 +94,19 @@ export default function AddFieldModal({ field, onSave, onClose }) {
           <label style={{
             display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8,
           }}>
-            {isJson ? 'Enter as JSON array' : isHtml ? 'Enter as HTML' : 'Enter value'}
+            {field.label}
           </label>
 
           {isTextarea ? (
             <textarea
-              rows={isJson ? 10 : 6}
+              rows={6}
               value={value}
+              placeholder={PLACEHOLDERS[field.key] || `Enter ${field.label.toLowerCase()}`}
               onChange={e => setValue(e.target.value)}
               className="input"
               style={{
                 width: '100%',
-                fontFamily: isJson ? 'var(--font-code)' : 'inherit',
+                fontFamily: 'inherit',
                 resize: 'vertical',
                 lineHeight: 1.55,
               }}
@@ -148,6 +115,7 @@ export default function AddFieldModal({ field, onSave, onClose }) {
             <input
               type="text"
               value={value}
+              placeholder={PLACEHOLDERS[field.key] || `Enter ${field.label.toLowerCase()}`}
               onChange={e => setValue(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
               className="input"
@@ -156,16 +124,7 @@ export default function AddFieldModal({ field, onSave, onClose }) {
             />
           )}
 
-          {isJson && (
-            <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-              Must be a valid JSON array — use the pre-filled placeholder as a guide. Each object's keys must match what the transformer expects.
-            </div>
-          )}
-          {isHtml && (
-            <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-              HTML is allowed: &lt;p&gt;, &lt;strong&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;br&gt;. Content is rendered directly into the page.
-            </div>
-          )}
+          {isHtml && <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 6 }}>Write the content as it should appear to readers.</div>}
 
           {error && (
             <div style={{

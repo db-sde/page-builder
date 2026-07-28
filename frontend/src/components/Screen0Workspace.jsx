@@ -8,6 +8,7 @@ import {
   downloadBuild, 
   buildFileUrl, 
   uploadBranding, 
+  updateWorkspaceGtm,
   getWorkspacePage, 
   deletePage, 
   deleteWorkspace,
@@ -124,6 +125,11 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [primaryDomain, setPrimaryDomain] = useState('');
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [brandingUploading, setBrandingUploading] = useState(false);
+  const [gtmEnabled, setGtmEnabled] = useState(false);
+  const [gtmHead, setGtmHead] = useState('');
+  const [gtmBodyStart, setGtmBodyStart] = useState('');
+  const [gtmUnsaved, setGtmUnsaved] = useState(false);
+  const [gtmSaving, setGtmSaving] = useState(false);
 
   // Toast Notification System
   const [toasts, setToasts] = useState([]);
@@ -191,6 +197,10 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           setLogoFile(null);
           setFaviconFile(null);
           setDefaultOgImageFile(null);
+          setGtmEnabled(Boolean(activeWorkspace.gtm?.enabled));
+          setGtmHead(activeWorkspace.gtm?.head || '');
+          setGtmBodyStart(activeWorkspace.gtm?.body_start || '');
+          setGtmUnsaved(false);
           setLogoPreview(null);
           setFavPreview(null);
           setIsUnsaved(false);
@@ -204,6 +214,10 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         setBuildError('');
         setDrafts([]);
         setPrimaryDomain('');
+        setGtmEnabled(false);
+        setGtmHead('');
+        setGtmBodyStart('');
+        setGtmUnsaved(false);
         setIsUnsaved(false);
       });
     }
@@ -357,6 +371,25 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       addToast('error', 'Save Failed', err.message || 'Failed to save branding.');
     } finally {
       setBrandingUploading(false);
+    }
+  };
+
+  const handleGtmSave = async (e) => {
+    e.preventDefault();
+    setGtmSaving(true);
+    try {
+      await updateWorkspaceGtm(selectedSlug, {
+        enabled: gtmEnabled,
+        head: gtmHead,
+        body_start: gtmBodyStart,
+      });
+      setGtmUnsaved(false);
+      addToast('success', 'GTM Settings Saved', 'Google Tag Manager settings saved for this workspace.');
+      await fetchWorkspaces();
+    } catch (err) {
+      addToast('error', 'Save Failed', err.response?.data?.detail || err.message || 'Failed to save GTM settings.');
+    } finally {
+      setGtmSaving(false);
     }
   };
 
@@ -1250,11 +1283,12 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                 letterSpacing: '0.05em'
               }}
             >
-              <span>Branding & SEO</span>
+              <span>Workspace Settings</span>
               <ChevronIcon open={brandingOpen} />
             </button>
 
             {brandingOpen && (
+              <div>
               <form onSubmit={handleBrandingUpload} style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 2 }}>University Logo</label>
@@ -1288,6 +1322,52 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                   {brandingUploading ? 'Saving…' : 'Save Settings'}
                 </button>
               </form>
+
+              <form onSubmit={handleGtmSave} style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Google Tag Manager
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={gtmEnabled}
+                    onChange={(e) => { setGtmEnabled(e.target.checked); setGtmUnsaved(true); }}
+                  />
+                  Enable GTM for this workspace
+                </label>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>Head Snippet</label>
+                  <textarea
+                    value={gtmHead}
+                    onChange={(e) => { setGtmHead(e.target.value); setGtmUnsaved(true); }}
+                    placeholder="Paste the GTM script snippet"
+                    rows={6}
+                    style={{ fontFamily: 'var(--font-code)', fontSize: 11, width: '100%', resize: 'vertical', padding: '6px', border: '1px solid #cbd5e1', borderRadius: 4 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>Body Start Snippet</label>
+                  <textarea
+                    value={gtmBodyStart}
+                    onChange={(e) => { setGtmBodyStart(e.target.value); setGtmUnsaved(true); }}
+                    placeholder="Paste the GTM noscript snippet"
+                    rows={6}
+                    style={{ fontFamily: 'var(--font-code)', fontSize: 11, width: '100%', resize: 'vertical', padding: '6px', border: '1px solid #cbd5e1', borderRadius: 4 }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={gtmSaving || !gtmUnsaved}
+                  style={{ height: 30, fontSize: 11.5, fontWeight: 600, color: '#ffffff', background: gtmUnsaved ? '#0f172a' : '#94a3b8', border: 'none', borderRadius: 4, cursor: gtmUnsaved ? 'pointer' : 'not-allowed' }}
+                >
+                  {gtmSaving ? 'Saving GTM…' : 'Save GTM Settings'}
+                </button>
+              </form>
+              </div>
             )}
           </div>
 

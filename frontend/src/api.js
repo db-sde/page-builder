@@ -15,6 +15,14 @@ export async function previewHtml(payload) {
   return res.data;
 }
 
+/** Return the backend-owned section and field contract for one page type. */
+export async function getPageBlueprint(pageType) {
+  const res = await axios.get(`${BASE}/page-blueprint`, {
+    params: { page_type: pageType },
+  });
+  return res.data;
+}
+
 export async function renderHtml(payload) {
   const res = await axios.post(`${BASE}/render-html`, payload, {
     responseType: 'blob',
@@ -232,6 +240,12 @@ export async function uploadBranding(universitySlug, logoFile, faviconFile, prim
   return res.data;
 }
 
+/** Store the Google Tag Manager snippets for one workspace unchanged. */
+export async function updateWorkspaceGtm(universitySlug, gtm) {
+  const res = await axios.put(`${BASE}/workspaces/${universitySlug}/gtm`, gtm);
+  return res.data;
+}
+
 /**
  * Retrieve source.json for a specific page.
  */
@@ -248,7 +262,7 @@ export async function listDrafts(universitySlug) {
   try {
     const res = await axios.get(`${BASE}/workspaces/${universitySlug}/drafts`);
     return res.data;
-  } catch (err) {
+  } catch {
     return { drafts: [] };
   }
 }
@@ -257,7 +271,7 @@ export async function getDraft(universitySlug, pageType, slug) {
   try {
     const res = await axios.get(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}`);
     return res.data;
-  } catch (err) {
+  } catch {
     return { slug, page_type: pageType, university_slug: universitySlug, data: {} };
   }
 }
@@ -266,7 +280,7 @@ export async function saveDraft(data, images = {}, mode = 'edit') {
   try {
     const res = await axios.post(`${BASE}/drafts`, { data, images, mode });
     return res.data;
-  } catch (err) {
+  } catch {
     return { status: 'ok' };
   }
 }
@@ -275,7 +289,7 @@ export async function deleteDraft(universitySlug, pageType, slug) {
   try {
     const res = await axios.delete(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}`);
     return res.data;
-  } catch (err) {
+  } catch {
     return { status: 'ok' };
   }
 }
@@ -284,7 +298,7 @@ export async function publishDraft(universitySlug, pageType, slug) {
   try {
     const res = await axios.post(`${BASE}/workspaces/${universitySlug}/drafts/${pageType}/${slug}/publish`);
     return res.data;
-  } catch (err) {
+  } catch {
     return { status: 'saved' };
   }
 }

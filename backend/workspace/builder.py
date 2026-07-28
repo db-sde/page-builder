@@ -37,6 +37,7 @@ Usage:
 """
 
 import json
+import re
 import shutil
 import zipfile
 import io
@@ -227,21 +228,35 @@ def _finalize_html(
     university_slug: str,
 ) -> str:
     """Apply final build-time additions without changing rendered routes."""
-    # Insert Google tag (gtag.js) only for nmims-2
-    if university_slug == "nmims-2":
-        gtag_script = """<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-B2N0SZPDFD"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    meta_path = _workspace_root(university_slug) / "metadata.json"
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        metadata = {}
 
-  gtag('config', 'G-B2N0SZPDFD');
-</script>"""
-        if "<head>" in html:
-            html = html.replace("<head>", f"<head>\n{gtag_script}")
-        elif "<HEAD>" in html:
-            html = html.replace("<HEAD>", f"<HEAD>\n{gtag_script}")
+    gtm = metadata.get("gtm") or {}
+    if not gtm.get("enabled"):
+        return html
+
+    head_snippet = gtm.get("head")
+    if isinstance(head_snippet, str) and head_snippet:
+        html = re.sub(
+            r"(<head\b[^>]*>)",
+            lambda match: f"{match.group(1)}{head_snippet}",
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+
+    body_snippet = gtm.get("body_start")
+    if isinstance(body_snippet, str) and body_snippet:
+        html = re.sub(
+            r"(<body\b[^>]*>)",
+            lambda match: f"{match.group(1)}{body_snippet}",
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
 
     return html
 

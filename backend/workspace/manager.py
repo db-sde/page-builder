@@ -136,6 +136,11 @@ def _default_metadata(university_slug: str) -> dict:
             "primary_domain": "",
             "default_og_image": ""
         },
+        "gtm": {
+            "enabled": False,
+            "head": "",
+            "body_start": ""
+        },
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_compiled_at": None,
     }

@@ -1211,6 +1211,12 @@ class CreateWorkspaceRequest(BaseModel):
     metadata_overrides: Optional[dict[str, Any]] = None
 
 
+class GtmSettingsRequest(BaseModel):
+    enabled: bool = False
+    head: str = ""
+    body_start: str = ""
+
+
 @app.post("/workspaces")
 async def create_workspace_endpoint(req: CreateWorkspaceRequest):
     """
@@ -1518,6 +1524,22 @@ async def upload_branding_endpoint(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.put("/workspaces/{university_slug}/gtm")
+async def update_workspace_gtm(university_slug: str, req: GtmSettingsRequest):
+    """Store the workspace's GTM snippets exactly as supplied."""
+    if not (WORKSPACES_ROOT / university_slug).exists():
+        raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
+
+    metadata = ensure_metadata(university_slug, {
+        "gtm": {
+            "enabled": req.enabled,
+            "head": req.head,
+            "body_start": req.body_start,
+        }
+    })
+    return {"status": "success", "gtm": metadata["gtm"]}
+
+
 @app.get("/workspaces/{university_slug}/pages/{page_type}/{slug}")
 async def get_workspace_page_endpoint(
     university_slug: str,
@@ -1713,6 +1735,7 @@ async def list_workspaces_endpoint():
             "created_at": meta.get("created_at"),
             "branding": meta.get("branding", {"logo": "", "favicon": ""}),
             "site": meta.get("site", {"primary_domain": "", "default_og_image": ""}),
+            "gtm": meta.get("gtm", {"enabled": False, "head": "", "body_start": ""}),
         })
     return {"workspaces": workspaces}
 
