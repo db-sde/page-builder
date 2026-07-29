@@ -33,6 +33,26 @@ def load_env():
 
 load_env()
 
+def ensure_frontend_built() -> Path:
+    """Ensure frontend/dist exists by running npm run build if necessary."""
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    dist_dir = frontend_dir / "dist"
+    if not dist_dir.exists() or not (dist_dir / "index.html").exists():
+        try:
+            import subprocess
+            print("\n🔨 Building React frontend (npm run build)...")
+            res = subprocess.run(["npm", "run", "build"], cwd=frontend_dir, capture_output=True, text=True)
+            if res.returncode == 0:
+                print("✅ React frontend build complete.\n")
+            else:
+                print(f"⚠️ Frontend build warning: {res.stderr}\n")
+        except Exception as e:
+            print(f"⚠️ Could not execute npm build automatically: {e}\n")
+    return dist_dir
+
+
+FRONTEND_DIST = ensure_frontend_built()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -285,6 +305,25 @@ async def get_asset_image(filename: str):
 @app.get("/assets/{path:path}")
 async def get_build_asset(path: str, request: Request):
     from fastapi.responses import FileResponse
+    # Check frontend dist assets first (React admin bundle assets)
+    frontend_asset = FRONTEND_DIST / "assets" / path
+    if frontend_asset.exists() and frontend_asset.is_file():
+        ext = frontend_asset.suffix.lower()
+        media_type = "application/octet-stream"
+        if ext == ".js":
+            media_type = "application/javascript"
+        elif ext == ".css":
+            media_type = "text/css"
+        elif ext == ".png":
+            media_type = "image/png"
+        elif ext in (".jpg", ".jpeg"):
+            media_type = "image/jpeg"
+        elif ext == ".webp":
+            media_type = "image/webp"
+        elif ext == ".svg":
+            media_type = "image/svg+xml"
+        return FileResponse(frontend_asset, media_type=media_type)
+
     # Try to extract university_slug from query parameters or referer to locate correct workspace folder
     uni_slug = request.query_params.get("university_slug")
     if not uni_slug:
@@ -1948,6 +1987,45 @@ document.addEventListener('click', function(e) {{
         raise
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FRONTEND SPA SERVING ROUTE (Base URL /)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/rebuild-frontend")
+@app.get("/api/rebuild-frontend")
+def rebuild_frontend_api():
+    """Trigger an on-demand rebuild of the frontend React app."""
+    import subprocess
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    print("🔨 Rebuilding React frontend on request...")
+    res = subprocess.run(["npm", "run", "build"], cwd=frontend_dir, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"Frontend build failed: {res.stderr}")
+    return {"status": "success", "message": "Frontend rebuilt successfully"}
+
+
+@app.get("/{full_path:path}")
+async def serve_frontend_spa(full_path: str):
+    """
+    Serve the built React frontend application at the base URL (/).
+    Acts as an SPA catch-all for any route not handled by explicit backend API endpoints.
+    """
+    from fastapi.responses import FileResponse
+    if not FRONTEND_DIST.exists():
+        ensure_frontend_built()
+
+    # If full_path requests a specific static file inside dist (e.g. favicon.ico, manifest.json)
+    target_file = FRONTEND_DIST / full_path
+    if full_path and target_file.exists() and target_file.is_file():
+        return FileResponse(target_file)
+
+    # Fallback to SPA index.html
+    index_file = FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    raise HTTPException(status_code=404, detail="Frontend index.html not found")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
