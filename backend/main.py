@@ -236,6 +236,7 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
 def save_base64_image(base64_str: str, dest_dir: Path, filename_prefix: str) -> str | None:
     import base64
     import re
+    from workspace.image_optimizer import optimize_uploaded_image
     if not base64_str:
         return None
     if base64_str.startswith("/assets/images/") or base64_str.startswith("http://") or base64_str.startswith("https://"):
@@ -251,11 +252,8 @@ def save_base64_image(base64_str: str, dest_dir: Path, filename_prefix: str) -> 
         data = base64.b64decode(data_b64)
     except Exception:
         return base64_str
-    filename = f"{filename_prefix}.{ext}"
-    dest_path = dest_dir / filename
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest_path.write_bytes(data)
-    return f"/assets/images/{filename}"
+    result = optimize_uploaded_image(data, dest_dir, filename_prefix, f".{ext}")
+    return f"/assets/images/{result['path'].name}"
 
 
 def image_prefix_for_slot(page_type: str, slug: str, slot: str) -> str:
@@ -1511,6 +1509,8 @@ async def upload_branding_endpoint(
     Updates workspace metadata.json and re-compiles pages immediately.
     """
     try:
+        from workspace.image_optimizer import optimize_uploaded_image
+
         uni_dir = WORKSPACES_ROOT / university_slug
         if not uni_dir.exists():
             raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
@@ -1535,11 +1535,13 @@ async def upload_branding_endpoint(
             logo_ext = Path(logo.filename).suffix.lower()
             if not logo_ext:
                 logo_ext = ".png"
-            logo_filename = f"branding-{university_slug}-logo{logo_ext}"
-            logo_path = assets_dir / logo_filename
-            
             content = await logo.read()
-            logo_path.write_bytes(content)
+            logo_result = optimize_uploaded_image(
+                content, assets_dir, f"branding-{university_slug}-logo", logo_ext
+            )
+            logo_path = logo_result["path"]
+            logo_filename = logo_path.name
+            logo_ext = logo_path.suffix.lower()
             
             meta["branding"]["logo"] = f"/assets/images/{logo_filename}"
             logo_saved = True
@@ -1552,11 +1554,11 @@ async def upload_branding_endpoint(
             fav_ext = Path(favicon.filename).suffix.lower()
             if not fav_ext:
                 fav_ext = ".ico"
-            fav_filename = f"branding-{university_slug}-favicon{fav_ext}"
-            fav_path = assets_dir / fav_filename
-            
             content = await favicon.read()
-            fav_path.write_bytes(content)
+            fav_result = optimize_uploaded_image(
+                content, assets_dir, f"branding-{university_slug}-favicon", fav_ext
+            )
+            fav_filename = fav_result["path"].name
             
             meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
         elif logo_saved and logo_ext and not meta["branding"].get("favicon"):
@@ -1589,11 +1591,11 @@ async def upload_branding_endpoint(
             og_ext = Path(default_og_image.filename).suffix.lower()
             if not og_ext:
                 og_ext = ".png"
-            og_filename = f"branding-{university_slug}-og-default{og_ext}"
-            og_path = assets_dir / og_filename
-            
             content = await default_og_image.read()
-            og_path.write_bytes(content)
+            og_result = optimize_uploaded_image(
+                content, assets_dir, f"branding-{university_slug}-og-default", og_ext
+            )
+            og_filename = og_result["path"].name
             
             meta["site"]["default_og_image"] = f"/assets/images/{og_filename}"
             
