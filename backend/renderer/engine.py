@@ -18,7 +18,7 @@ env = Environment(
 )
 
 from jinja2 import pass_context
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 # Custom filter — strips None safely for templates
 def default_empty(value):
@@ -26,11 +26,21 @@ def default_empty(value):
 
 env.filters["de"] = default_empty
 
-def webp_variant_filter(url, width=None):
+@pass_context
+def webp_variant_filter(context, url, width=None):
     if not url:
         return ""
     p = Path(url)
     if width:
+        university_slug = context.get("university_slug")
+        if university_slug:
+            source = WORKSPACES_ROOT / university_slug / "Assets" / "images" / p.name
+            try:
+                with Image.open(source) as image:
+                    if image.width <= width:
+                        return str(p.with_name(f"{p.stem}.webp"))
+            except (UnidentifiedImageError, OSError, ValueError):
+                pass
         return str(p.with_name(f"{p.stem}-{width}.webp"))
     else:
         return str(p.with_name(f"{p.stem}.webp"))

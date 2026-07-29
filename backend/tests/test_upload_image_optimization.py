@@ -40,6 +40,56 @@ class UploadImageOptimizationTests(unittest.TestCase):
             self.assertEqual(asset_path, "/assets/images/course-hero.webp")
             self.assertTrue(saved.exists())
 
+    def test_identical_uploads_share_one_physical_source_asset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image = self.png_bytes(800, 400)
+            first = optimize_uploaded_image(image, Path(directory), "hero", ".png")
+            second = optimize_uploaded_image(image, Path(directory), "certificate", ".png")
+
+            self.assertTrue(second["deduplicated"])
+            self.assertNotEqual(first["path"], second["path"])
+            self.assertTrue(first["path"].samefile(second["path"]))
+
+    def test_upload_deduplicates_against_an_unindexed_legacy_asset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image = self.png_bytes(800, 400)
+            legacy = Path(directory) / "legacy.png"
+            legacy.write_bytes(image)
+
+            result = optimize_uploaded_image(image, Path(directory), "hero", ".png")
+
+            self.assertTrue(result["deduplicated"])
+            self.assertEqual(result["path"], legacy)
+            self.assertFalse((Path(directory) / "hero.webp").exists())
+
+    def test_small_sources_only_receive_useful_responsive_variants(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            destination = root / "build"
+            optimize_uploaded_image(self.png_bytes(600, 300), source, "hero", ".png")
+
+            stats = optimize_images_pipeline(source, destination)
+
+            self.assertTrue((destination / "hero-480.webp").exists())
+            self.assertFalse((destination / "hero-768.webp").exists())
+            self.assertFalse((destination / "hero-1200.webp").exists())
+            self.assertEqual([item["width"] for item in stats["hero.webp"]["variants"]], [480])
+
+    def test_build_links_identical_legacy_sources_instead_of_reprocessing_them(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            destination = root / "build"
+            source.mkdir()
+            content = self.png_bytes(800, 400)
+            (source / "hero-a.png").write_bytes(content)
+            (source / "hero-b.png").write_bytes(content)
+
+            optimize_images_pipeline(source, destination)
+
+            self.assertTrue((destination / "hero-a-480.webp").samefile(destination / "hero-b-480.webp"))
+
     def test_build_pipeline_generates_responsive_variants_from_webp_sources(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
