@@ -1017,7 +1017,16 @@ async def parse_docx_endpoint(
 
                     # 3. Local Parser serves ONLY as a fallback/recovery mechanism (fills missing/empty fields)
                     local_acf = extract_acf(blocks, detected_type, {})
+                    explicit_identity_fields = local_acf.pop("_explicit_identity_fields", {})
                     merged_payload = merge_micro_and_local(adapted_payload, local_acf)
+
+                    # A DOCX identity marker such as ``[university_name] LPU
+                    # Online`` is an author-supplied value, not a heuristic.
+                    # Preserve it over a conflicting Micro App guess while
+                    # leaving the usual Micro-first merge unchanged for every
+                    # other field.
+                    if explicit_identity_fields:
+                        merged_payload.update(explicit_identity_fields)
 
                     # Merge specializations list for courses (since they are arrays of stubs, not atomic overrides)
                     if detected_type == "course":

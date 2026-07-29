@@ -1,3 +1,4 @@
+import re
 from difflib import get_close_matches
 
 # Canonical heading anchors per page type
@@ -174,12 +175,47 @@ def _apply_kv_aliases(acf: dict, kv: dict, aliases: list[tuple[str, list[str]]])
         if val:
             acf[target_key] = val
 
+
+_EXPLICIT_IDENTITY_FIELDS = {
+    "university": {"university_name", "university_full_name"},
+    "course": {"program_name", "course_name"},
+    "specialization": {"spec_name", "specialization_name"},
+}
+
+
+def _extract_explicit_identity_fields(blocks: list[dict], page_type: str) -> dict[str, str]:
+    """Read direct identity values written as ``[field_name] Value`` headings.
+
+    Section markers can contain several field names and describe a section title,
+    not a field value. Restricting this recovery path to one identity field keeps
+    those markers out of the content merge while allowing an author-supplied page
+    identity to outrank a guessed parser value.
+    """
+    allowed = _EXPLICIT_IDENTITY_FIELDS.get(page_type, set())
+    values: dict[str, str] = {}
+    for block in blocks:
+        text = (block.get("text") or "").strip()
+        match = re.match(r"^\[([a-zA-Z0-9_]+)\]\s+(.+)$", text)
+        if not match:
+            continue
+        field_name, value = match.groups()
+        if field_name in allowed and value.strip():
+            values[field_name] = value.strip()
+    return values
+
 def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
     sections = blocks_to_sections(blocks, page_type)
     acf = {}
 
     # Always carry meta fields through
     acf.update(meta)
+
+    explicit_identity_fields = _extract_explicit_identity_fields(blocks, page_type)
+    if explicit_identity_fields:
+        # This private marker is consumed before the final parser merge. The
+        # public field values still participate in normal missing-value fallback.
+        acf["_explicit_identity_fields"] = explicit_identity_fields
+        acf.update(explicit_identity_fields)
 
     # Extract KV fields from the top blocks (before any section heading)
     kv = {}

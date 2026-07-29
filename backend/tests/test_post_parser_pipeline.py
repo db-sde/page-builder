@@ -7,6 +7,7 @@ from docx import Document
 from fastapi import HTTPException, UploadFile
 
 from main import IngestRequest, ingest_acf, parse_docx_endpoint, validate_blueprint_content
+from renderer.engine import clean_spec_name, parse_admission_html
 
 
 class PostParserPipelineTests(unittest.TestCase):
@@ -103,6 +104,53 @@ class PostParserPipelineTests(unittest.TestCase):
         self.assertEqual(result["field_state"]["slug"]["value"], "ignou-online-mba")
         self.assertEqual(result["field_state"]["reviews"]["source"], "MANUAL")
         self.assertEqual(result["table_warnings"], [])
+
+    def test_explicit_identity_marker_overrides_conflicting_micro_value(self):
+        document = Document()
+        document.add_heading("[university_name] LPU Online", level=1)
+        document.add_paragraph("University Full Name: Lovely Professional University Online")
+        document.add_paragraph("NAAC Grade: A++")
+        buffer = BytesIO()
+        document.save(buffer)
+        buffer.seek(0)
+        upload = UploadFile(filename="lpu.docx", file=buffer)
+        micro_result = {
+            "filename": "lpu.docx",
+            "payload": {
+                "university_name": "Lovely Professional Online",
+                "hero_description": "Online learning programmes.",
+                "naac_grade": "A++",
+                "ugc_approved": "Entitled",
+            },
+        }
+
+        with patch("main.forward_to_micro_pipeline", return_value=micro_result):
+            result = asyncio.run(
+                parse_docx_endpoint(
+                    file=upload,
+                    page_type="university",
+                    university_slug="lpu",
+                )
+            )
+
+        self.assertEqual(result["payload"]["university_name"], "LPU Online")
+
+    def test_admission_note_sections_do_not_become_numbered_steps(self):
+        steps = parse_admission_html(
+            "<p>Step 1. Register online.</p>"
+            "<p>Step 2. Submit the application.</p>"
+            "<h4>Important Notes:</h4>"
+            "<ul><li>The registration fee is non-refundable.</li></ul>"
+        )
+
+        self.assertEqual([step["t"] for step in steps], [
+            "Register online.",
+            "Submit the application.",
+        ])
+
+    def test_specialization_display_name_omits_parenthetical_parser_suffixes(self):
+        self.assertEqual(clean_spec_name("Finance (Fin"), "Finance")
+        self.assertEqual(clean_spec_name("Information Technology (IT)"), "Information Technology")
 
 
 if __name__ == "__main__":

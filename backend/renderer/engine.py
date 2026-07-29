@@ -321,14 +321,62 @@ def parse_syllabus_html(html_str: str) -> list[dict]:
     except Exception:
         return []
 
+
+_ADMISSION_NOTE_HEADINGS = {
+    "additional information",
+    "additional notes",
+    "disclaimer",
+    "important note",
+    "important notes",
+    "note",
+    "notes",
+    "refund policy",
+}
+
+
+def _normalise_admission_label(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def _is_admission_note_heading(value: str) -> bool:
+    """Recognise headings that describe supporting information, not an action."""
+    return _normalise_admission_label(value) in _ADMISSION_NOTE_HEADINGS
+
+
+def _is_useful_admission_step(value: str) -> bool:
+    """Keep only renderable, actionable admission-step text."""
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    compact = _normalise_admission_label(text)
+    if not compact or compact in {"na", "none", "not available", "tbd"}:
+        return False
+    if _is_admission_note_heading(text):
+        return False
+    if text.endswith(":") and len(compact.split()) <= 5:
+        return False
+    return len(compact.split()) >= 2
+
+
+def _append_trailing_word_once(value: str, word: str) -> str:
+    """Append a display suffix without duplicating an adjacent final word."""
+    label = " ".join(str(value or "").split())
+    if not label:
+        return word
+    if label.casefold().split()[-1] == word.casefold():
+        return label
+    return f"{label} {word}"
+
+
 class AdmissionHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.steps = []
         self.in_p = False
         self.in_li = False
+        self.in_heading = False
         self.p_text = ""
         self.li_text = ""
+        self.heading_text = ""
+        self.in_note_section = False
 
     def handle_starttag(self, tag, attrs):
         if tag == "p":
@@ -337,6 +385,9 @@ class AdmissionHTMLParser(HTMLParser):
         elif tag == "li":
             self.in_li = True
             self.li_text = ""
+        elif tag in ("h3", "h4", "h5", "h6"):
+            self.in_heading = True
+            self.heading_text = ""
 
     def handle_endtag(self, tag):
         if tag == "p":
@@ -349,23 +400,34 @@ class AdmissionHTMLParser(HTMLParser):
             text = self.li_text.strip()
             if text:
                 self._add_step(text)
+        elif tag in ("h3", "h4", "h5", "h6"):
+            self.in_heading = False
+            self.in_note_section = _is_admission_note_heading(self.heading_text)
 
     def handle_data(self, data):
         if self.in_p:
             self.p_text += data
         elif self.in_li:
             self.li_text += data
+        elif self.in_heading:
+            self.heading_text += data
 
     def _add_step(self, text):
         for prefix in ("•", "▪", "●", "○", "■", "- ", "* "):
             if text.startswith(prefix):
                 text = text[len(prefix):].strip()
                 break
+        if _is_admission_note_heading(text):
+            self.in_note_section = True
+            return
+        if self.in_note_section or not _is_useful_admission_step(text):
+            return
         match = re.match(r"^(Step\s*(\d+)[\.\s:]*|(\d+)[\.\s:]+)(.*)$", text, re.IGNORECASE)
         if match:
             step_num = match.group(2) or match.group(3)
             step_text = match.group(4).strip()
-            self.steps.append({"n": step_num, "t": step_text})
+            if _is_useful_admission_step(step_text):
+                self.steps.append({"n": step_num, "t": step_text})
         else:
             if len(self.steps) == 0 and ("admission" in text.lower() or "process" in text.lower() or "enroll" in text.lower() or "follow" in text.lower()):
                 return
@@ -385,7 +447,9 @@ def parse_admission_html(html_str: str) -> list[dict]:
 def clean_spec_name(name: str, uni_name: str = None, prog_name: str = None) -> str:
     if not name:
         return name
-    name_clean = name.strip()
+    # Parenthetical qualifiers are parser artefacts in the source titles (for
+    # example, "Finance (Fin"). They should not be displayed on public cards.
+    name_clean = re.sub(r"\s*(?:\([^)]*(?:\)|$)|\[[^\]]*(?:\]|$))", "", name.strip()).strip()
     
     # 1. Targeted regex pattern to strip any university or course prefix followed by "Online MBA in" / "MBA in"
     # E.g., "Manipal Online Mba In Human Resource Management" -> "Human Resource Management"
@@ -492,6 +556,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     course_slug = resolved.get("parent_slug") or resolved.get("slug") or ""
 
     ctx["university_name"] = uni_name
+    ctx["why_choose_name"] = _append_trailing_word_once(uni_name, "Online")
     ctx["university_letter"] = logo_letter
 
     branding_logo = resolve_field(raw_dict, knowledge, "logo")
@@ -691,7 +756,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
                     break
             spec_list.append({
                 "course_name": course_name,
-                "t": data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title(),
+                "t": clean_spec_name(data.get("spec_name") or data.get("program_name") or sp_slug.replace("-", " ").title()),
                 "d": data.get("hero_description") or data.get("description") or "",
                 "href": build_public_route("specialization", sp_slug, uni_slug),
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
@@ -974,7 +1039,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
                     break
             spec_groups_map[parent] = {"course_name": course_name, "course_slug": parent, "specs": []}
         spec_groups_map[parent]["specs"].append({
-            "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
+            "name": clean_spec_name(data.get("spec_name") or sp_slug.replace("-", " ").title()),
             "slug": sp_slug,
             "href": build_public_route("specialization", sp_slug, uni_slug),
             "fee": clean_fee(data.get("total_fee") or ""),
@@ -1030,8 +1095,10 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["programs"] = uni_programs if page_type == "university" else programs_list_data
     if page_type == "university":
         processed_steps = []
-        for idx, s in enumerate(steps_list):
-            num_str = str(idx + 1)
+        for s in steps_list:
+            if not _is_useful_admission_step(s.get("t", "")):
+                continue
+            num_str = str(len(processed_steps) + 1)
             t = f"Step {num_str}"
             d = s.get("t", "")
             
@@ -1094,7 +1161,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
                 "slug": sp_slug,
                 "href": build_public_route("specialization", sp_slug, uni_slug),
                 "course_name": course_name,
-                "name": data.get("spec_name") or sp_slug.replace("-", " ").title(),
+                "name": clean_spec_name(data.get("spec_name") or sp_slug.replace("-", " ").title()),
                 "description": data.get("hero_description") or data.get("description") or "",
                 "fee": clean_fee(data.get("total_fee") or data.get("starting_fee") or ""),
             })

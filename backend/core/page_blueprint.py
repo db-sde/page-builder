@@ -82,6 +82,7 @@ PAGE_EXTERNAL_TEMPLATE_FIELDS: dict[str, dict[str, str]] = {
         "specs": "WORKSPACE",
         "testimonials": "DERIVED",
         "why_choose": "DERIVED",
+        "why_choose_name": "DERIVED",
     },
     "course": {
         "about": "DERIVED",

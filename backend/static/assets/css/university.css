@@ -2,6 +2,7 @@
 .hero-stats { display: flex; gap: 34px; margin-top: 34px; }
 .hero-container h1 { font-size: clamp(26px, 8vw, 46px); }
 .home-program-card, .home-post-card { transition: transform .18s, box-shadow .18s, border-color .18s; }
+.home-program-card { min-height: 0 !important; }
 .home-program-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px -20px rgba(46,26,107,.4); }
 .home-post-card:hover { box-shadow: 0 14px 30px -16px rgba(46,26,107,.25); }
 @media (max-width: 768px) {
