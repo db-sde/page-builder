@@ -53,7 +53,7 @@ class SpecializationTransformer(BaseTransformer):
         admission_steps = self.resolve("admission_steps")
         placement_content = self.resolve("placement_content")
         certificate_description = self.resolve("certificate_description")
-        emi_amount = self.resolve("emi_amount")
+        emi_amount = self.clean_emi_amount(self.resolve("emi_amount"))
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
 
@@ -155,7 +155,7 @@ class SpecializationTransformer(BaseTransformer):
             "fees": {
                 "plans": raw.get("fee_plans") or [],
                 "note": self.build_fee_note(emi_amount),
-            } if (raw.get("fee_plans") or self.clean_str(emi_amount)) else None,
+            } if (raw.get("fee_plans") or emi_amount) else None,
 
             # --- Sticky bar ---
             "sticky_bar": {

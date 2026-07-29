@@ -62,7 +62,7 @@ class CourseTransformer(BaseTransformer):
         certificate_description = self.resolve("certificate_description")
         eligibility_content = self.resolve("eligibility_content")
         syllabus_content = self.resolve("syllabus_content")
-        emi_amount = self.resolve("emi_amount")
+        emi_amount = self.clean_emi_amount(self.resolve("emi_amount"))
         highlights = self.resolve_list("highlights")
         reviews = self.resolve_list("reviews")
         faqs = self.resolve_list("faqs")
@@ -169,7 +169,7 @@ class CourseTransformer(BaseTransformer):
             "fees": {
                 "plans": raw.get("fee_plans") or [],
                 "note": self.build_fee_note(emi_amount),
-            } if (raw.get("fee_plans") or self.clean_str(emi_amount)) else None,
+            } if (raw.get("fee_plans") or emi_amount) else None,
 
             "admission": {
                 "steps": admission_steps_val,

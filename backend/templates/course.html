@@ -231,10 +231,10 @@
         <h2 style="font-size:21px;font-weight:800;color:#1C1B22">Fee Structure</h2>
         <div style="width:48px;height:3px;background:#FF5C35;border-radius:2px;margin:8px 0 16px"></div>
         <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch">
-          <table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13.5px">
-            <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700">Amount</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th></tr>
+          <table style="width:100%;min-width:{% if fee_has_total %}500px{% else %}330px{% endif %};border-collapse:collapse;font-size:13.5px">
+            <tr><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:8px 0 0 0">Payment Plan</th><th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;{% if not fee_has_total %}border-radius:0 8px 0 0{% endif %}">Amount</th>{% if fee_has_total %}<th style="background:#6B4FC9;color:#fff;text-align:left;padding:11px 14px;font-weight:700;border-radius:0 8px 0 0">Total Payable</th>{% endif %}</tr>
             {% for f in fees %}
-              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.plan }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.amt }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }};font-weight:700;color:#1C1B22">{{ f.total }}</td></tr>
+              <tr><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.plan }}</td><td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }}">{{ f.amt }}</td>{% if fee_has_total %}<td style="padding:11px 14px;border-bottom:1px solid #E9E5F2;background:{{ f.bg }};font-weight:700;color:#1C1B22">{{ f.total }}</td>{% endif %}</tr>
             {% endfor %}
           </table>
         </div>

@@ -341,6 +341,110 @@ def load_env():
 
 load_env()
 
+
+_ORDINAL_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12,
+}
+
+
+def _roman_numeral(value: int) -> str:
+    numerals = (
+        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+        (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+        (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+    )
+    result = []
+    for amount, numeral in numerals:
+        while value >= amount:
+            result.append(numeral)
+            value -= amount
+    return "".join(result)
+
+
+def _ordinal_value(value: str) -> int | None:
+    """Parse numeric, word, or Roman-number ordinals used in course labels."""
+    token = str(value or "").strip().lower()
+    if token.isdigit():
+        return int(token)
+    if token in _ORDINAL_WORDS:
+        return _ORDINAL_WORDS[token]
+    if not token or not re.fullmatch(r"[ivxlcdm]+", token):
+        return None
+
+    values = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
+    total = 0
+    previous = 0
+    for character in reversed(token):
+        current = values[character]
+        if current < previous:
+            total -= current
+        else:
+            total += current
+            previous = current
+    return total if total > 0 else None
+
+
+def _heading_ordinal(text: str, kind: str) -> int | None:
+    match = re.search(
+        rf"\b(?:{kind})\b\s*(?:no\.?\s*)?(\d+|[ivxlcdm]+|{'|'.join(_ORDINAL_WORDS)})\b",
+        str(text or ""),
+        re.IGNORECASE,
+    )
+    return _ordinal_value(match.group(1)) if match else None
+
+
+def semester_number(value: str) -> int | None:
+    return _heading_ordinal(value, "semester|sem")
+
+
+def academic_year_label(value: str) -> str | None:
+    """Derive an academic year from a numbered semester (two semesters/year)."""
+    number = semester_number(value)
+    return f"Year {_roman_numeral((number - 1) // 2 + 1)}" if number else None
+
+
+def normalise_fee_plans(fee_plans: list[dict]) -> list[dict]:
+    """Prepare fee rows and correct copied year labels on semester-based plans."""
+    result = []
+    for fee in fee_plans:
+        if not isinstance(fee, dict):
+            continue
+        plan = fee.get("plan") or fee.get("plan_name", "")
+        result.append({
+            "plan": plan,
+            "amt": fee.get("amt") or fee.get("plan_amount", ""),
+            "total": academic_year_label(plan) or fee.get("total") or fee.get("plan_total", ""),
+            "bg": fee.get("bg", "#fff"),
+        })
+    return result
+
+
+def fee_has_total_column(fee_plans: list[dict]) -> bool:
+    """Whether fee rows contain an independent value for a third column.
+
+    Two-column DOCX tables are commonly normalised by parsers into a synthetic
+    ``plan_total`` such as "Complete Course" or a copy of the amount. Neither
+    is a Total Payable value, so rendering a third column for it is misleading.
+    Semester schedules are the exception: their derived academic year is useful
+    and intentionally occupies the third column.
+    """
+    for fee in fee_plans:
+        plan = str(fee.get("plan") or "")
+        total = str(fee.get("total") or "").strip()
+        amount = str(fee.get("amt") or "").strip()
+        if semester_number(plan):
+            return True
+        if not total:
+            continue
+        total_key = re.sub(r"[^a-z0-9]+", "", total.lower())
+        amount_key = re.sub(r"[^a-z0-9]+", "", amount.lower())
+        if re.search(r"\d", total) and total_key != amount_key:
+            return True
+    return False
+
+
 class SyllabusHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -365,21 +469,40 @@ class SyllabusHTMLParser(HTMLParser):
             self.in_heading = False
             text = self.heading_text.strip()
             if text:
-                year_match = re.search(r"\byear\b\s*(i+|v+|[1-9]\b|one|two|three|four|five)", text, re.IGNORECASE)
-                sem_match = re.search(r"\bsem(ester)?\b\s*(i+|v+|[1-9]\b|one|two|three|four|five|six|seven|eight)", text, re.IGNORECASE)
+                year_number = _heading_ordinal(text, "year")
+                sem_number = semester_number(text)
                 
-                if year_match and not sem_match:
+                if year_number and not sem_number:
                     year_label = text
-                    existing = next((y for y in self.syllabus_years if y["label"].lower() == year_label.lower()), None)
+                    existing = next(
+                        (year for year in self.syllabus_years if year["number"] == year_number),
+                        None,
+                    )
                     if existing:
                         self.current_year_dict = existing
                     else:
-                        self.current_year_dict = {"label": year_label, "semesters": []}
+                        self.current_year_dict = {
+                            "label": year_label,
+                            "number": year_number,
+                            "semesters": [],
+                        }
                         self.syllabus_years.append(self.current_year_dict)
-                elif sem_match:
-                    if self.current_year_dict is None:
-                        self.current_year_dict = {"label": "Year I", "semesters": []}
-                        self.syllabus_years.append(self.current_year_dict)
+                elif sem_number:
+                    # An author may introduce Year I only once. A numbered
+                    # semester is still authoritative for its academic year.
+                    target_year_number = (sem_number - 1) // 2 + 1
+                    target_year = next(
+                        (year for year in self.syllabus_years if year["number"] == target_year_number),
+                        None,
+                    )
+                    if target_year is None:
+                        target_year = {
+                            "label": f"Year {_roman_numeral(target_year_number)}",
+                            "number": target_year_number,
+                            "semesters": [],
+                        }
+                        self.syllabus_years.append(target_year)
+                    self.current_year_dict = target_year
                     self.current_sem = {"title": text, "subjects": []}
                     self.current_year_dict["semesters"].append(self.current_sem)
         elif tag == "li":
@@ -400,7 +523,10 @@ def parse_syllabus_html(html_str: str) -> list[dict]:
     parser = SyllabusHTMLParser()
     try:
         parser.feed(html_str)
-        return parser.syllabus_years
+        return [
+            {"label": year["label"], "semesters": year["semesters"]}
+            for year in parser.syllabus_years
+        ]
     except Exception:
         return []
 
@@ -857,15 +983,8 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
             elif isinstance(f, dict):
                 new_plans.append(f)
         fee_plans = new_plans
-    fee_list = [
-        {
-            "plan": f.get("plan") or f.get("plan_name", ""),
-            "amt": f.get("amt") or f.get("plan_amount", ""),
-            "total": f.get("total") or f.get("plan_total", ""),
-            "bg": f.get("bg", "#fff")
-        }
-        for f in fee_plans
-    ]
+    fee_list = normalise_fee_plans(fee_plans)
+    fee_has_total = fee_has_total_column(fee_list)
     # No fabricated fee plans. An empty list hides the fee section (production)
     # or shows a placeholder indicator (preview).
     ctx["fees_json"] = json.dumps(fee_list, ensure_ascii=False)
@@ -1209,6 +1328,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["steps"] = steps_list
     ctx["highlights"] = h_list
     ctx["fees"] = fee_list
+    ctx["fee_has_total"] = fee_has_total
     ctx["jobs"] = job_list
     ctx["reviews"] = review_list
     ctx["faqs"] = faq_list

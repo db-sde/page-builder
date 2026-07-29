@@ -109,11 +109,20 @@ class BaseTransformer(ABC):
             return None
         return s
 
-    def build_fee_note(self, emi_amount: str) -> str | None:
-        if not emi_amount:
+    def clean_emi_amount(self, emi_amount) -> str | None:
+        """Keep EMI details only when the value contains actual information."""
+        clean = self.clean_str(emi_amount)
+        if not clean:
             return None
-        clean = str(emi_amount).strip()
-        if clean.upper() in ("NA", "N/A", "NIL", "-", "--", ""):
+
+        # Parser placeholders such as "INR /-" are truthy strings but do not
+        # communicate an EMI amount or other financing detail.
+        content = re.sub(r"\b(?:inr|rs)\b|[₹/.,\-\s]", "", clean, flags=re.IGNORECASE)
+        return clean if content else None
+
+    def build_fee_note(self, emi_amount: str) -> str | None:
+        clean = self.clean_emi_amount(emi_amount)
+        if not clean:
             return None
         # Strip INR prefix (case-insensitive)
         clean = re.sub(r'^INR\s*', '', clean, flags=re.IGNORECASE).strip()
