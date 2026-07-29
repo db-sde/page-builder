@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
+function formatApiError(error) {
+  const detail = error.response?.data?.detail;
+  if (detail && typeof detail === 'object') {
+    const labels = (detail.missing_fields || []).map(field => field.label).filter(Boolean);
+    return labels.length ? `${detail.message} Missing: ${labels.join(', ')}.` : detail.message;
+  }
+  return detail || error.response?.data?.error || error.message || String(error);
+}
+
 // Per-page-type transformer field descriptions for context comparison labels
 const TRANSFORMER_DOCS = {
   course: {
@@ -288,7 +297,7 @@ export default function Screen3Preview({ session, onBack }) {
         setWorkspaceError(result.error || 'Unknown error saving to workspace.');
       }
     } catch (e) {
-      setWorkspaceError(e.response?.data?.error || e.message || String(e));
+      setWorkspaceError(formatApiError(e));
     } finally {
       setWorkspaceSaving(false);
     }

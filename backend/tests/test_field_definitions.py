@@ -7,6 +7,7 @@ from core.field_definitions import (
     PAGE_FIELD_DEFINITIONS,
     build_field_state,
 )
+from ingestion.adapter import adapt_schema
 
 
 class FieldDefinitionTests(unittest.TestCase):
@@ -105,6 +106,11 @@ class FieldDefinitionTests(unittest.TestCase):
 
     def test_unsupported_page_type_has_no_field_contract(self):
         self.assertEqual(build_field_state("blog", {"title": "Post"}), {})
+
+    def test_university_ugc_alias_normalizes_to_canonical_field(self):
+        adapted = adapt_schema({"ugc_status": "UGC-DEB Entitled"}, "university")
+        self.assertEqual(adapted["ugc_approved"], "UGC-DEB Entitled")
+        self.assertNotIn("ugc_status", adapted)
 
 
 if __name__ == "__main__":

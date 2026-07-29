@@ -30,7 +30,9 @@ class UniversityTransformer(BaseTransformer):
                 ]
 
         naac = self.resolve("naac_grade")
-        ugc = self.resolve("ugc_status")
+        # University pages use `ugc_approved` canonically. The legacy fallback
+        # keeps already-saved workspaces readable until they are republished.
+        ugc = self.resolve("ugc_approved") or self.resolve("ugc_status")
         nirf = self.resolve("nirf_rank")
         uni_name = self.resolve("university_name", "")
         uni_full_name = self.resolve("university_full_name", "")

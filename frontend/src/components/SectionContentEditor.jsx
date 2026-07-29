@@ -3,7 +3,7 @@ import {
   FIELD_SECTION_PREFERENCE,
   getFieldPresentation,
   REPEATER_PRESENTATION,
-  SECTION_FIELD_ADDITIONS,
+  SECTION_HELP,
   SECTION_NAVIGATION_GROUPS,
 } from '../contentEditorSchema';
 
@@ -136,6 +136,263 @@ function RepeaterEditor({ name, value, onChange, disabled, emptyMessage }) {
   );
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function admissionStepMatch(text) {
+  return text.match(/\bstep\s*\d+\s*[.):\-]?\s*|^\d+\s*[.):\-]\s*/i);
+}
+
+function isAdmissionStepElement(node) {
+  if (node.tagName === 'OL') return Boolean(node.querySelector('li'));
+  return node.matches('p, li') && Boolean(admissionStepMatch(node.textContent.trim()));
+}
+
+function parseAdmissionSteps(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => typeof item === 'string'
+      ? { title: item, description: '' }
+      : { title: item?.title || item?.t || '', description: item?.description || item?.d || '' });
+  }
+  if (!value || typeof DOMParser === 'undefined') return [];
+  const documentNode = new DOMParser().parseFromString(`<div>${value}</div>`, 'text/html');
+  const numberedParagraphs = [...documentNode.body.querySelectorAll('p, li')]
+    .filter(node => admissionStepMatch(node.textContent.trim()));
+  const orderedListItems = [...documentNode.body.querySelectorAll('ol > li')];
+  return [...new Set([...numberedParagraphs, ...orderedListItems])]
+    .map(node => node.textContent.trim())
+    .filter(Boolean)
+    .map(text => {
+      const marker = admissionStepMatch(text);
+      const content = marker ? text.slice(marker.index + marker[0].length) : text;
+      const parts = content.match(/^([^:–—]{1,80})\s*[:–—]\s*(.+)$/);
+      return parts
+        ? { title: parts[1].trim(), description: parts[2].trim() }
+        : { title: content, description: '' };
+    });
+}
+
+function surroundingHtml(value, isStructuredElement) {
+  if (!value || Array.isArray(value) || typeof DOMParser === 'undefined') return { before: '', after: '' };
+  const documentNode = new DOMParser().parseFromString(`<div>${value}</div>`, 'text/html');
+  const children = [...documentNode.body.firstElementChild.children];
+  const structuredIndexes = children
+    .map((node, index) => isStructuredElement(node) ? index : -1)
+    .filter(index => index >= 0);
+  if (!structuredIndexes.length) return { before: value, after: '' };
+  const first = Math.min(...structuredIndexes);
+  const last = Math.max(...structuredIndexes);
+  return {
+    before: children.slice(0, first).map(node => node.outerHTML).join(''),
+    after: children.slice(last + 1).map(node => node.outerHTML).join(''),
+  };
+}
+
+function serializeAdmissionSteps(steps, originalValue) {
+  const { before, after } = surroundingHtml(originalValue, isAdmissionStepElement);
+  const structured = steps
+    .filter(step => !isEmpty(step.title) || !isEmpty(step.description))
+    .map((step, index) => {
+      const content = [String(step.title || '').trim(), String(step.description || '').trim()].filter(Boolean).join(': ');
+      return `<p>${index + 1}. ${escapeHtml(content)}</p>`;
+    })
+    .join('');
+  return `${before}${structured}${after}`;
+}
+
+function AdmissionStepsEditor({ value, onChange, disabled }) {
+  const steps = useMemo(() => parseAdmissionSteps(value), [value]);
+  const commit = next => onChange(serializeAdmissionSteps(next, value));
+  return (
+    <div className="author-repeater">
+      {steps.length === 0 && <div className="author-empty">No admission steps found in the uploaded document.</div>}
+      {steps.map((step, index) => (
+        <div className="author-repeater-item" key={`admission-step-${index}`}>
+          <div className="author-repeater-heading">
+            <strong>Step {index + 1}</strong>
+            {!disabled && <button type="button" className="author-link author-link--danger" onClick={() => commit(steps.filter((_, stepIndex) => stepIndex !== index))}>Delete</button>}
+          </div>
+          <div className="author-fields-grid">
+            <label className="author-field">
+              <span>Title</span>
+              <input className="input" value={step.title} placeholder="Register on the admission portal" disabled={disabled} onChange={event => commit(steps.map((item, stepIndex) => stepIndex === index ? { ...item, title: event.target.value } : item))} />
+            </label>
+            <label className="author-field author-field--wide">
+              <span>Description</span>
+              <textarea className="input" rows={2} value={step.description} placeholder="Explain what the applicant needs to do" disabled={disabled} onChange={event => commit(steps.map((item, stepIndex) => stepIndex === index ? { ...item, description: event.target.value } : item))} />
+            </label>
+          </div>
+        </div>
+      ))}
+      {!disabled && <button type="button" className="btn btn-secondary author-add-button" onClick={() => commit([...steps, { title: '', description: '' }])}>+ Add Step</button>}
+    </div>
+  );
+}
+
+function isSyllabusHeading(node) {
+  return node.matches('h3, h4, h5, h6') && (/\byear\b/i.test(node.textContent) || /\b(?:sem(?:ester)?|term)\b/i.test(node.textContent));
+}
+
+function isSyllabusStructureElement(node) {
+  return node.tagName === 'TABLE' || isSyllabusHeading(node) || node.tagName === 'UL' || node.tagName === 'OL';
+}
+
+function cellSubjects(cell) {
+  const listItems = [...cell.querySelectorAll('li')].map(item => item.textContent.trim()).filter(Boolean);
+  if (listItems.length) return listItems;
+  const clone = cell.cloneNode(true);
+  clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  return clone.textContent
+    .split(/\n+/)
+    .map(text => text.replace(/^[•·\-*]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function parseSyllabusTable(table) {
+  const years = [];
+  let currentYear = null;
+  let currentSemesters = [];
+  const ensureYear = label => {
+    if (!currentYear || (label && currentYear.label !== label)) {
+      currentYear = { label: label || `Year ${years.length + 1}`, semesters: [] };
+      years.push(currentYear);
+    }
+    return currentYear;
+  };
+
+  [...table.querySelectorAll('tr')].forEach(row => {
+    const cells = [...row.children].filter(node => ['TH', 'TD'].includes(node.tagName));
+    if (!cells.length) return;
+    const labels = cells.map(cell => cell.textContent.trim()).filter(Boolean);
+    const yearLabel = labels.length === 1 && /^year\b/i.test(labels[0]) ? labels[0] : '';
+    if (yearLabel) {
+      ensureYear(yearLabel);
+      currentSemesters = [];
+      return;
+    }
+
+    const semesterLabels = labels.length === cells.length && labels.every(label => /^(?:sem(?:ester)?|term)\b/i.test(label));
+    if (semesterLabels) {
+      const year = ensureYear();
+      currentSemesters = labels.map(label => ({ title: label, subjects: [] }));
+      year.semesters.push(...currentSemesters);
+      return;
+    }
+
+    if (currentSemesters.length) {
+      cells.forEach((cell, index) => {
+        if (currentSemesters[index]) currentSemesters[index].subjects.push(...cellSubjects(cell));
+      });
+    }
+  });
+  return years;
+}
+
+function parseSyllabus(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof DOMParser === 'undefined') return [];
+  const documentNode = new DOMParser().parseFromString(`<div>${value}</div>`, 'text/html');
+  const table = documentNode.body.querySelector('table');
+  if (table) return parseSyllabusTable(table);
+  const years = [];
+  let currentYear = null;
+  let currentSemester = null;
+  [...documentNode.body.querySelectorAll('h3, h4, h5, h6, li')].forEach(node => {
+    const text = node.textContent.trim();
+    if (!text) return;
+    if (node.matches('h3, h4, h5, h6') && /\byear\b/i.test(text) && !/\b(?:sem(?:ester)?|term)\b/i.test(text)) {
+      currentYear = { label: text, semesters: [] };
+      years.push(currentYear);
+      currentSemester = null;
+    } else if (node.matches('h3, h4, h5, h6') && /\b(?:sem(?:ester)?|term)\b/i.test(text)) {
+      if (!currentYear) {
+        currentYear = { label: 'Year 1', semesters: [] };
+        years.push(currentYear);
+      }
+      currentSemester = { title: text, subjects: [] };
+      currentYear.semesters.push(currentSemester);
+    } else if (node.tagName === 'LI' && currentSemester) {
+      currentSemester.subjects.push(text);
+    }
+  });
+  return years;
+}
+
+function serializeSyllabus(years, originalValue) {
+  const { before, after } = surroundingHtml(originalValue, isSyllabusStructureElement);
+  const structured = years.map((year, yearIndex) => {
+    const yearLabel = String(year.label || `Year ${yearIndex + 1}`).trim();
+    const semesters = (year.semesters || []).map((semester, semesterIndex) => {
+      const semesterTitle = String(semester.title || `Semester ${semesterIndex + 1}`).trim();
+      const subjects = (semester.subjects || []).filter(subject => !isEmpty(subject));
+      return `<h4>${escapeHtml(semesterTitle)}</h4><ul>${subjects.map(subject => `<li>${escapeHtml(subject)}</li>`).join('')}</ul>`;
+    }).join('');
+    return `<h3>${escapeHtml(yearLabel)}</h3>${semesters}`;
+  }).join('');
+  return `${before}${structured}${after}`;
+}
+
+function SyllabusEditor({ value, onChange, disabled }) {
+  const years = useMemo(() => parseSyllabus(value), [value]);
+  const commit = next => onChange(serializeSyllabus(next, value));
+  return (
+    <div className="author-repeater">
+      {years.length === 0 && <div className="author-empty">No structured syllabus found in the uploaded document.</div>}
+      {years.map((year, yearIndex) => (
+        <div className="author-repeater-item" key={`syllabus-year-${yearIndex}`}>
+          <div className="author-repeater-heading">
+            <strong>Year {yearIndex + 1}</strong>
+            {!disabled && <button type="button" className="author-link author-link--danger" onClick={() => commit(years.filter((_, index) => index !== yearIndex))}>Delete Year</button>}
+          </div>
+          <label className="author-field">
+            <span>Year</span>
+            <input className="input" value={year.label || ''} placeholder={`Year ${yearIndex + 1}`} disabled={disabled} onChange={event => commit(years.map((item, index) => index === yearIndex ? { ...item, label: event.target.value } : item))} />
+          </label>
+          {(year.semesters || []).map((semester, semesterIndex) => (
+            <div className="author-structured-group" key={`semester-${yearIndex}-${semesterIndex}`}>
+              <div className="author-repeater-heading">
+                <strong>Semester {semesterIndex + 1}</strong>
+                {!disabled && <button type="button" className="author-link author-link--danger" onClick={() => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: item.semesters.filter((_, semIndex) => semIndex !== semesterIndex) } : item))}>Delete Semester</button>}
+              </div>
+              <label className="author-field">
+                <span>Semester</span>
+                <input className="input" value={semester.title || ''} placeholder={`Semester ${semesterIndex + 1}`} disabled={disabled} onChange={event => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: item.semesters.map((sem, semIndex) => semIndex === semesterIndex ? { ...sem, title: event.target.value } : sem) } : item))} />
+              </label>
+              {(semester.subjects || []).map((subject, subjectIndex) => (
+                <div className="author-inline-field" key={`subject-${yearIndex}-${semesterIndex}-${subjectIndex}`}>
+                  <label className="author-field">
+                    <span>Subject {subjectIndex + 1}</span>
+                    <input className="input" value={subject} placeholder="Enter the subject name" disabled={disabled} onChange={event => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: item.semesters.map((sem, semIndex) => semIndex === semesterIndex ? { ...sem, subjects: sem.subjects.map((entry, entryIndex) => entryIndex === subjectIndex ? event.target.value : entry) } : sem) } : item))} />
+                  </label>
+                  {!disabled && <button type="button" className="author-link author-link--danger" onClick={() => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: item.semesters.map((sem, semIndex) => semIndex === semesterIndex ? { ...sem, subjects: sem.subjects.filter((_, entryIndex) => entryIndex !== subjectIndex) } : sem) } : item))}>Remove</button>}
+                </div>
+              ))}
+              {!disabled && <button type="button" className="author-link" onClick={() => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: item.semesters.map((sem, semIndex) => semIndex === semesterIndex ? { ...sem, subjects: [...(sem.subjects || []), ''] } : sem) } : item))}>+ Add Subject</button>}
+            </div>
+          ))}
+          {!disabled && <button type="button" className="author-link" onClick={() => commit(years.map((item, index) => index === yearIndex ? { ...item, semesters: [...(item.semesters || []), { title: `Semester ${(item.semesters || []).length + 1}`, subjects: [] }] } : item))}>+ Add Semester</button>}
+        </div>
+      ))}
+      {!disabled && <button type="button" className="btn btn-secondary author-add-button" onClick={() => commit([...years, { label: `Year ${years.length + 1}`, semesters: [] }])}>+ Add Year</button>}
+    </div>
+  );
+}
+
+function ownershipLabel(field, value, overridden = false) {
+  if (field.auto_filled || field.derived || field.source === 'DERIVED') return 'Generated Automatically';
+  if (field.source === 'WORKSPACE') return 'Workspace Managed';
+  if (field.source === 'SYSTEM') return 'System Managed';
+  if (field.manual || field.source === 'MANUAL') return 'Manual Input';
+  if (overridden || (field.missing && !isEmpty(value))) return 'Manual Override';
+  return isEmpty(value) ? 'Document Content Missing' : 'Imported from Document';
+}
+
 function SectionFields({ descriptor, values, onChange, onManualOverride }) {
   const [override, setOverride] = useState(false);
   const hasExtractedFields = descriptor.fields.some(field => field.source === 'AUTO' && !field.missing);
@@ -173,7 +430,7 @@ function SectionFields({ descriptor, values, onChange, onManualOverride }) {
                 <span className="author-field-label">{repeater?.label || presentation.label}</span>
                 {field.required && <span className="author-required">Required</span>}
               </div>
-              {field.manual && <span className="author-badge author-badge--manual">Your input</span>}
+              <span className={`author-badge author-badge--${String(field.source || 'auto').toLowerCase()}`}>{ownershipLabel(field, values[field.name], override)}</span>
             </div>
             {repeater ? (
               <RepeaterEditor
@@ -183,6 +440,10 @@ function SectionFields({ descriptor, values, onChange, onManualOverride }) {
                 disabled={disabled}
                 emptyMessage={hasNoImportedContent ? `No ${repeater.itemLabel.toLowerCase()}s were found in the uploaded document.` : undefined}
               />
+            ) : field.name === 'admission_steps' ? (
+              <AdmissionStepsEditor value={values[field.name]} onChange={value => onChange(field.name, value)} disabled={disabled} />
+            ) : field.name === 'syllabus_content' ? (
+              <SyllabusEditor value={values[field.name]} onChange={value => onChange(field.name, value)} disabled={disabled} />
             ) : presentation.type === 'textarea' ? (
               <textarea
                 className="input author-textarea"
@@ -233,11 +494,12 @@ function ImageSection({ descriptor, imageUrls, heroImageAlt, onImageChange, onAl
               <div>
                 <span className="author-field-label">{slot.label}</span>
                 {slot.required && <span className="author-required">Required</span>}
+                <span className="author-badge author-badge--manual">Manual Input</span>
               </div>
               <div className="author-image-actions">
                 <label className="author-link author-upload-link">
                   {hasImage ? 'Replace' : 'Add image'}
-                  <input type="file" accept="image/*" onChange={event => {
+                  <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={event => {
                     const file = event.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
@@ -249,7 +511,7 @@ function ImageSection({ descriptor, imageUrls, heroImageAlt, onImageChange, onAl
                 <button type="button" className="author-link" onClick={toggleDetails}>{detailsOpen ? 'Close details' : 'Edit details'}</button>
               </div>
             </div>
-            <p className="author-image-hint">{hasImage ? 'Image added' : 'Image needed'} · Recommended {slot.dims}</p>
+            <p className="author-image-hint">{hasImage ? 'Image added' : 'Image needed'} · Recommended size {slot.dims} · Accepted formats: JPG, PNG, WebP</p>
             {detailsOpen && (
               <div className="author-image-editing">
                 <label className="author-field">
@@ -285,27 +547,27 @@ function sectionSource(section, values, manuallyEdited = false) {
 }
 
 function sectionState(section, values) {
-  const missingRequired = (section.required_fields || []).filter(field => (
-    Array.isArray(field) ? field.every(name => isEmpty(values[name])) : isEmpty(values[field])
-  ));
   const fields = section.fields || [];
   const repeaters = fields.filter(field => REPEATER_PRESENTATION[field.name] && Array.isArray(values[field.name]));
   const itemCount = repeaters.reduce((count, field) => count + values[field.name].length, 0);
-  const missingManual = fields.some(field => (field.manual || field.source === 'MANUAL') && isEmpty(values[field.name]));
-  const missingImported = fields.some(field => field.source === 'AUTO' && isEmpty(values[field.name]));
-  const missingAny = fields.some(field => isEmpty(values[field.name]));
   const filled = fields.filter(field => !isEmpty(values[field.name])).length;
+  const requiredNames = new Set(fields.filter(field => field.required).map(field => field.name));
+  (section.required_fields || []).forEach(entry => {
+    if (!Array.isArray(entry)) requiredNames.add(entry);
+  });
+  const missingRequired = [...requiredNames].filter(name => isEmpty(values[name]));
 
-  if (section.systemManaged || !fields.length) return { key: 'system', label: '⚙ System Managed', itemCount, filled: 0, total: 0 };
-  if (missingManual && !missingImported) return { key: 'manual', label: '✏ Manual Input Required', itemCount, filled, total: fields.length };
-  if (missingRequired.length || missingImported || !filled) return { key: 'missing', label: '⚠ Missing Content', itemCount, filled, total: fields.length };
-  if (missingAny) return { key: 'review', label: '📝 Review Imported Content', itemCount, filled, total: fields.length };
-  return { key: 'complete', label: '✓ Complete', itemCount, filled, total: fields.length };
+  if (section.systemManaged || !fields.length) return { key: 'system', label: '⚙ System Managed', itemCount, filled: 0, total: 0, required: 0 };
+  if (missingRequired.length) return { key: 'missing', label: '⚠ Required Content Missing', itemCount, filled, total: fields.length, required: requiredNames.size };
+  if (requiredNames.size) return { key: 'complete', label: '✓ Ready', itemCount, filled, total: fields.length, required: requiredNames.size };
+  if (filled) return { key: 'review', label: '📝 Optional · Review Content', itemCount, filled, total: fields.length, required: 0 };
+  return { key: 'optional', label: 'Optional', itemCount, filled, total: fields.length, required: 0 };
 }
 
 function sectionSummary(descriptor, state) {
   if (descriptor.kind === 'images') return `${state.filled} of ${state.total} images added`;
   if (state.itemCount) return `${state.itemCount} item${state.itemCount === 1 ? '' : 's'}`;
+  if (state.key === 'optional') return 'Optional section';
   if (state.total) return `${state.filled} of ${state.total} complete`;
   return descriptor.data_source === 'workspace' ? 'Managed by workspace' : 'Managed by system';
 }
@@ -324,6 +586,8 @@ function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, image
           ? '✎'
           : state.key === 'review'
             ? '◐'
+            : state.key === 'optional'
+              ? '○'
             : '✓';
   return (
     <section className={`card author-section author-section--${state.key}`} id={id}>
@@ -340,23 +604,29 @@ function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, image
           <span className="author-chevron">{isOpen ? '⌃' : '⌄'}</span>
         </span>
       </button>
-      {isOpen && (descriptor.kind === 'images'
-        ? <ImageSection descriptor={descriptor} {...imageProps} />
-        : descriptor.systemManaged
-          ? <div className="author-managed-note">{descriptor.data_source === 'workspace' ? 'This section is assembled automatically from published workspace pages.' : 'This section is generated by the system and does not need page-level editing.'}</div>
-          : <SectionFields descriptor={descriptor} values={values} onChange={onChange} onManualOverride={onManualOverride} />
-      )}
+      {isOpen && <div>
+        {SECTION_HELP[descriptor.id] && <p className="author-section-help">{SECTION_HELP[descriptor.id]}{!descriptor.systemManaged && ' Review imported content only when the source document needs correction; complete fields marked Manual Input yourself.'}</p>}
+        {descriptor.kind === 'images'
+          ? <ImageSection descriptor={descriptor} {...imageProps} />
+          : descriptor.systemManaged
+            ? <div className="author-managed-note">{descriptor.data_source === 'workspace' ? 'This section is assembled automatically from published workspace pages.' : 'This section is generated by the system and does not need page-level editing.'}</div>
+            : <SectionFields descriptor={descriptor} values={values} onChange={onChange} onManualOverride={onManualOverride} />}
+      </div>}
     </section>
   );
 }
 
 function ProgressPanel({ descriptors, values }) {
   const states = descriptors.map(descriptor => sectionState(descriptor, values));
-  const authorable = states.filter(state => state.key !== 'system');
-  const complete = authorable.filter(state => state.key === 'complete').length;
-  const missing = states.filter(state => ['missing', 'manual'].includes(state.key));
+  const requiredFields = new Map();
+  descriptors.forEach(descriptor => (descriptor.fields || []).forEach(field => {
+    if (field.required) requiredFields.set(field.name, field);
+  }));
+  const requiredTotal = requiredFields.size;
+  const requiredComplete = [...requiredFields].filter(([name]) => !isEmpty(values[name])).length;
+  const missing = states.filter(state => state.key === 'missing');
   const review = states.filter(state => state.key === 'review');
-  const percent = authorable.length ? Math.round((complete / authorable.length) * 100) : 100;
+  const percent = requiredTotal ? Math.round((requiredComplete / requiredTotal) * 100) : 100;
   const missingImages = descriptors.find(descriptor => descriptor.kind === 'images')?.slots.filter(slot => slot.required && isEmpty(values[slot.key])).length || 0;
 
   return (
@@ -364,8 +634,8 @@ function ProgressPanel({ descriptors, values }) {
       <div className="author-progress-heading">
         <div>
           <span className="author-eyebrow">Page Progress</span>
-          <h2>{complete} / {authorable.length} sections complete</h2>
-          <p>Finish the sections below, then generate a preview.</p>
+          <h2>{requiredComplete} / {requiredTotal} required fields complete</h2>
+          <p>Required Blueprint fields determine whether this page is ready.</p>
         </div>
         <strong>{percent}% <span>complete</span></strong>
       </div>
@@ -375,7 +645,7 @@ function ProgressPanel({ descriptors, values }) {
         <span>{review.length} section{review.length === 1 ? '' : 's'} need review</span>
         <span>{missingImages} image{missingImages === 1 ? '' : 's'} missing</span>
       </div>
-      {missing.length > 0 && <div className="author-progress-missing">Next: {descriptors.filter(descriptor => ['missing', 'manual'].includes(sectionState(descriptor, values).key)).slice(0, 3).map(descriptor => descriptor.label).join(', ')}</div>}
+      {missing.length > 0 && <div className="author-progress-missing">Next: {descriptors.filter(descriptor => sectionState(descriptor, values).key === 'missing').slice(0, 3).map(descriptor => descriptor.label).join(', ')}</div>}
     </section>
   );
 }
@@ -396,8 +666,7 @@ export default function SectionContentEditor({
     if (!blueprint?.sections?.length) return [];
     const preferences = FIELD_SECTION_PREFERENCE[blueprint.page_type] || {};
     const pageSections = blueprint.sections.map(section => {
-      const additions = SECTION_FIELD_ADDITIONS[blueprint.page_type]?.[section.section] || [];
-      const names = [...new Set([...(section.fields_used || []), ...additions])];
+      const names = [...new Set(section.fields_used || [])];
       const fields = names
         .map(name => editingState?.fields?.[name] || blueprint.fields?.[name] || { name, source: 'MANUAL', manual: true, missing: isEmpty(values[name]) })
         .filter(field => {

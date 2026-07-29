@@ -77,6 +77,13 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
         if adapted.get("university_full_name") and not adapted.get("university_name"):
             adapted["university_name"] = adapted["university_full_name"]
 
+        # `ugc_approved` is the University Blueprint's canonical key. Keep
+        # accepting historical parser payloads that used `ugc_status`, but do
+        # not let new University records carry two names for the same value.
+        if not adapted.get("ugc_approved") and adapted.get("ugc_status"):
+            adapted["ugc_approved"] = adapted["ugc_status"]
+        adapted.pop("ugc_status", None)
+
     # 2. Simple Type Conversions (Safe coercion, no guessing)
     # Established Year
     if "established_year" in adapted:

@@ -1127,6 +1127,16 @@ code, .font-mono {
   padding: 12px 14px;
 }
 
+.author-section-help {
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+  background: #f8fafc;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 9px 14px;
+}
+
 .author-section-status,
 .author-badge,
 .author-required {
@@ -1174,6 +1184,22 @@ code, .font-mono {
 .author-badge--override {
   background: #eef2ff;
   color: #4338ca;
+}
+
+.author-badge--auto {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.author-badge--derived {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.author-badge--workspace,
+.author-badge--system {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .author-field-block {
@@ -1264,6 +1290,21 @@ code, .font-mono {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: #fbfcfe;
+}
+
+.author-structured-group {
+  width: 100%;
+  margin-top: 10px;
+  border-left: 2px solid var(--color-border);
+  padding: 8px 0 2px 12px;
+}
+
+.author-inline-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .author-repeater-summary {

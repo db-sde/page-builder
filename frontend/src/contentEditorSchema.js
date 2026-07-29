@@ -36,7 +36,6 @@ export const REPEATER_PRESENTATION = {
     fields: [
       { key: 'reviewer_name', label: 'Reviewer Name', placeholder: 'Enter the reviewer name' },
       { key: 'reviewer_role', label: 'Role', placeholder: 'Enter the course, role, or profession' },
-      { key: 'rating', label: 'Rating', placeholder: 'Enter a rating, if provided' },
       { key: 'review_text', label: 'Review Text', type: 'textarea', placeholder: 'Enter the student review' },
     ],
   },
@@ -118,23 +117,6 @@ export const REPEATER_PRESENTATION = {
   },
 };
 
-// The backend Blueprint remains the source for order and ownership. These
-// additions only bridge page content that is already consumed by a Blueprint
-// section but is currently supplied through workspace-level renderer context.
-export const SECTION_FIELD_ADDITIONS = {
-  university: {
-    why_choose: ['why_choose_content', 'facts', 'features'],
-    fees_financing: ['emi_content', 'financing', 'banks'],
-    recruiters: ['recruiters'],
-  },
-  course: {
-    hero: ['university_name'],
-  },
-  specialization: {
-    hero: ['university_name'],
-  },
-};
-
 export const FIELD_SECTION_PREFERENCE = {
   university: {
     naac_grade: 'accreditation_strip',
@@ -183,6 +165,7 @@ export const SECTION_HELP = {
   faqs: 'Common questions and their answers.',
   blog_preview: 'Recent articles published in this workspace.',
   other_specs: 'Related specializations linked by the workspace.',
+  images: 'Upload the images required by the page template. Use only approved university or program assets.',
 };
 
 // These labels affect only the editor navigation. The Blueprint still owns the

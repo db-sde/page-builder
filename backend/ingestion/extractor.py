@@ -345,7 +345,7 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
             ("university_full_name", ["university_full_name", "university_name", "university", "name"]),
             ("established_year", ["established_year", "establishment_year", "established", "established_in"]),
             ("naac_grade", ["naac_grade", "naac", "naac_accreditation", "naac_rating"]),
-            ("ugc_status", ["ugc", "ugc_status", "ugc_approved_status", "ugc_approved"]),
+            ("ugc_approved", ["ugc", "ugc_status", "ugc_approved_status", "ugc_approved"]),
             ("aicte_status", ["aicte", "aicte_status", "aicte_approved_status", "aicte_approved"]),
             ("nirf_rank", ["nirf", "nirf_rank", "nirf_ranking"]),
             ("rankings", ["rankings", "ranking"]),

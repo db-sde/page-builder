@@ -3,25 +3,32 @@ import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializati
 import SectionContentEditor from './SectionContentEditor';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
 
-// Image slots required per page type
-const IMAGE_SLOTS = {
-  university: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Homepage hero or campus banner', dims: '480 × 420px', required: true },
-    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
-  ],
-  course: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Main visual in the hero section', dims: '480 × 420px', required: true },
-    { key: 'certificate_image_url', label: 'Degree Certificate Image', hint: 'Sample certificate shown in the Placement section', dims: '320 × 240px', required: true },
-    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
-  ],
-  specialization: [
-    { key: 'hero_image_url', label: 'Hero Image', hint: 'Main visual in the hero section', dims: '480 × 420px', required: true },
-    { key: 'og_image_url', label: 'Social Share Image', hint: 'Image shown when the page is shared', dims: '1200 × 630px' },
-  ],
+// Blog has no Blueprint yet; the three schema-driven page types get their
+// image slots directly from backend Blueprint metadata.
+const LEGACY_IMAGE_SLOTS = {
   blog: [
-    { key: 'hero_image_url', label: 'Article Hero Image', hint: 'Main article header banner image displayed on the right of the title', dims: '460 × 340px' },
+    { key: 'hero_image_url', label: 'Article Hero Image', hint: 'Main article header banner image displayed on the right of the title', dims: '460 × 340px', required: true },
   ],
 };
+
+function formatApiError(error) {
+  let payload = error.response?.data;
+  // Preview responses are HTML on success, so Axios returns error bodies as
+  // text too. Decode FastAPI's JSON error before falling back to its message.
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      // Keep the raw response as the final fallback below.
+    }
+  }
+  const detail = payload?.detail;
+  if (detail && typeof detail === 'object') {
+    const labels = (detail.missing_fields || []).map(field => field.label).filter(Boolean);
+    return labels.length ? `${detail.message} Missing: ${labels.join(', ')}.` : detail.message;
+  }
+  return detail || payload?.error || (typeof payload === 'string' ? payload : null) || error.message || String(error);
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,7 +95,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [structuredFields, setStructuredFields] = useState(() => initStructuredFields(session.acf_data));
   const [imageUrls, setImageUrls] = useState(() => {
     const initImages = { ...session.images };
-    const neededKeys = (IMAGE_SLOTS[session.page_type] || []).map(slot => slot.key);
+    const neededKeys = ['hero_image_url', 'certificate_image_url', 'og_image_url', 'featured_image_url'];
     for (const key of neededKeys) {
       if (session.acf_data && session.acf_data[key]) {
         initImages[key] = session.acf_data[key];
@@ -227,31 +234,14 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     }
   };
 
-  const slots = IMAGE_SLOTS[session.page_type] || [];
+  const slots = blueprint
+    ? (blueprint.image_fields || []).map(name => ({ key: name, ...blueprint.fields[name] }))
+    : (LEGACY_IMAGE_SLOTS[session.page_type] || []);
 
   // ── Generate preview ──────────────────────────────────────────────────────
   const handleGenerate = async () => {
     setError('');
     
-    // Check validation of required images before proceeding
-    const requiredImages = {
-      university: ['hero_image_url'],
-      course: ['hero_image_url', 'certificate_image_url'],
-      specialization: ['hero_image_url'],
-      blog: ['hero_image_url'],
-    };
-    const needed = requiredImages[session.page_type] || [];
-    const missingImgs = needed.filter(key => !imageUrls[key]);
-    if (missingImgs.length > 0) {
-      const labels = {
-        hero_image_url: 'Hero Image',
-        certificate_image_url: 'Degree Certificate Image',
-      };
-      const formatted = missingImgs.map(k => labels[k] || k).join(', ');
-      setError(`Missing required image assets: ${formatted}`);
-      return;
-    }
-
     setLoading(true);
     try {
       const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), ...structuredFields, hero_image_alt: heroImageAlt };
@@ -297,7 +287,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
       });
       onNext();
     } catch (e) {
-      setError(e.response?.data?.error || e.message || String(e));
+      setError(formatApiError(e));
     } finally {
       setLoading(false);
     }
@@ -621,8 +611,18 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
           onChange={(name, value) => {
             if (Array.isArray(value)) {
               setStructuredFields(current => ({ ...current, [name]: value }));
+              setFields(current => {
+                const next = { ...current };
+                delete next[name];
+                return next;
+              });
             } else {
               setFields(current => ({ ...current, [name]: value }));
+              setStructuredFields(current => {
+                const next = { ...current };
+                delete next[name];
+                return next;
+              });
             }
           }}
           slots={slots}

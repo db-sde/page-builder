@@ -4,7 +4,7 @@ from core.router import get_transformer
 from core.field_definitions import build_field_state
 from core.page_requirements import build_page_state
 from core.page_blueprint import build_page_blueprint, SUPPORTED_PAGE_TYPES
-from core.editing_state import apply_auto_population, build_editing_state
+from core.editing_state import apply_auto_population, build_editing_state, validate_required_content
 from renderer.engine import render_resolved
 from workspace.manager import (
     save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
@@ -458,16 +458,58 @@ class RenderRequest(BaseModel):
     acf_data: dict[str, Any]
     images: dict[str, str] = {}
 
+
+def validate_blueprint_content(
+    page_type: str,
+    values: dict[str, Any],
+    *,
+    slug: str,
+    university_slug: str,
+    parent_slug: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Apply defaults and enforce the Blueprint's required fields."""
+    populated, editing_state, missing_fields = validate_required_content(
+        page_type,
+        values,
+        {
+            "page_type": page_type,
+            "slug": slug,
+            "university_slug": university_slug,
+            "parent_slug": parent_slug,
+        },
+    )
+    # Blog has not been migrated to the Blueprint contract yet. Preserve its
+    # existing required-image behaviour without duplicating rules for the
+    # three schema-driven page types.
+    if page_type == "blog" and not populated.get("hero_image_url"):
+        missing_fields = [{"field": "hero_image_url", "label": "Article Hero Image"}]
+    if missing_fields:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Complete all required fields before previewing or publishing.",
+                "missing_fields": missing_fields,
+            },
+        )
+    return populated, editing_state
+
 @app.post("/preview-html", response_class=HTMLResponse)
 async def preview_html(req: RenderRequest):
     """Render dynamically without database persistence — return HTML as text (for iframe preview)."""
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         
-        # Save draft data for GET preview-file endpoint to consume
-        save_draft_data(university_slug, page_type, slug, parent_slug, acf_data, req.images)
-        
         merged = {**acf_data, **req.images}
+        merged, _editing_state = validate_blueprint_content(
+            page_type,
+            merged,
+            slug=slug,
+            university_slug=university_slug,
+            parent_slug=parent_slug,
+        )
+
+        # Save only valid draft data for GET preview-file endpoint to consume.
+        save_draft_data(university_slug, page_type, slug, parent_slug, merged, req.images)
         
         # Load baseline workspace index
         from workspace.compiler import _build_index, _enrich_resolved
@@ -497,6 +539,8 @@ async def preview_html(req: RenderRequest):
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone, preview=True)
         return HTMLResponse(content=html)
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -522,6 +566,14 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
                 merged = record.get("data") or {}
             else:
                 raise HTTPException(status_code=404, detail="Preview data not found")
+
+        merged, _editing_state = validate_blueprint_content(
+            page_type,
+            merged,
+            slug=slug,
+            university_slug=university_slug,
+            parent_slug=parent_slug,
+        )
 
         # Construct draft record and inject it into the temporary index
         draft_record = {
@@ -561,6 +613,13 @@ async def render_html(req: RenderRequest):
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         merged = {**acf_data, **req.images}
+        merged, _editing_state = validate_blueprint_content(
+            page_type,
+            merged,
+            slug=slug,
+            university_slug=university_slug,
+            parent_slug=parent_slug,
+        )
         
         # Load baseline workspace index
         from workspace.compiler import _build_index, _enrich_resolved
@@ -601,6 +660,8 @@ async def render_html(req: RenderRequest):
             media_type="text/html",
             headers={"Content-Disposition": f"attachment; filename={slug}.dc.html"}
         )
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1271,31 +1332,16 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         acf_data.pop("detected_specializations", None)
-        
-        # 1. Validate required images before compile/save
-        required_slots = {
-            "university": ["hero_image_url"],
-            "course": ["hero_image_url", "certificate_image_url"],
-            "specialization": ["hero_image_url"],
-            "blog": ["hero_image_url"]
-        }
-        
-        if page_type in required_slots:
-            for slot in required_slots[page_type]:
-                val_in_images = req.images.get(slot)
-                val_in_acf = acf_data.get(slot)
-                if not val_in_images and not val_in_acf:
-                    labels = {
-                        "hero_image_url": "Hero Image",
-                        "certificate_image_url": "Degree Certificate Image"
-                    }
-                    slot_name = labels.get(slot, slot.replace("_", " ").title())
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Missing required image: {slot_name}"
-                    )
 
-        # 2. Process and save base64 images to local Assets/images/ directory
+        acf_data, _validated_editing_state = validate_blueprint_content(
+            page_type,
+            {**acf_data, **req.images},
+            slug=slug,
+            university_slug=university_slug,
+            parent_slug=parent_slug,
+        )
+
+        # Process and save base64 images to local Assets/images/ directory
         assets_dir = WORKSPACES_ROOT / university_slug / "Assets" / "images"
         assets_dir.mkdir(parents=True, exist_ok=True)
         

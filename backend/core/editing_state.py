@@ -154,3 +154,35 @@ def build_editing_state(
             "renderable_sections": page_state["summary"]["renderable_sections"],
         },
     }
+
+
+def validate_required_content(
+    page_type: str,
+    values: dict[str, Any],
+    derived_values: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, str]]]:
+    """Validate one page using the canonical Blueprint field requirements.
+
+    Returns ``(populated_values, editing_state, missing_fields)`` so preview,
+    save, and publish paths can share the same decision without duplicating
+    required-field lists. Unsupported legacy page types remain valid.
+    """
+    populated, auto_filled = apply_auto_population(page_type, values)
+    editing_state = build_editing_state(
+        page_type,
+        populated,
+        derived_values,
+        auto_populate=False,
+        auto_filled_names=auto_filled,
+    )
+    if not editing_state:
+        return populated, editing_state, []
+
+    missing_fields: list[dict[str, str]] = []
+    for name in editing_state["needs_attention"]:
+        field = editing_state["fields"][name]
+        missing_fields.append({
+            "field": name,
+            "label": field.get("label") or name.replace("_", " ").title(),
+        })
+    return populated, editing_state, missing_fields

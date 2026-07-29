@@ -1,6 +1,6 @@
 import unittest
 
-from core.editing_state import apply_auto_population, build_editing_state
+from core.editing_state import apply_auto_population, build_editing_state, validate_required_content
 from core.page_blueprint import SUPPORTED_PAGE_TYPES, build_page_blueprint
 
 
@@ -27,7 +27,7 @@ class PageBlueprintTests(unittest.TestCase):
 
     def test_blueprint_classifies_image_manual_and_derived_fields(self):
         bp = build_page_blueprint("course")
-        self.assertEqual(bp["image_fields"], ["certificate_image_url", "hero_image_url"])
+        self.assertEqual(bp["image_fields"], ["certificate_image_url", "hero_image_url", "og_image_url"])
         self.assertIn("hero_image_url", bp["manual_fields"])
         self.assertIn("reviews", bp["manual_fields"])
         self.assertIn("slug", bp["derived_fields"])
@@ -140,6 +140,35 @@ class EditingStateTests(unittest.TestCase):
 
     def test_unsupported_page_type(self):
         self.assertEqual(build_editing_state("blog", {"title": "Post"}), {})
+
+    def test_required_validation_uses_blueprint_field_metadata(self):
+        populated, state, missing = validate_required_content(
+            "course",
+            {"program_name": "Online MBA"},
+            DERIVED,
+        )
+        self.assertEqual(populated["mode"], "100% Online")
+        self.assertFalse(state["summary"]["ready"])
+        missing_names = {entry["field"] for entry in missing}
+        self.assertIn("hero_description", missing_names)
+        self.assertIn("total_fee", missing_names)
+        self.assertIn("hero_image_url", missing_names)
+
+    def test_required_validation_accepts_complete_page(self):
+        values = {
+            "program_name": "Online MBA",
+            "university_name": "IGNOU",
+            "hero_description": "Flexible management degree.",
+            "duration": "2 Years",
+            "naac_grade": "A++",
+            "ugc_status": "UGC-DEB approved",
+            "total_fee": "INR 1,65,000",
+            "hero_image_url": "/assets/images/hero.jpg",
+            "certificate_image_url": "/assets/images/cert.jpg",
+        }
+        _populated, state, missing = validate_required_content("course", values, DERIVED)
+        self.assertEqual(missing, [])
+        self.assertTrue(state["summary"]["ready"])
 
 
 if __name__ == "__main__":

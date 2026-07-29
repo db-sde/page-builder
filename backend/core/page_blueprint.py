@@ -27,6 +27,96 @@ from core.page_requirements import (
 SUPPORTED_PAGE_TYPES = ("university", "course", "specialization")
 
 
+# Context intentionally supplied outside page-authored content. Keeping these
+# in the Blueprint makes their ownership explicit without exposing them as
+# editable fields in the Review screen.
+COMMON_EXTERNAL_TEMPLATE_FIELDS: dict[str, str] = {
+    "site": "WORKSPACE",
+    "branding_logo": "WORKSPACE",
+    "branding_favicon": "WORKSPACE",
+    "university_letter": "DERIVED",
+    "canonical_url": "DERIVED",
+    "homepage_href": "DERIVED",
+    "programs_listing_href": "DERIVED",
+    "specs_listing_href": "DERIVED",
+    "blog_listing_href": "DERIVED",
+    "contact_href": "DERIVED",
+    "lead_url_apply": "DERIVED",
+    "lead_url_brochure": "DERIVED",
+    "lead_url_enquiry": "DERIVED",
+    "lead_url_fees": "DERIVED",
+    "lead_url_syllabus": "DERIVED",
+    "lead_url_whatsapp": "DERIVED",
+    "hero": "DERIVED",
+    "stats": "DERIVED",
+    "rail": "DERIVED",
+    "preview_mode": "SYSTEM",
+    "standalone": "SYSTEM",
+    "show_contact": "SYSTEM",
+    "heroBadge": "SYSTEM",
+    "heroChip": "SYSTEM",
+    "heroCrumb": "SYSTEM",
+    "heroH1": "SYSTEM",
+    "heroImg": "SYSTEM",
+    "heroImgText": "SYSTEM",
+    "heroSecBtn": "SYSTEM",
+    "heroStatDivider": "SYSTEM",
+    "heroStatLabel": "SYSTEM",
+    "heroSub": "SYSTEM",
+    "heroWrap": "SYSTEM",
+}
+
+
+# Renderer display models that are not authored independently. They are built
+# from canonical page fields or workspace collections before Jinja rendering.
+PAGE_EXTERNAL_TEMPLATE_FIELDS: dict[str, dict[str, str]] = {
+    "university": {
+        "admission": "DERIVED",
+        "banks": "WORKSPACE",
+        "emi": "DERIVED",
+        "features": "WORKSPACE",
+        "financing": "WORKSPACE",
+        "posts": "WORKSPACE",
+        "programs": "WORKSPACE",
+        "recruiters": "WORKSPACE",
+        "specs": "WORKSPACE",
+        "testimonials": "DERIVED",
+        "why_choose": "DERIVED",
+    },
+    "course": {
+        "about": "DERIVED",
+        "accreditations": "DERIVED",
+        "admission": "DERIVED",
+        "eligibility": "DERIVED",
+        "fees": "DERIVED",
+        "jobs": "DERIVED",
+        "placement": "DERIVED",
+        "specs": "WORKSPACE",
+        "steps": "DERIVED",
+        "sticky_bar": "DERIVED",
+        "syllabusTabs": "DERIVED",
+        "syllabus_years": "DERIVED",
+    },
+    "specialization": {
+        "about": "DERIVED",
+        "admission": "DERIVED",
+        "certificate": "DERIVED",
+        "eligibility": "DERIVED",
+        "exam": "DERIVED",
+        "fees": "DERIVED",
+        "jobs": "DERIVED",
+        "otherSpecs": "DERIVED",
+        "parent_course_slug": "DERIVED",
+        "parent_program_name": "DERIVED",
+        "placement": "DERIVED",
+        "steps": "DERIVED",
+        "sticky_bar": "DERIVED",
+        "syllabusTabs": "DERIVED",
+        "syllabus_years": "DERIVED",
+    },
+}
+
+
 # Explicit, declared defaults. These mirror the defaults the transformers
 # already apply today (``self.resolve("mode", "100% Online")``); declaring them
 # here makes them visible to the editor instead of hidden inside the renderer.
@@ -107,6 +197,21 @@ def build_page_blueprint(page_type: str) -> dict[str, Any]:
             optional_fields.append(name)
         fields[name] = field
 
+    external_fields: dict[str, dict[str, Any]] = {
+        name: {"name": name, "source": source, "sections": []}
+        for name, source in {
+            **COMMON_EXTERNAL_TEMPLATE_FIELDS,
+            **PAGE_EXTERNAL_TEMPLATE_FIELDS.get(page_type, {}),
+        }.items()
+    }
+    for section in sections:
+        for name, source in section.get("external_fields", {}).items():
+            entry = external_fields.setdefault(
+                name, {"name": name, "source": source, "sections": []}
+            )
+            if section["section"] not in entry["sections"]:
+                entry["sections"].append(section["section"])
+
     return {
         "page_type": page_type,
         # Section order is the template's order — the list is already ordered.
@@ -129,6 +234,7 @@ def build_page_blueprint(page_type: str) -> dict[str, Any]:
                 "always_rendered": s["always_rendered"],
                 "fabricated_when_empty": s["fabricated_when_empty"],
                 "data_source": s["data_source"],
+                "external_fields": dict(s.get("external_fields", {})),
             }
             for index, s in enumerate(sections)
         ],
@@ -139,5 +245,6 @@ def build_page_blueprint(page_type: str) -> dict[str, Any]:
         "derived_fields": sorted(derived_fields),
         "image_fields": sorted(image_fields),
         "template_fields": sorted(usage),
+        "external_fields": external_fields,
         "defaults": dict(defaults),
     }

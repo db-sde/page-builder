@@ -4,12 +4,48 @@ import unittest
 from unittest.mock import patch
 
 from docx import Document
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 
-from main import IngestRequest, ingest_acf, parse_docx_endpoint
+from main import IngestRequest, ingest_acf, parse_docx_endpoint, validate_blueprint_content
 
 
 class PostParserPipelineTests(unittest.TestCase):
+    def test_endpoint_validation_reports_all_blueprint_required_fields(self):
+        with self.assertRaises(HTTPException) as context:
+            validate_blueprint_content(
+                "course",
+                {"program_name": "Online MBA"},
+                slug="ignou-online-mba",
+                university_slug="ignou",
+                parent_slug=None,
+            )
+
+        self.assertEqual(context.exception.status_code, 422)
+        missing = {
+            entry["field"] for entry in context.exception.detail["missing_fields"]
+        }
+        self.assertIn("hero_description", missing)
+        self.assertIn("duration", missing)
+        self.assertIn("total_fee", missing)
+        self.assertIn("hero_image_url", missing)
+        self.assertIn("certificate_image_url", missing)
+
+    def test_legacy_blog_image_requirement_is_preserved(self):
+        with self.assertRaises(HTTPException) as context:
+            validate_blueprint_content(
+                "blog",
+                {"title": "An article"},
+                slug="an-article",
+                university_slug="ignou",
+                parent_slug=None,
+            )
+
+        self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(
+            context.exception.detail["missing_fields"],
+            [{"field": "hero_image_url", "label": "Article Hero Image"}],
+        )
+
     def test_ingest_response_carries_field_state_without_changing_acf_data(self):
         payload = {
             "page_type": "university",

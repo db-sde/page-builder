@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+
+from jinja2 import Environment, meta
 
 from core.field_definitions import build_field_state
 from core.page_requirements import (
@@ -40,8 +43,9 @@ class PageRequirementTests(unittest.TestCase):
         # Present-but-unused schema fields must be flagged unused (never warn).
         self.assertIn("faculty_members", unused)
         self.assertIn("about_content", unused)
-        self.assertIn("why_choose_content", unused)
         self.assertIn("about_heading", unused)
+        self.assertNotIn("why_choose_content", unused)
+        self.assertNotIn("facts", unused)
         # And they are not marked used-by-template.
         self.assertFalse(state["field_usage"]["faculty_members"]["used_by_template"])
         # Hero fields are used by the template.
@@ -77,16 +81,36 @@ class PageRequirementTests(unittest.TestCase):
         by_id = {s["section"]: s for s in state["sections"]}
         self.assertTrue(by_id["about"]["renderable"])
 
-    def test_fabricated_sections_are_flagged_for_next_phase(self):
+    def test_no_sections_claim_fabricated_fallbacks(self):
         state = build_page_state_from_values(
             "course",
             {"program_name": "Online MBA"},
             {"page_type": "course", "slug": "ignou-online-mba", "university_slug": "ignou"},
         )
-        fabricated = set(state["summary"]["fabricated_sections"])
-        # These render fabricated content when their real fields are empty.
-        for section_id in ("fees", "syllabus", "jobs", "reviews", "faqs", "admission"):
-            self.assertIn(section_id, fabricated)
+        self.assertEqual(state["summary"]["fabricated_sections"], [])
+
+    def test_external_template_fields_have_explicit_owners(self):
+        from core.page_blueprint import build_page_blueprint
+
+        blueprint = build_page_blueprint("university")
+        self.assertEqual(blueprint["external_fields"]["programs"]["source"], "WORKSPACE")
+        self.assertEqual(blueprint["external_fields"]["features"]["source"], "WORKSPACE")
+        self.assertEqual(blueprint["external_fields"]["canonical_url"]["source"], "DERIVED")
+
+    def test_every_direct_template_variable_has_exactly_one_owner(self):
+        from core.page_blueprint import build_page_blueprint
+
+        templates_dir = Path(__file__).resolve().parents[1] / "templates"
+        environment = Environment()
+        for page_type in ("university", "course", "specialization"):
+            with self.subTest(page_type=page_type):
+                source = (templates_dir / f"{page_type}.html").read_text(encoding="utf-8")
+                referenced = meta.find_undeclared_variables(environment.parse(source))
+                blueprint = build_page_blueprint(page_type)
+                page_fields = set(blueprint["fields"])
+                external_fields = set(blueprint["external_fields"])
+                self.assertFalse(page_fields & external_fields)
+                self.assertEqual(referenced - page_fields - external_fields, set())
 
     def test_infrastructure_fields_never_counted_as_unused(self):
         field_state = build_field_state(
@@ -118,8 +142,9 @@ class PageRequirementTests(unittest.TestCase):
         usage = template_field_usage("specialization")
         self.assertIn("exam_content", usage)
         self.assertEqual(usage["exam_content"], ["exam"])
-        # other_specs is workspace-driven; the schema field is not template-used.
-        self.assertNotIn("other_specs", usage)
+        # Workspace siblings are preferred, but the schema field is the real
+        # fallback when no published sibling page exists.
+        self.assertEqual(usage["other_specs"], ["other_specs"])
 
 
 if __name__ == "__main__":
