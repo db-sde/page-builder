@@ -97,6 +97,89 @@ def _plain_text(value) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def derive_financing_from_emi(emi_html) -> tuple[list[dict], list[str]]:
+    """Derive homepage financing facts only when the source states them explicitly.
+
+    University DOCX files commonly put EMI amounts, repayment tenures and bank
+    recommendations in the single ``emi_content`` section.  The renderer uses
+    structured ``financing`` and ``banks`` lists for compact homepage cards,
+    so preserve the source facts in that form without supplying any defaults.
+    """
+    html = str(emi_html or "")
+    text = _plain_text(html)
+    if not text:
+        return [], []
+
+    financing: list[dict] = []
+
+    # A monthly EMI amount must be explicitly stated near an EMI reference.
+    monthly_amount = ""
+    for match in re.finditer(r"\bemi\b", text, re.IGNORECASE):
+        nearby = text[max(0, match.start() - 80):match.end() + 180]
+        amount = re.search(r"(?:₹|INR\s*)([\d,]+)", nearby, re.IGNORECASE)
+        if amount and "month" in nearby.lower():
+            amount_value = amount.group(1).replace(",", "")
+            monthly_amount = f"₹{int(amount_value):,}" if amount_value.isdigit() else clean_fee(amount.group(1))
+            break
+    if monthly_amount:
+        financing.append({
+            "stat": monthly_amount,
+            "t": "Monthly EMI",
+            "d": f"EMI is available from {monthly_amount} per month.",
+        })
+
+    # A range is only useful as an EMI tenure when it occurs beside financing
+    # language; unrelated month ranges must not become a financing card.
+    tenure_match = re.search(
+        r"\b(\d{1,2})\s*(?:to|–|-)\s*(\d{1,2})\s*months?\b",
+        text,
+        re.IGNORECASE,
+    )
+    if tenure_match:
+        nearby = text[max(0, tenure_match.start() - 120):tenure_match.end() + 120].lower()
+        if any(term in nearby for term in ("emi", "loan", "finance", "repay")):
+            start, end = tenure_match.group(1), tenure_match.group(2)
+            financing.append({
+                "stat": f"{start}–{end} months",
+                "t": "EMI tenure",
+                "d": f"EMI can be opted for a period of {start} to {end} months.",
+            })
+
+    grant_match = re.search(
+        r"(?:up\s+to|upto)\s*(\d{1,3})\s*%[^.]{0,90}\b(?:grant|scholarship)\w*",
+        text,
+        re.IGNORECASE,
+    )
+    if grant_match:
+        percentage = grant_match.group(1)
+        financing.append({
+            "stat": f"Up to {percentage}%",
+            "t": "Student grants",
+            "d": "Student grants and scholarships are available based on the stated criteria.",
+        })
+
+    banks: list[str] = []
+    # Restrict list extraction to a bank/financing-introduction paragraph, so
+    # scholarship eligibility lists remain ordinary rich content rather than
+    # being mislabelled as bank partners.
+    for match in re.finditer(
+        r"<p[^>]*>(?P<intro>.*?)</p>\s*<ul[^>]*>(?P<items>.*?)</ul>",
+        html,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        intro = _plain_text(match.group("intro")).lower()
+        if not any(marker in intro for marker in ("bank recommendation", "following banks", "bank partners")):
+            continue
+        banks = [
+            _plain_text(item)
+            for item in re.findall(r"<li[^>]*>(.*?)</li>", match.group("items"), re.IGNORECASE | re.DOTALL)
+            if _plain_text(item)
+        ]
+        break
+
+    return financing, banks
+
+
 def _schema_price(value) -> str:
     """Extract an INR numeric price without inventing a value."""
     match = re.search(r"\d[\d,]*(?:\.\d+)?", str(value or ""))
@@ -933,8 +1016,9 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
  
  
     # University specific features, recruiters, financing, testimonials
-    # features / recruiters / financing / banks come from the university
-    # knowledge base only. No hardcoded stats, recruiter logos or EMI figures.
+    # Workspace lists remain authoritative. When a DOCX supplied only the
+    # source-backed EMI rich-content section, derive the compact homepage facts
+    # from that exact content instead of supplying fabricated defaults.
     features_list = resolve_list(raw_dict, knowledge, "features")
     ctx["features_json"] = json.dumps(features_list, ensure_ascii=False)
 
@@ -954,9 +1038,14 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     
     # financing for homepage
     financing_list = resolve_list(raw_dict, knowledge, "financing")
-    ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
-
     banks_list = resolve_list(raw_dict, knowledge, "banks")
+    if page_type == "university" and (not financing_list or not banks_list):
+        derived_financing, derived_banks = derive_financing_from_emi(ctx.get("emi"))
+        if not financing_list:
+            financing_list = derived_financing
+        if not banks_list:
+            banks_list = derived_banks
+    ctx["financing_json"] = json.dumps(financing_list, ensure_ascii=False)
     ctx["banks_json"] = json.dumps(banks_list, ensure_ascii=False)
 
     # Programs list for homepage (enriched from workspace courses if available)

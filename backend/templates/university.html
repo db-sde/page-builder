@@ -249,11 +249,16 @@
   <!-- ===== FEES & FINANCING ===== -->
   {% if emi or financing or banks %}
   <div id="fees" style="max-width:1180px;margin:0 auto;padding:60px 20px 0">
-    <div class="why-us-grid" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:32px;{% if financing %}display:grid;grid-template-columns:.95fr 1.05fr;gap:32px;align-items:start{% else %}display:block{% endif %}">
+    <div class="why-us-grid" style="background:#fff;border:1px solid #E9E5F2;border-radius:18px;padding:32px;{% if financing %}display:grid;grid-template-columns:.95fr 1.05fr;gap:32px;align-items:center{% else %}display:block{% endif %}">
       <div>
         <div style="font-size:12.5px;font-weight:700;letter-spacing:.16em;color:#E04015;text-transform:uppercase">Fees &amp; Financing</div>
         <div aria-hidden="true" style="font-size:30px;font-weight:800;color:#1C1B22;margin-top:8px;line-height:1.18">&nbsp;</div>
-        {% if emi %}<div class="rich-content content-body" style="font-size:14.5px;color:#434346;margin-top:14px">{{ emi | safe }}</div>{% endif %}
+        {% if emi %}
+        <div data-expandable-content class="finance-expandable" style="margin-top:14px">
+          <div id="fees-content" data-expandable-body class="rich-content content-body" style="font-size:14.5px;color:#434346">{{ emi | safe }}</div>
+          <button type="button" class="content-toggle" data-expandable-toggle aria-controls="fees-content" aria-expanded="false" hidden>Show more</button>
+        </div>
+        {% endif %}
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:18px">
           {% for b in banks %}
             <span style="font-size:12.5px;font-weight:700;color:#434346;background:#F6F4FB;border:1px solid #E9E5F2;border-radius:8px;padding:7px 12px">{{ b }}</span>
@@ -261,7 +266,7 @@
         </div>
       </div>
       {% if financing %}
-      <div class="grid-2-col" style="display:grid;grid-template-columns:{% if financing|length == 1 %}minmax(0,1fr){% else %}repeat(2,minmax(0,1fr)){% endif %};gap:12px;align-self:start">
+      <div class="grid-2-col" style="display:grid;grid-template-columns:{% if financing|length == 1 %}minmax(0,1fr){% else %}repeat(2,minmax(0,1fr)){% endif %};gap:12px;align-self:center">
         {% for f in financing %}
           <div style="background:#F6F4FB;border:1px solid #ECE8F6;border-radius:12px;padding:16px">
             <div style="font-size:22px;font-weight:800;color:#E04015">{{ f.stat }}</div>

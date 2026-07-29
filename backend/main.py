@@ -1906,14 +1906,12 @@ async def download_build_endpoint(university_slug: str):
 async def build_file_endpoint(university_slug: str, path: str = "index.html"):
     """
     Serve a single file from a workspace's build/ folder.
-    Used by the iframe / new-tab preview of the built website.
+    Used by the iframe / new-tab preview of the built website. Building is an
+    explicit action handled by /build-website; serving a preview must never
+    recompile or re-export the entire workspace.
     """
     from fastapi.responses import FileResponse
     try:
-        # Compile and build so the preview is always fresh
-        compile_workspace(university_slug)
-        build_website(university_slug)
-
         slug = university_slug.lower().strip()
         build_dir = WORKSPACES_ROOT / slug / "build"
         # Normalise and prevent path traversal outside build/

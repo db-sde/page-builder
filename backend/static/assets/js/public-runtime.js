@@ -139,6 +139,31 @@
     excerpt.insertAdjacentElement('afterend', button);
   }
 
+  function initExpandableContent() {
+    document.querySelectorAll('[data-expandable-content]').forEach(function (wrapper) {
+      var content = wrapper.querySelector('[data-expandable-body]');
+      var button = wrapper.querySelector('[data-expandable-toggle]');
+      if (!content || !button) return;
+
+      content.classList.add('is-collapsed');
+      wrapper.classList.add('is-collapsed');
+      if (content.scrollHeight <= content.clientHeight + 4) {
+        content.classList.remove('is-collapsed');
+        wrapper.classList.remove('is-collapsed');
+        return;
+      }
+
+      button.hidden = false;
+      button.addEventListener('click', function () {
+        var expanded = button.getAttribute('aria-expanded') !== 'true';
+        content.classList.toggle('is-collapsed', !expanded);
+        wrapper.classList.toggle('is-collapsed', !expanded);
+        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        button.textContent = expanded ? 'Show less' : 'Show more';
+      });
+    });
+  }
+
   function initLeadForms() {
     document.querySelectorAll('form[data-lead-form]').forEach(function (form) {
       form.addEventListener('submit', function (event) {
@@ -298,6 +323,7 @@
     initWorkspaceContactForms();
     wrapArticleTables();
     initExcerptToggle();
+    initExpandableContent();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

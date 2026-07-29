@@ -7,7 +7,7 @@ from docx import Document
 from fastapi import HTTPException, UploadFile
 
 from main import IngestRequest, ingest_acf, parse_docx_endpoint, validate_blueprint_content
-from renderer.engine import clean_spec_name, parse_admission_html
+from renderer.engine import clean_spec_name, derive_financing_from_emi, parse_admission_html
 
 
 class PostParserPipelineTests(unittest.TestCase):
@@ -151,6 +151,19 @@ class PostParserPipelineTests(unittest.TestCase):
     def test_specialization_display_name_omits_parenthetical_parser_suffixes(self):
         self.assertEqual(clean_spec_name("Finance (Fin"), "Finance")
         self.assertEqual(clean_spec_name("Information Technology (IT)"), "Information Technology")
+
+    def test_emi_content_derives_only_explicit_financing_facts(self):
+        financing, banks = derive_financing_from_emi(
+            "<p>EMI per month ranges between INR 7373 /-. EMI can be opted for "
+            "a period of 12 to 24 months. The university has bank recommendations:</p>"
+            "<ul><li>Punjab National Bank</li><li>IDBI Bank</li></ul>"
+            "<p>The university offers up to 30% of student grants and scholarships.</p>"
+        )
+
+        self.assertEqual([item["stat"] for item in financing], [
+            "₹7,373", "12–24 months", "Up to 30%",
+        ])
+        self.assertEqual(banks, ["Punjab National Bank", "IDBI Bank"])
 
 
 if __name__ == "__main__":
