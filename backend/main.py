@@ -40,6 +40,7 @@ load_env()
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", str(25 * 1024 * 1024)))
+BASE_DIR = Path(__file__).resolve().parent
 
 def ensure_frontend_built() -> Path:
     """Ensure frontend/dist exists by running npm run build if necessary."""
