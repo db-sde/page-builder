@@ -639,7 +639,7 @@ function ProgressPanel({ descriptors, values }) {
         </div>
         <strong>{percent}% <span>complete</span></strong>
       </div>
-      <div className="author-progress-track" aria-label={`${percent}% complete`}><span style={{ width: `${percent}%` }} /></div>
+      <div className={`author-progress-track ${percent === 100 ? 'is-complete' : ''}`} aria-label={`${percent}% complete`}><span style={{ width: `${percent}%` }} /></div>
       <div className="author-progress-meta">
         <span>{missing.length} section{missing.length === 1 ? '' : 's'} need content</span>
         <span>{review.length} section{review.length === 1 ? '' : 's'} need review</span>

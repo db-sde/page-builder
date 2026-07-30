@@ -698,7 +698,23 @@ async def preview_html(req: RenderRequest):
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
         await ensure_workspace_available(university_slug)
         
-        merged = {**acf_data, **req.images}
+        assets_dir = WORKSPACES_ROOT / university_slug / "Assets" / "images"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        image_slots = set(req.images.keys()) | {
+            "hero_image_url", "certificate_image_url", "featured_image_url", "og_image_url"
+        }
+        processed_images = {}
+        for slot in image_slots:
+            img_data = req.images.get(slot) or acf_data.get(slot)
+            if not img_data:
+                continue
+            prefix = image_prefix_for_slot(page_type, slug, slot)
+            local_path = save_base64_image(img_data, assets_dir, prefix)
+            if local_path:
+                processed_images[slot] = local_path
+                acf_data[slot] = local_path
+
+        merged = {**acf_data, **req.images, **processed_images}
         merged, _editing_state = validate_blueprint_content(
             page_type,
             merged,
@@ -708,7 +724,10 @@ async def preview_html(req: RenderRequest):
         )
 
         # Save only valid draft data for GET preview-file endpoint to consume.
-        save_draft_data(university_slug, page_type, slug, parent_slug, merged, req.images)
+        save_draft_data(university_slug, page_type, slug, parent_slug, merged, {**req.images, **processed_images})
+
+        if processed_images:
+            await sync_workspace_after_change(university_slug)
         
         # Load baseline workspace index
         from workspace.compiler import _build_index, _enrich_resolved

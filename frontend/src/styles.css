@@ -38,6 +38,7 @@ table { border-collapse: collapse; width: 100%; }
   --navy: var(--color-navy);
   --amber: var(--color-orange);
   --primary: var(--color-orange);
+  --color-primary: #F45D22;
   --bg: var(--color-bg);
   --border: var(--color-border);
   --muted: var(--color-text-muted);
@@ -936,19 +937,25 @@ code, .font-mono {
 }
 
 .author-progress-track {
-  height: 6px;
-  margin-top: 10px;
+  height: 8px;
+  margin-top: 12px;
   overflow: hidden;
   border-radius: 999px;
-  background: #ece8f5;
+  background: #E2E8F0;
 }
 
 .author-progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-primary), #8b6ee8);
-  transition: width .2s ease;
+  background: linear-gradient(90deg, #F45D22, #10B981);
+  transition: width .3s ease;
+  box-shadow: 0 1px 4px rgba(244, 93, 34, 0.25);
+}
+
+.author-progress-track.is-complete span {
+  background: linear-gradient(90deg, #10B981, #16A34A);
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.3);
 }
 
 .author-progress-meta {
