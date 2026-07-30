@@ -1209,9 +1209,12 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
             
             # Determine dynamic level based on course title
             name_lower = (data.get("program_name") or data.get("course_name") or slug).lower()
-            is_undergrad = any(x in name_lower for x in ["bba", "bca", "bcom", "bsc", "ba "]) or name_lower.startswith("ba-") or name_lower.startswith("ba ")
-            if uni_slug == "nmims-2" and "emba" in name_lower:
-                is_undergrad = False
+            is_emba = "emba" in name_lower or "executive mba" in name_lower
+            is_undergrad = not is_emba and (
+                any(x in name_lower for x in ["bba", "bca", "bcom", "bsc", "ba "])
+                or name_lower.startswith("ba-")
+                or name_lower.startswith("ba ")
+            )
             level = "Undergraduate" if is_undergrad else "Postgraduate"
             
             uni_programs.append({
