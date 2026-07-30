@@ -138,9 +138,9 @@ The lead capture system is completely decoupled from the static page generator t
 Static Pages (DegreeBaba Build)
       │
       ▼ [Click CTA Button]
-Central Lead Form App (React, Hosted at LEAD_BASE_URL)
+Internal Static Contact Page (/contact)
       │
-      ▼ [Encode payload, read document.referrer]
+      ▼ [Submit Form]
 CRM Webhook (Supabase Edge Function)
 ```
 
@@ -269,7 +269,6 @@ acfTOhtml-copy/
 
 ### Backend (`backend/.env`)
 *   `MICRO_APP_URL`: External DOCX parsing microservice URL (e.g., `https://micro-app-57l9.onrender.com`).
-*   `LEAD_BASE_URL`: Hosted lead capture React app URL (e.g., `https://applicationquery.vercel.app`).
 
 ### Contact Application (`contact/.env`)
 *   `VITE_WEBHOOK_URL`: Inbound Supabase CRM webhook endpoint.
