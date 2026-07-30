@@ -181,7 +181,11 @@ def load_metadata(university_slug: str) -> dict:
             meta = json.load(f)
     except (OSError, ValueError):
         return _default_metadata(university_slug)
-    return meta if isinstance(meta, dict) else _default_metadata(university_slug)
+    if not isinstance(meta, dict):
+        return _default_metadata(university_slug)
+    # Keep legacy workspace metadata compatible without writing during reads.
+    meta.setdefault("contact_webhook", "")
+    return meta
 
 
 def ensure_metadata(university_slug: str, overrides: dict | None = None) -> dict:

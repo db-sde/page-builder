@@ -125,6 +125,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
   const [, setLogoPreview] = useState(null);
   const [, setFavPreview] = useState(null);
   const [primaryDomain, setPrimaryDomain] = useState('');
+  const [contactWebhook, setContactWebhook] = useState('');
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [brandingUploading, setBrandingUploading] = useState(false);
   const [gtmEnabled, setGtmEnabled] = useState(false);
@@ -197,6 +198,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         queueMicrotask(() => {
           if (cancelled) return;
           setPrimaryDomain(activeWorkspace.site?.primary_domain || '');
+          setContactWebhook('');
           setLogoFile(null);
           setFaviconFile(null);
           setDefaultOgImageFile(null);
@@ -217,6 +219,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         setBuildError('');
         setDrafts([]);
         setPrimaryDomain('');
+        setContactWebhook('');
         setGtmEnabled(false);
         setGtmHead('');
         setGtmBodyStart('');
@@ -269,6 +272,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     try {
       const settings = await getWorkspaceSettings(slug);
       setPrimaryDomain(settings.site?.primary_domain || '');
+      setContactWebhook(settings.contact_webhook || '');
       setGtmEnabled(Boolean(settings.gtm?.enabled));
       setGtmHead(settings.gtm?.head || '');
       setGtmBodyStart(settings.gtm?.body_start || '');
@@ -374,7 +378,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     e.preventDefault();
     setBrandingUploading(true);
     try {
-      const res = await uploadBranding(selectedSlug, logoFile, faviconFile, primaryDomain, defaultOgImageFile);
+      const res = await uploadBranding(selectedSlug, logoFile, faviconFile, primaryDomain, defaultOgImageFile, contactWebhook);
       if (res.status === 'success') {
         setIsUnsaved(false);
         setLogoFile(null);
@@ -1322,6 +1326,12 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                 <div>
                   <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 2 }}>Primary Domain</label>
                   <input type="text" value={primaryDomain} onChange={(e) => { setPrimaryDomain(e.target.value); setIsUnsaved(true); }} placeholder="https://nmimsonline.co" style={{ fontSize: 12, width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 4 }} />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 2 }}>Contact Webhook</label>
+                  <input type="url" value={contactWebhook} onChange={(e) => { setContactWebhook(e.target.value); setIsUnsaved(true); }} placeholder="https://connect.pabbly.com/webhook-listener/..." style={{ fontSize: 12, width: '100%', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 4 }} />
+                  <div style={{ marginTop: 3, fontSize: 11, color: '#64748b', lineHeight: 1.35 }}>Used for external lead integrations (for example Pabbly, Zapier, Make, or custom webhooks).</div>
                 </div>
 
                 <button

@@ -1643,7 +1643,8 @@ async def upload_branding_endpoint(
     logo: UploadFile = File(None),
     favicon: UploadFile = File(None),
     primary_domain: str = Form(None),
-    default_og_image: UploadFile = File(None)
+    default_og_image: UploadFile = File(None),
+    contact_webhook: str = Form(None),
 ):
     """
     Upload university logo and/or favicon, or update SEO settings (domain, OG image).
@@ -1663,8 +1664,10 @@ async def upload_branding_endpoint(
         if "site" not in meta:
             meta["site"] = {"primary_domain": "", "default_og_image": ""}
         
-        # Validation: Logo is required either now or previously uploaded
-        if not logo and not meta["branding"].get("logo"):
+        # Contact settings must remain editable for a newly-created workspace
+        # before branding has been supplied. Existing logo validation remains
+        # in place for branding-only saves.
+        if not logo and not meta["branding"].get("logo") and contact_webhook is None:
             raise HTTPException(status_code=400, detail="University Logo is required.")
         
         assets_dir = uni_dir / "Assets" / "images"
@@ -1730,6 +1733,19 @@ async def upload_branding_endpoint(
                 # Strip trailing slash
                 primary_domain_clean = primary_domain_clean.rstrip("/")
             meta["site"]["primary_domain"] = primary_domain_clean
+
+        # This setting is stored for the generated contact form; the Page
+        # Builder never calls the URL itself. An empty value clears it.
+        if contact_webhook is not None:
+            contact_webhook_clean = contact_webhook.strip()
+            if contact_webhook_clean:
+                import re
+                if not re.match(r"^https?://", contact_webhook_clean, re.IGNORECASE):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Contact Webhook must start with http:// or https://",
+                    )
+            meta["contact_webhook"] = contact_webhook_clean
             
         # Process SEO: default_og_image
         if default_og_image and default_og_image.filename:
@@ -1756,6 +1772,7 @@ async def upload_branding_endpoint(
             "status": "success",
             "branding": meta["branding"],
             "site": meta["site"],
+            "contact_webhook": meta.get("contact_webhook", ""),
             "compile_result": compile_result,
             "sync": sync_result,
         }
@@ -1793,6 +1810,7 @@ async def workspace_settings_endpoint(university_slug: str):
         "branding": metadata.get("branding") or {"logo": "", "favicon": ""},
         "site": metadata.get("site") or {"primary_domain": "", "default_og_image": ""},
         "gtm": metadata.get("gtm") or {"enabled": False, "head": "", "body_start": ""},
+        "contact_webhook": metadata.get("contact_webhook") or "",
     }
 
 
