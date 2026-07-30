@@ -75,7 +75,8 @@ function formatPageName(slug, universitySlug = '') {
 
 export default function Screen0Workspace({ session, updateSession, onNext, setStep }) {
   const [workspaces, setWorkspaces] = useState([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [deletingWorkspace, setDeletingWorkspace] = useState(false);
   const [error, setError] = useState('');
   const [drafts, setDrafts] = useState([]);
   const [draftsLoading, setDraftsLoading] = useState(false);
@@ -526,10 +527,10 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     }
 
     try {
-      setLoading(true);
-      setShowDeleteModal(false);
+      setDeletingWorkspace(true);
       await deleteWorkspace(selectedSlug);
       addToast('success', 'Workspace Removed', `Workspace ${selectedSlug} was deleted.`);
+      setShowDeleteModal(false);
       setSelectedSlug('');
       setTreeData(null);
       await fetchWorkspaces();
@@ -547,7 +548,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     } catch (err) {
       addToast('error', 'Delete Failed', err.message || 'Failed to delete workspace.');
     } finally {
-      setLoading(false);
+      setDeletingWorkspace(false);
       setConfirmSlugInput('');
     }
   };
@@ -659,7 +660,21 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         <div style={{ flex: '1 1 480px', minWidth: 300, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>Existing Workspaces</div>
           
-          {workspaces.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: '36px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                border: '3px solid #cbd5e1',
+                borderTop: '3px solid #F45D22',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+                margin: '0 auto 12px auto'
+              }} />
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>Loading Workspaces...</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Fetching workspace databases</div>
+            </div>
+          ) : workspaces.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 20px', border: '1px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>No Workspace Databases Found</div>
@@ -1506,11 +1521,33 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
             maxWidth: 400,
             padding: 18,
             boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
-            border: '1px solid #fca5a5'
+            border: '1px solid #fca5a5',
+            position: 'relative'
           }}>
+            {deletingWorkspace && (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(255, 255, 255, 0.88)',
+                backdropFilter: 'blur(3px)',
+                borderRadius: 8,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                zIndex: 10,
+              }}>
+                <div style={{
+                  width: 32, height: 32,
+                  border: '3px solid #fca5a5',
+                  borderTop: '3px solid #dc2626',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  marginBottom: 10
+                }} />
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#dc2626' }}>Deleting Workspace...</div>
+                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 4 }}>Deleting files and removing database</div>
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#dc2626' }}>Delete Workspace</h3>
-              <button onClick={() => setShowDeleteModal(false)} style={{ background: 'none', border: 'none', fontSize: 15, cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button onClick={() => !deletingWorkspace && setShowDeleteModal(false)} disabled={deletingWorkspace} style={{ background: 'none', border: 'none', fontSize: 15, cursor: deletingWorkspace ? 'not-allowed' : 'pointer', color: '#64748b' }}>✕</button>
             </div>
 
             <p style={{ fontSize: 12, color: '#475569', marginBottom: 10 }}>
@@ -1522,6 +1559,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
               value={confirmSlugInput}
               onChange={(e) => setConfirmSlugInput(e.target.value)}
               placeholder={selectedSlug}
+              disabled={deletingWorkspace}
               style={{ width: '100%', height: 34, padding: '0 8px', fontSize: 12.5, border: '1px solid #cbd5e1', borderRadius: 4, marginBottom: 12 }}
             />
 
@@ -1529,27 +1567,28 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
-                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 600, color: '#475569', background: '#f1f5f9', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                disabled={deletingWorkspace}
+                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 600, color: '#475569', background: '#f1f5f9', border: 'none', borderRadius: 4, cursor: deletingWorkspace ? 'not-allowed' : 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteWorkspaceConfirm}
-                disabled={confirmSlugInput !== selectedSlug}
+                disabled={confirmSlugInput !== selectedSlug || deletingWorkspace}
                 style={{
                   height: 32,
                   padding: '0 14px',
                   fontSize: 12,
                   fontWeight: 700,
                   color: '#ffffff',
-                  background: confirmSlugInput === selectedSlug ? '#dc2626' : '#fca5a5',
+                  background: confirmSlugInput === selectedSlug && !deletingWorkspace ? '#dc2626' : '#fca5a5',
                   border: 'none',
                   borderRadius: 4,
-                  cursor: confirmSlugInput === selectedSlug ? 'pointer' : 'not-allowed'
+                  cursor: confirmSlugInput === selectedSlug && !deletingWorkspace ? 'pointer' : 'not-allowed'
                 }}
               >
-                Delete
+                {deletingWorkspace ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
