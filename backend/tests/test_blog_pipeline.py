@@ -54,6 +54,28 @@ class BlogPipelineTests(unittest.TestCase):
         self.assertEqual(table_block["headers"], ["Course Name", "Fee"])
         self.assertEqual(table_block["rows"], [["Online MBA", "INR 100"]])
 
+    def test_docx_reader_preserves_merged_titles_sections_and_cell_paragraphs(self):
+        document = Document()
+        table = document.add_table(rows=5, cols=2)
+        table.rows[0].cells[0].merge(table.rows[0].cells[1]).text = "MBA Syllabus"
+        table.rows[1].cells[0].merge(table.rows[1].cells[1]).text = "Year I"
+        table.rows[2].cells[0].text = "Semester I"
+        table.rows[2].cells[1].text = "Semester II"
+        table.rows[3].cells[0].text = "Subject A\nSubject B"
+        table.rows[3].cells[1].text = "Subject C\nSubject D"
+        table.rows[4].cells[0].merge(table.rows[4].cells[1]).text = "Year II"
+
+        with tempfile.TemporaryDirectory() as directory:
+            filepath = Path(directory) / "article.docx"
+            document.save(filepath)
+            blocks = parse_blog_docx(str(filepath))
+
+        payload = parse_blog_document(blocks, "article.docx")
+        self.assertIn("<caption>MBA Syllabus</caption>", payload["content_html"])
+        self.assertIn('<th scope="rowgroup" colspan="2">Year I</th>', payload["content_html"])
+        self.assertIn('<th scope="rowgroup" colspan="2">Year II</th>', payload["content_html"])
+        self.assertIn("Subject A<br>Subject B", payload["content_html"])
+
     def test_toc_and_rendering_use_derived_article_data_and_resolved_links(self):
         content_html, toc = article_toc_and_anchors(
             "<h2>First section</h2><p>Article body.</p><h3>Detail</h3><p>More detail.</p>"

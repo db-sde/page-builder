@@ -13,9 +13,14 @@
 .article-body li { font-size: 16.5px; color: #434346; line-height: 1.65; margin: 7px 0; }
 .article-body li > ul, .article-body li > ol { margin: 7px 0 0; }
 .article-callout { margin: 24px 0; padding: 16px 20px; border-radius: 10px; border: 1px solid #F4D7CB; background: #FFF6F2; color: #434346; line-height: 1.65; }
-.article-body table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14.5px; background: #fff; border: 1.5px solid #E9E5F2; border-radius: 10px; overflow: hidden; }
-.article-body th, .article-body td { padding: 12px 16px; border: 1px solid #E9E5F2; text-align: left; }
+.blog-table-wrapper { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:24px 0; border:1.5px solid #E9E5F2; border-radius:10px; background:#fff; }
+.article-body table { width: 100% !important; min-width: 480px; border-collapse: collapse; margin:0; font-size: 14.5px; background: #fff; }
+.article-body caption { padding: 15px 16px; border-bottom: 1px solid #E9E5F2; color: #1C1B22; font-size: 17px; font-weight: 800; text-align: left; caption-side: top; }
+.article-body th, .article-body td { padding: 13px 16px; border: 1px solid #E9E5F2; text-align: left; vertical-align:top; }
+.article-body th > p, .article-body td > p { margin: 0; }
 .article-body th { background: #F8FAFC; font-weight: 700; color: #1C1B22; }
+.article-body .blog-table-section-row th { background: #F3EEFF; color: #4E35A8; text-align: center; }
+.article-body tbody tr:nth-child(even) { background:#FCFBFE; }.article-body tbody tr:hover { background:#F7F3FF; }
 .article-body pre { overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-width: 100%; }
 .article-body code { word-break: break-all; }
 .blog-inline-component { margin: 24px 0; }

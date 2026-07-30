@@ -149,10 +149,94 @@ class BlogTransformer(BaseTransformer):
             return f'<a href="{html.escape(href, quote=True)}">{html.escape(label)}</a>'
         return re.sub(r'\[([^\]\n]+)\]\(([^\s)]+)\)', replace, content)
 
+    @staticmethod
+    def _table_cell_text(markup: str) -> str:
+        """Return comparable text without changing the authored cell markup."""
+        return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", markup))).strip()
+
+    @classmethod
+    def _normalise_article_table(cls, table: str) -> str:
+        """Repair a couple of structural DOCX/table-editor artifacts safely.
+
+        Some source tables put their title in the second cell of an otherwise
+        empty first row, and repeat a year label in every column instead of
+        merging the row.  Both are presentation artifacts: make the title a
+        semantic caption and make only repeated academic section labels span
+        the table.  Cell contents themselves are deliberately left untouched.
+        """
+        cell_row = re.compile(
+            r"<tr\b(?P<row_attrs>[^>]*)>\s*"
+            r"<(?P<left_tag>td|th)\b[^>]*>(?P<left>.*?)</(?P=left_tag)>\s*"
+            r"<(?P<right_tag>td|th)\b[^>]*>(?P<right>.*?)</(?P=right_tag)>\s*"
+            r"</tr>",
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        caption = ""
+
+        def extract_sparse_title(match: re.Match[str]) -> str:
+            nonlocal caption
+            if caption or re.search(r"<caption\b", table, flags=re.IGNORECASE):
+                return match.group(0)
+            left = cls._table_cell_text(match.group("left"))
+            right = cls._table_cell_text(match.group("right"))
+            if not left and right:
+                caption = match.group("right").strip()
+                return ""
+            return match.group(0)
+
+        # A sparse first body row is a title only when it immediately follows
+        # the tbody opening tag; normal content rows are never removed.
+        normalised = re.sub(
+            r"(<tbody\b[^>]*>\s*)" + cell_row.pattern,
+            lambda match: match.group(1) + extract_sparse_title(match),
+            table,
+            count=1,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        if caption:
+            normalised = re.sub(
+                r"(<table\b[^>]*>)",
+                lambda match: f"{match.group(1)}<caption>{caption}</caption>",
+                normalised,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+
+        def merge_section_row(match: re.Match[str]) -> str:
+            left = cls._table_cell_text(match.group("left"))
+            right = cls._table_cell_text(match.group("right"))
+            if left != right or not re.match(r"^(?:year|term|phase|part|level)\b", left, flags=re.IGNORECASE):
+                return match.group(0)
+            return f'<tr class="blog-table-section-row"><th colspan="2">{match.group("left").strip()}</th></tr>'
+
+        return cell_row.sub(merge_section_row, normalised)
+
+    @classmethod
+    def _normalise_article_tables(cls, content: str) -> str:
+        """Normalize only the structural table artifacts the renderer can prove."""
+        return re.sub(
+            r"<table\b[\s\S]*?</table>",
+            lambda match: cls._normalise_article_table(match.group(0)),
+            content,
+            flags=re.IGNORECASE,
+        )
+
+    @staticmethod
+    def _wrap_article_tables(content: str) -> str:
+        """Keep semantic tables intact while providing one responsive wrapper."""
+        return re.sub(
+            r'(?<!blog-table-wrapper">)(<table\b[\s\S]*?</table>)',
+            r'<div class="blog-table-wrapper">\1</div>',
+            content,
+            flags=re.IGNORECASE,
+        )
+
     def transform(self) -> dict:
         raw = self.raw
         title = str(raw.get("title") or "").strip()
-        resolved_article = self._render_markdown_links(self._resolve_text_references(self._inline_component_html(raw.get("content_html") or "", raw)))
+        resolved_article = self._wrap_article_tables(self._normalise_article_tables(self._render_markdown_links(self._resolve_text_references(self._inline_component_html(raw.get("content_html") or "", raw)))))
         content_html, toc = article_toc_and_anchors(resolved_article)
         faqs = [
             {"q": item.get("question", ""), "a": item.get("answer", ""), "sign": "+", "disp": "none"}

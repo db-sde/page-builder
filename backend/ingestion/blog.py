@@ -38,32 +38,63 @@ def parse_blog_docx(filepath: str) -> list[dict[str, Any]]:
             if block:
                 blocks.append(block)
         elif isinstance(item, Table):
-            row_entries = [
-                (row, [clean_text(cell.text) for cell in row.cells])
-                for row in item.rows
-            ]
-            row_entries = [(row, cells) for row, cells in row_entries if any(cells)]
-            rows = [cells for _, cells in row_entries]
-            if rows:
-                # Word marks an actual header row with ``w:tblHeader``. A
-                # merged first row is an authored table title, not a guessed
-                # heading; retain it as the HTML caption and continue to the
-                # next real table row for headers.
+            def cell_text(cell) -> str:
+                # Keep paragraph boundaries within a cell. Flattening them
+                # made lists of subjects render as one long sentence.
+                paragraphs = [clean_text(paragraph.text) for paragraph in cell.paragraphs]
+                return "\n".join(text for text in paragraphs if text)
+
+            def logical_cells(row) -> list[dict[str, Any]]:
+                """Collapse Word's repeated proxy cells for horizontal merges."""
+                cells: list[dict[str, Any]] = []
+                index = 0
+                while index < len(row.cells):
+                    cell = row.cells[index]
+                    span = 1
+                    while index + span < len(row.cells) and row.cells[index + span]._tc is cell._tc:
+                        span += 1
+                    cells.append({"text": cell_text(cell), "colspan": span})
+                    index += span
+                return cells
+
+            row_entries = [(row, logical_cells(row)) for row in item.rows]
+            row_entries = [(row, cells) for row, cells in row_entries if any(cell["text"] for cell in cells)]
+            if row_entries:
+                column_count = max(sum(cell["colspan"] for cell in cells) for _, cells in row_entries)
                 row_index = 0
                 table_title = ""
-                if len(rows) > 1 and len(set(rows[0])) == 1:
-                    table_title = rows[0][0]
+
+                # A first full-width cell is a table title. Later full-width
+                # cells are section rows (for example academic years), not
+                # duplicate values in every visible table column.
+                first_cells = row_entries[0][1]
+                if len(row_entries) > 1 and len(first_cells) == 1 and first_cells[0]["colspan"] >= column_count:
+                    table_title = first_cells[0]["text"]
                     row_index = 1
+
                 row_props = row_entries[row_index][0]._tr.trPr
                 is_header = row_props is not None and row_props.find(qn("w:tblHeader")) is not None
-                headers = rows[row_index] if is_header else []
-                data_rows = rows[row_index + 1:] if is_header else rows[row_index:]
-                blocks.append({
+                header_cells = row_entries[row_index][1] if is_header else []
+                data_entries = row_entries[row_index + 1:] if is_header else row_entries[row_index:]
+
+                def serializable_row(cells: list[dict[str, Any]]) -> list[str] | dict[str, Any]:
+                    if len(cells) == 1 and cells[0]["colspan"] >= column_count:
+                        return {"kind": "section", "text": cells[0]["text"], "colspan": column_count}
+                    if any(cell["colspan"] > 1 for cell in cells):
+                        return {"kind": "row", "cells": cells}
+                    return [cell["text"] for cell in cells]
+
+                headers = [cell["text"] for cell in header_cells]
+                header_spans = [cell["colspan"] for cell in header_cells]
+                block: dict[str, Any] = {
                     "type": "table",
                     "table_title": table_title,
                     "headers": headers,
-                    "rows": data_rows,
-                })
+                    "rows": [serializable_row(cells) for _, cells in data_entries],
+                }
+                if any(span > 1 for span in header_spans):
+                    block["header_spans"] = header_spans
+                blocks.append(block)
     return blocks
 
 
@@ -152,15 +183,35 @@ def _serialize_blocks(blocks: list[dict[str, Any]]) -> str:
         elif kind == "table":
             title = _text(block.get("table_title"))
             headers = [_text(cell) for cell in block.get("headers") or []]
+            header_spans = block.get("header_spans") or []
             rows = block.get("rows") or []
             caption = f"<caption>{html.escape(title)}</caption>" if title else ""
             head = ""
             if headers:
-                head = "<thead><tr>" + "".join(f"<th scope=\"col\">{html.escape(cell)}</th>" for cell in headers) + "</tr></thead>"
-            body = "<tbody>" + "".join(
-                "<tr>" + "".join(f"<td>{html.escape(_text(cell))}</td>" for cell in row) + "</tr>"
-                for row in rows
-            ) + "</tbody>"
+                head = "<thead><tr>" + "".join(
+                    f'<th scope="col"{f" colspan=\"{header_spans[index]}\"" if index < len(header_spans) and header_spans[index] > 1 else ""}>{html.escape(cell).replace(chr(10), "<br>")}</th>'
+                    for index, cell in enumerate(headers)
+                ) + "</tr></thead>"
+
+            body_rows = []
+            for row in rows:
+                if isinstance(row, dict) and row.get("kind") == "section":
+                    section_text = str(row.get("text") or "")
+                    body_rows.append(f'<tr class="blog-table-section-row"><th scope="rowgroup" colspan="{int(row.get("colspan") or 1)}">{html.escape(section_text).replace(chr(10), "<br>")}</th></tr>')
+                    continue
+                cells = row.get("cells") if isinstance(row, dict) else row
+                rendered_cells = []
+                for cell in cells or []:
+                    if isinstance(cell, dict):
+                        cell_text = str(cell.get("text") or "")
+                        colspan = int(cell.get("colspan") or 1)
+                    else:
+                        cell_text = str(cell or "")
+                        colspan = 1
+                    span = f' colspan="{colspan}"' if colspan > 1 else ""
+                    rendered_cells.append(f"<td{span}>{html.escape(cell_text).replace(chr(10), '<br>')}</td>")
+                body_rows.append("<tr>" + "".join(rendered_cells) + "</tr>")
+            body = "<tbody>" + "".join(body_rows) + "</tbody>"
             parts.append(f"<table>{caption}{head}{body}</table>")
         index += 1
     return "\n".join(parts)
