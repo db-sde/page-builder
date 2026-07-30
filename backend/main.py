@@ -429,37 +429,57 @@ async def get_asset_image(filename: str, request: Request):
 @app.get("/assets/{path:path}")
 async def get_build_asset(path: str, request: Request):
     from fastapi.responses import FileResponse
-    # Check frontend dist assets first (React admin bundle assets)
+    
+    def _asset_media_type(filepath: Path) -> str:
+        ext = filepath.suffix.lower()
+        if ext == ".js":
+            return "application/javascript"
+        elif ext == ".css":
+            return "text/css"
+        elif ext == ".png":
+            return "image/png"
+        elif ext in (".jpg", ".jpeg"):
+            return "image/jpeg"
+        elif ext == ".webp":
+            return "image/webp"
+        elif ext == ".gif":
+            return "image/gif"
+        elif ext == ".svg":
+            return "image/svg+xml"
+        elif ext == ".pdf":
+            return "application/pdf"
+        elif ext == ".woff2":
+            return "font/woff2"
+        elif ext == ".woff":
+            return "font/woff"
+        elif ext in (".ttf", ".otf"):
+            return "font/ttf"
+        return "application/octet-stream"
+
+    # 1. Check frontend dist assets first (React admin bundle assets)
     frontend_assets_root = (FRONTEND_DIST / "assets").resolve()
     frontend_asset = (frontend_assets_root / path).resolve()
     try:
         frontend_asset.relative_to(frontend_assets_root)
+        if frontend_asset.exists() and frontend_asset.is_file():
+            return FileResponse(frontend_asset, media_type=_asset_media_type(frontend_asset))
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid asset path")
-    if frontend_asset.exists() and frontend_asset.is_file():
-        ext = frontend_asset.suffix.lower()
-        media_type = "application/octet-stream"
-        if ext == ".js":
-            media_type = "application/javascript"
-        elif ext == ".css":
-            media_type = "text/css"
-        elif ext == ".png":
-            media_type = "image/png"
-        elif ext in (".jpg", ".jpeg"):
-            media_type = "image/jpeg"
-        elif ext == ".webp":
-            media_type = "image/webp"
-        elif ext == ".svg":
-            media_type = "image/svg+xml"
-        return FileResponse(frontend_asset, media_type=media_type)
 
-    # Resolve only against the active workspace; global fallback scans do not
-    # scale and could serve an identically named asset from another tenant.
+    # 2. Check global static template assets (fonts, base CSS, etc.)
+    static_assets_root = (BASE_DIR / "static" / "assets").resolve()
+    static_asset = (static_assets_root / path).resolve()
+    try:
+        static_asset.relative_to(static_assets_root)
+        if static_asset.exists() and static_asset.is_file():
+            return FileResponse(static_asset, media_type=_asset_media_type(static_asset))
+    except ValueError:
+        pass
+
+    # 3. Resolve against the active workspace if context is available
     uni_slug = _request_workspace_slug(request)
-
     if uni_slug:
         await ensure_workspace_available(uni_slug, required=True)
-        # Look in the targeted workspace first.
         workspace_assets_root = (WORKSPACES_ROOT / uni_slug / "build" / "assets").resolve()
         p = (workspace_assets_root / path).resolve()
         try:
@@ -467,25 +487,7 @@ async def get_build_asset(path: str, request: Request):
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid asset path")
         if p.exists() and p.is_file():
-            ext = p.suffix.lower()
-            media_type = "application/octet-stream"
-            if ext == ".js":
-                media_type = "application/javascript"
-            elif ext == ".css":
-                media_type = "text/css"
-            elif ext == ".png":
-                media_type = "image/png"
-            elif ext in (".jpg", ".jpeg"):
-                media_type = "image/jpeg"
-            elif ext == ".webp":
-                media_type = "image/webp"
-            elif ext == ".gif":
-                media_type = "image/gif"
-            elif ext == ".svg":
-                media_type = "image/svg+xml"
-            elif ext == ".pdf":
-                media_type = "application/pdf"
-            return FileResponse(p, media_type=media_type)
+            return FileResponse(p, media_type=_asset_media_type(p))
 
     raise HTTPException(status_code=404 if uni_slug else 400, detail="Asset not found" if uni_slug else "Workspace context is required for workspace assets")
 
@@ -795,8 +797,12 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
             "parent_slug": parent_slug,
             "raw": enriched_record["raw"]
         }
-        standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone, preview=True)
+        script = _get_preview_interceptor_script(university_slug)
+        if "</body>" in html:
+            html = html.replace("</body>", f"{script}</body>")
+        else:
+            html += script
         logger.info("workspace_preview_file slug=%s type=%s duration_ms=%s", university_slug, page_type, round((time.monotonic() - started) * 1000))
         return HTMLResponse(content=html)
     except HTTPException:
@@ -2076,6 +2082,36 @@ async def download_build_endpoint(university_slug: str):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _get_preview_interceptor_script(university_slug: str) -> str:
+    return f"""
+<script>
+(function() {{
+  document.addEventListener('click', function(e) {{
+    var a = e.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
+    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) return;
+    if (href.startsWith('/build-file') || href.startsWith('/preview-file') || href.startsWith('/download-build')) return;
+
+    e.preventDefault();
+    var clean = href.split('?')[0].split('#')[0];
+    if (clean.startsWith('/')) {{
+      clean = clean.substring(1);
+    }}
+    if (!clean || clean.endsWith('/')) {{
+      clean += 'index.html';
+    }} else if (!clean.includes('.') && !clean.endsWith('.html')) {{
+      clean += '/index.html';
+    }}
+    var url = '/build-file?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(clean);
+    window.location.href = url;
+  }});
+}})();
+</script>
+"""
+
 @app.get("/build-file")
 async def build_file_endpoint(university_slug: str, path: str = "index.html"):
     """
@@ -2134,28 +2170,7 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
 
         if ext == ".html":
             html = target.read_text(encoding="utf-8")
-            # Inject a client-side link interception script to make navigation work with build-file params
-            script = f"""
-<script>
-document.addEventListener('click', function(e) {{
-  var a = e.target.closest('a');
-  if (a && a.getAttribute('href')) {{
-    var href = a.getAttribute('href');
-    if (href.startsWith('/') && !href.startsWith('/build-file') && !href.startsWith('/download-build')) {{
-      e.preventDefault();
-      var path = href.substring(1);
-      if (!path || path.endsWith('/')) {{
-        path += 'index.html';
-      }} else if (!path.includes('.') && !path.endsWith('/index.html')) {{
-        path += '/index.html';
-      }}
-      var url = '/build-file?university_slug=' + encodeURIComponent('{university_slug}') + '&path=' + encodeURIComponent(path);
-      window.location.href = url;
-    }}
-  }}
-}});
-</script>
-"""
+            script = _get_preview_interceptor_script(slug)
             if "</body>" in html:
                 html = html.replace("</body>", f"{script}</body>")
             else:
@@ -2191,12 +2206,40 @@ def rebuild_frontend_api():
 
 
 @app.get("/{full_path:path}")
-async def serve_frontend_spa(full_path: str):
+async def serve_frontend_spa(full_path: str, request: Request):
     """
     Serve the built React frontend application at the base URL (/).
     Acts as an SPA catch-all for any route not handled by explicit backend API endpoints.
+    If the request comes from a site preview session (Referer has university_slug), serve the workspace build file instead of returning the admin app.
     """
     from fastapi.responses import FileResponse
+    
+    # If request originated from a workspace site preview (via Referer or query param), serve workspace build file
+    uni_slug = _request_workspace_slug(request)
+    if uni_slug:
+        build_dir = (WORKSPACES_ROOT / uni_slug / "build").resolve()
+        if build_dir.exists():
+            clean_path = full_path.lstrip("/")
+            target = (build_dir / clean_path).resolve()
+            if target.exists() and target.is_dir():
+                target = target / "index.html"
+            try:
+                target.relative_to(build_dir)
+                if target.exists() and target.is_file():
+                    ext = target.suffix.lower()
+                    if ext == ".html":
+                        html = target.read_text(encoding="utf-8")
+                        script = _get_preview_interceptor_script(uni_slug)
+                        if "</body>" in html:
+                            html = html.replace("</body>", f"{script}</body>")
+                        else:
+                            html += script
+                        from fastapi.responses import HTMLResponse
+                        return HTMLResponse(content=html)
+                    return FileResponse(target)
+            except ValueError:
+                pass
+
     if not FRONTEND_DIST.exists():
         ensure_frontend_built()
 
