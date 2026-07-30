@@ -38,10 +38,14 @@ Usage:
 """
 
 import json
+import logging
+import os
 import re
 import shutil
+import tempfile
+import time
 import zipfile
-import io
+import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from html import escape as html_escape
@@ -49,6 +53,7 @@ from html import escape as html_escape
 from workspace.manager import (
     _workspace_root,
     _HTML_FILENAME,
+    workspace_lock,
 )
 from workspace.compiler import _build_index
 from core.utils import build_public_route, build_public_url
@@ -58,14 +63,7 @@ from core.utils import build_public_route, build_public_url
 # not collide with these (they are used by the listing pages).
 _RESERVED_SEGMENTS = {"programs", "specializations", "blog", "contact"}
 
-import threading
-_build_lock = threading.Lock()
-
-def with_build_lock(func):
-    def wrapper(*args, **kwargs):
-        with _build_lock:
-            return func(*args, **kwargs)
-    return wrapper
+logger = logging.getLogger(__name__)
 
 
 # ── Path helpers ──────────────────────────────────────────────────────────────
@@ -306,6 +304,28 @@ def _write_routes_json(build_dir: Path, route_map: dict, kind_label: dict) -> No
     )
 
 
+def _write_build_manifest(
+    build_dir: Path,
+    *,
+    pages_compiled: int,
+    images_copied: int,
+    downloads_copied: int,
+    routes_generated: int,
+    built_at: str,
+) -> None:
+    """Persist build status so the dashboard does not walk the build tree."""
+    (build_dir / "build-manifest.json").write_text(
+        json.dumps({
+            "pages_compiled": pages_compiled,
+            "images_copied": images_copied,
+            "downloads_copied": downloads_copied,
+            "routes_generated": routes_generated,
+            "built_at": built_at,
+        }, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+
 def _write_sitemap(
     build_dir: Path,
     route_map: dict,
@@ -451,14 +471,29 @@ def _write_vercel_json(
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-@with_build_lock
 def build_website(university_slug: str) -> dict:
+    """Build one workspace while serializing its compile/export writes."""
+    with workspace_lock(university_slug):
+        return _build_website_locked(university_slug)
+
+
+def _build_website_locked(university_slug: str) -> dict:
     """
     Build a deployable static website package for a university workspace using static assets.
     """
     university_slug = university_slug.lower().strip()
     ws_root = _workspace_root(university_slug)
-    build_dir = _build_root(university_slug)
+    final_build_dir = _build_root(university_slug)
+    # A process interruption before the final swap can leave a staging folder.
+    # They are never public builds; discard only stale ones while already under
+    # this workspace's lock.
+    stale_before = time.time() - 60 * 60
+    for candidate in ws_root.glob(".build-*"):
+        if candidate.is_dir() and candidate.stat().st_mtime < stale_before:
+            shutil.rmtree(candidate, ignore_errors=True)
+    # Export into a sibling first. The previous successful build remains
+    # available until this one has been fully written and swapped in.
+    build_dir = ws_root / f".build-{uuid.uuid4().hex}"
 
     errors: list[dict] = []
     pages_compiled = 0
@@ -483,9 +518,7 @@ def build_website(university_slug: str) -> dict:
     route_map, route_errors = _build_route_map(index, university_slug)
     errors.extend(route_errors)
 
-    # ── Pass C: reset build dir ─────────────────────────────────────────────
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
+    # ── Pass C: prepare staging build dir ───────────────────────────────────
     build_dir.mkdir(parents=True, exist_ok=True)
     (build_dir / "assets").mkdir(parents=True, exist_ok=True)
 
@@ -561,7 +594,11 @@ def build_website(university_slug: str) -> dict:
     src_images = ws_root / "Assets" / "images"
     if src_images.exists():
         from workspace.image_optimizer import optimize_images_pipeline
-        opt_stats = optimize_images_pipeline(src_images, build_dir / "assets" / "images")
+        opt_stats = optimize_images_pipeline(
+            src_images,
+            build_dir / "assets" / "images",
+            previous_dir=final_build_dir / "assets" / "images",
+        )
         images_copied = len(opt_stats)
 
     src_downloads = ws_root / "Assets" / "downloads"
@@ -607,16 +644,37 @@ def build_website(university_slug: str) -> dict:
         elif key.startswith("blog:"):
             kind_label[key] = "blog"
 
+    built_at = datetime.now(timezone.utc).isoformat()
     _write_routes_json(build_dir, route_map, kind_label)
     _write_sitemap(build_dir, route_map, index, university_slug, last_compiled_at)
     _write_robots_txt(build_dir, university_slug)
     _write_vercel_json(build_dir, route_map, university_slug)
+    _write_build_manifest(
+        build_dir,
+        pages_compiled=pages_compiled,
+        images_copied=images_copied,
+        downloads_copied=downloads_copied,
+        routes_generated=len(route_map),
+        built_at=built_at,
+    )
 
-    built_at = datetime.now(timezone.utc).isoformat()
+    backup_dir = ws_root / f".build-previous-{uuid.uuid4().hex}"
+    try:
+        if final_build_dir.exists():
+            os.replace(final_build_dir, backup_dir)
+        os.replace(build_dir, final_build_dir)
+    except Exception:
+        if backup_dir.exists() and not final_build_dir.exists():
+            os.replace(backup_dir, final_build_dir)
+        raise
+    finally:
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir, ignore_errors=True)
 
+    logger.info("workspace_build slug=%s pages=%s failed=%s images=%s", university_slug, pages_compiled, pages_failed, images_copied)
     return {
         "university_slug": university_slug,
-        "build_path": str(build_dir),
+        "build_path": str(final_build_dir),
         "build_url": f"/build-file?university_slug={university_slug}&path=index.html",
         "pages_compiled": pages_compiled,
         "pages_failed": pages_failed,
@@ -654,17 +712,28 @@ def get_build_status(university_slug: str) -> dict:
         except Exception:
             routes = {}
 
-    # Count page index.html files (exclude assets/, routes.json, sitemap.xml)
-    page_count = 0
-    for p in build_dir.rglob("index.html"):
-        page_count += 1
+    manifest = {}
+    manifest_path = build_dir / "build-manifest.json"
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            manifest = {}
 
-    images = build_dir / "assets" / "images"
-    images_copied = sum(1 for _ in images.rglob("*") if _.is_file()) if images.exists() else 0
+    # Existing exports from before build manifests retain the legacy fallback.
+    if manifest:
+        page_count = int(manifest.get("pages_compiled") or 0)
+        images_copied = int(manifest.get("images_copied") or 0)
+    else:
+        page_count = sum(1 for _ in build_dir.rglob("index.html"))
+        images = build_dir / "assets" / "images"
+        images_copied = sum(1 for _ in images.rglob("*") if _.is_file()) if images.exists() else 0
 
     # mtime of routes.json as build timestamp proxy
     built_at = None
-    if routes_path.exists():
+    if manifest.get("built_at"):
+        built_at = manifest["built_at"]
+    elif routes_path.exists():
         built_at = datetime.fromtimestamp(
             routes_path.stat().st_mtime, tz=timezone.utc
         ).isoformat()
@@ -682,26 +751,32 @@ def get_build_status(university_slug: str) -> dict:
     }
 
 
-def zip_build(university_slug: str) -> tuple[bytes, str]:
+def zip_build(university_slug: str) -> tuple[Path, str]:
+    with workspace_lock(university_slug):
+        return _zip_build_locked(university_slug)
+
+
+def _zip_build_locked(university_slug: str) -> tuple[Path, str]:
     """
-    Zip the build/ folder into an in-memory archive, compiling/rebuilding first.
+    Zip the latest completed build into a temporary archive.
+
+    Website generation stays an explicit ``Build Website`` action; downloading
+    must not silently consume CPU by compiling and exporting again.
     """
     university_slug = university_slug.lower().strip()
-
-    from workspace.compiler import compile_workspace
-    compile_workspace(university_slug)
-    build_website(university_slug)
 
     build_dir = _build_root(university_slug)
     if not build_dir.exists():
         raise FileNotFoundError(f"No build found for workspace '{university_slug}'")
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+    fd, temp_name = tempfile.mkstemp(prefix=f"{university_slug}-", suffix=".zip")
+    os.close(fd)
+    archive_path = Path(temp_name)
+    with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for p in build_dir.rglob("*"):
             if p.is_file():
                 # Package inside a parent 'build/' directory in the ZIP
                 arcname = Path("build") / p.relative_to(build_dir)
                 zf.write(p, str(arcname))
     filename = f"{university_slug}-website.zip"
-    return buf.getvalue(), filename
+    return archive_path, filename

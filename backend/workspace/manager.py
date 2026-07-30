@@ -41,11 +41,26 @@ Workspace layout (example — NMIMS):
 """
 
 import json
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
+from contextlib import contextmanager
 
 # Root directory for all workspaces — lives alongside main.py
 WORKSPACES_ROOT = Path(__file__).resolve().parent.parent / "workspaces"
+
+_workspace_locks: dict[str, threading.RLock] = {}
+_workspace_locks_guard = threading.Lock()
+
+
+@contextmanager
+def workspace_lock(university_slug: str):
+    """Serialize writes/builds for one workspace without blocking others."""
+    slug = university_slug.lower().strip()
+    with _workspace_locks_guard:
+        lock = _workspace_locks.setdefault(slug, threading.RLock())
+    with lock:
+        yield
 
 
 # ── Path resolution ──────────────────────────────────────────────────────────
@@ -156,6 +171,19 @@ def _default_metadata(university_slug: str) -> dict:
     }
 
 
+def load_metadata(university_slug: str) -> dict:
+    """Read metadata without creating directories or writing normalization changes."""
+    meta_path = WORKSPACES_ROOT / university_slug.lower().strip() / "metadata.json"
+    if not meta_path.exists():
+        return _default_metadata(university_slug)
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+    except (OSError, ValueError):
+        return _default_metadata(university_slug)
+    return meta if isinstance(meta, dict) else _default_metadata(university_slug)
+
+
 def ensure_metadata(university_slug: str, overrides: dict | None = None) -> dict:
     """
     Read (or create) workspaces/<uni>/metadata.json.
@@ -249,6 +277,11 @@ def save_page(
 
     # 4. Ensure Assets/ folders exist
     ensure_assets(university_slug)
+
+    # Any source write makes the in-process page index stale. Import here to
+    # avoid the manager/compiler import cycle.
+    from workspace.compiler import invalidate_workspace_index
+    invalidate_workspace_index(university_slug)
 
     return {
         "workspace_dir": str(page_dir),

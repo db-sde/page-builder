@@ -32,6 +32,8 @@ Usage:
 """
 
 import json
+import logging
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -45,7 +47,10 @@ from workspace.manager import (
     WORKSPACES_ROOT,
     SYSTEM_PAGE_TYPES,
     SYSTEM_PAGE_SLUGS,
+    workspace_lock,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ── Pass 1: Build global index ────────────────────────────────────────────────
@@ -61,12 +66,33 @@ _ALL_PAGE_TYPES = {
     "contact",
 }
 
-def _build_index(university_slug: str) -> dict:
+_index_cache: dict[str, dict] = {}
+_index_cache_lock = threading.RLock()
+
+
+def invalidate_workspace_index(university_slug: str) -> None:
+    """Drop one workspace's derived source index after a file mutation."""
+    with _index_cache_lock:
+        _index_cache.pop(university_slug.lower().strip(), None)
+
+
+def _copy_index(index: dict) -> dict:
+    # Preview endpoints temporarily add a draft record, so callers must never
+    # mutate the cached page-type dictionaries themselves.
+    return {page_type: dict(records) for page_type, records in index.items()}
+
+def _build_index(university_slug: str, *, refresh: bool = False) -> dict:
     """
     Scan the workspace and return a dict keyed by page_type.
     Listing pages (programs_listing, specializations_listing, blog_listing)
     are included so the compiler can re-render them in Pass 2.
     """
+    workspace_slug = university_slug.lower().strip()
+    with _index_cache_lock:
+        cached = _index_cache.get(workspace_slug)
+        if cached is not None and not refresh:
+            return _copy_index(cached)
+
     index = {pt: {} for pt in _ALL_PAGE_TYPES}
 
     for src_path in list_all_source_files(university_slug):
@@ -75,14 +101,16 @@ def _build_index(university_slug: str) -> dict:
             continue
 
         pt = record.get("page_type")
-        slug = record.get("slug")
+        page_slug = record.get("slug")
 
-        if not pt or not slug or pt not in index:
+        if not pt or not page_slug or pt not in index:
             continue
 
-        index[pt][slug] = record
+        index[pt][page_slug] = record
 
-    return index
+    with _index_cache_lock:
+        _index_cache[workspace_slug] = index
+    return _copy_index(index)
 
 
 # ── Pass 2: Enrich + re-render ────────────────────────────────────────────────
@@ -334,12 +362,17 @@ def compile_workspace(university_slug: str) -> dict:
       "compiled_at": ISO timestamp,
     }
     """
+    with workspace_lock(university_slug):
+        return _compile_workspace_locked(university_slug)
+
+
+def _compile_workspace_locked(university_slug: str) -> dict:
     pages_compiled = 0
     pages_failed = 0
     errors = []
 
     # Pass 1 — build global index
-    index = _build_index(university_slug)
+    index = _build_index(university_slug, refresh=True)
 
     # Gather all user-content records (skip system listing pages in this pass)
     user_content_types = {"university", "course", "specialization", "blog"}
@@ -394,11 +427,21 @@ def compile_workspace(university_slug: str) -> dict:
     pages_compiled += listing_compiled
     pages_failed += listing_failed
 
-    # Update metadata.json with last_compiled_at
+    # Store dashboard-only counts with the compile timestamp.  The dashboard
+    # can now show a compact workspace summary without re-scanning every page.
     compiled_at = datetime.now(timezone.utc).isoformat()
-    ensure_metadata(university_slug, {"last_compiled_at": compiled_at})
+    page_counts = {
+        "university": len(index["university"]),
+        "courses": len(index["course"]),
+        "specializations": len(index["specialization"]),
+        "blogs": len(index["blog"]),
+    }
+    ensure_metadata(university_slug, {
+        "last_compiled_at": compiled_at,
+        "page_counts": page_counts,
+    })
 
-    return {
+    result = {
         "university_slug": university_slug,
         "pages_compiled": pages_compiled,
         "pages_failed": pages_failed,
@@ -406,6 +449,8 @@ def compile_workspace(university_slug: str) -> dict:
         "errors": errors,
         "compiled_at": compiled_at,
     }
+    logger.info("workspace_compile slug=%s pages=%s failed=%s", university_slug, pages_compiled, pages_failed)
+    return result
 
 
 def get_workspace_tree(university_slug: str) -> dict:

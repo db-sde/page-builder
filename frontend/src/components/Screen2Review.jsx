@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree, getPageBlueprint } from '../api';
+import { lazy, Suspense, useState, useEffect } from 'react';
+import { API_BASE, ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree, getPageBlueprint } from '../api';
 import SectionContentEditor from './SectionContentEditor';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
-import BlogEditor from './BlogEditor';
+const BlogEditor = lazy(() => import('./BlogEditor'));
 
 // Legacy pages without a Blueprint retain their explicit image-slot fallback.
 // Blog now uses the same Blueprint contract as the other page types.
@@ -308,20 +308,22 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const getImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('/assets/images/')) {
-      return `http://localhost:8000${url}`;
+      return `${API_BASE}${url}?university_slug=${encodeURIComponent(session.university_slug || '')}`;
     }
     return url;
   };
 
   if (session.page_type === 'blog') {
-    return <BlogEditor
-      key={`${session.university_slug}-${session.slug}`}
-      session={session}
-      blueprint={blueprint}
-      loading={loading || blueprintLoading}
-      onBack={onBack}
-      onPreview={generatePreview}
-    />;
+    return <Suspense fallback={<div className="card" style={{ padding: 24 }}>Loading the Blog editing workspace…</div>}>
+      <BlogEditor
+        key={`${session.university_slug}-${session.slug}`}
+        session={session}
+        blueprint={blueprint}
+        loading={loading || blueprintLoading}
+        onBack={onBack}
+        onPreview={generatePreview}
+      />
+    </Suspense>;
   }
 
   return (

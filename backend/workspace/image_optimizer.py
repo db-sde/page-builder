@@ -11,6 +11,7 @@ WEBP_QUALITY = 82
 MAX_UPLOAD_SIDE = 1920
 _WEBP_SOURCE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 _HASH_INDEX_FILENAME = ".image-hashes.json"
+_BUILD_MANIFEST_FILENAME = ".image-manifest.json"
 
 
 def _load_hash_index(directory: Path) -> dict[str, list[str]]:
@@ -196,7 +197,7 @@ def optimize_uploaded_image(
         "optimized_dimensions": image.size,
     }
 
-def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
+def optimize_images_pipeline(src_dir: Path, dst_dir: Path, previous_dir: Path | None = None) -> dict:
     """
     Processes all PNG/JPG/WebP images in src_dir:
     1. Copies the original file to dst_dir.
@@ -211,6 +212,13 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
     target_widths = [480, 768, 1200]
 
     canonical_by_hash: dict[str, tuple[Path, dict]] = {}
+    previous_manifest: dict = {}
+    if previous_dir:
+        try:
+            previous_manifest = json.loads((previous_dir / _BUILD_MANIFEST_FILENAME).read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            previous_manifest = {}
+    build_manifest: dict[str, dict] = {}
 
     for p in src_dir.glob('*'):
         if not p.is_file() or p.suffix.lower() not in image_suffixes:
@@ -218,6 +226,23 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
             
         try:
             content_hash = hashlib.sha256(p.read_bytes()).hexdigest()
+            previous = previous_manifest.get(p.name)
+            if isinstance(previous, dict) and previous.get("sha256") == content_hash and previous_dir:
+                outputs = previous.get("outputs") or []
+                if outputs and all((previous_dir / name).is_file() for name in outputs):
+                    for name in outputs:
+                        _replace_with_link(previous_dir / name, dst_dir / name)
+                    stats[p.name] = {
+                        "format": previous.get("format", p.suffix.lstrip(".").upper()),
+                        "width": previous.get("width", 0),
+                        "height": previous.get("height", 0),
+                        "original_size": p.stat().st_size,
+                        "base_webp_size": previous.get("base_webp_size", 0),
+                        "variants": previous.get("variants", []),
+                        "reused": True,
+                    }
+                    build_manifest[p.name] = previous
+                    continue
             if content_hash in canonical_by_hash:
                 canonical_source, canonical_stats = canonical_by_hash[content_hash]
                 for filename in [
@@ -233,6 +258,19 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
                     "variants": [
                         {**variant, "filename": variant["filename"].replace(canonical_source.stem, p.stem, 1)}
                         for variant in canonical_stats["variants"]
+                    ],
+                }
+                build_manifest[p.name] = {
+                    "sha256": content_hash,
+                    "format": canonical_stats.get("format"),
+                    "width": canonical_stats.get("width"),
+                    "height": canonical_stats.get("height"),
+                    "base_webp_size": canonical_stats.get("base_webp_size"),
+                    "variants": stats[p.name]["variants"],
+                    "outputs": [
+                        p.name,
+                        f"{p.stem}.webp",
+                        *[variant["filename"] for variant in stats[p.name]["variants"]],
                     ],
                 }
                 continue
@@ -282,7 +320,19 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path) -> dict:
                     "variants": variants_info
                 }
                 canonical_by_hash[content_hash] = (p, stats[p.name])
+                build_manifest[p.name] = {
+                    "sha256": content_hash,
+                    "format": img.format,
+                    "width": orig_width,
+                    "height": orig_height,
+                    "base_webp_size": base_size,
+                    "variants": variants_info,
+                    "outputs": [p.name, base_webp_name, *[variant["filename"] for variant in variants_info]],
+                }
         except Exception as e:
             print(f"Error optimizing {p.name}: {e}")
             
+    (dst_dir / _BUILD_MANIFEST_FILENAME).write_text(
+        json.dumps(build_manifest, separators=(",", ":")), encoding="utf-8"
+    )
     return stats

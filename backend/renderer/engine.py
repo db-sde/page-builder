@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import re
 from html.parser import HTMLParser
+from functools import lru_cache
 
 # TODO: add Redis caching layer here — render_resolved should check cache before re-rendering
 
@@ -26,6 +27,27 @@ def default_empty(value):
 
 env.filters["de"] = default_empty
 
+
+@lru_cache(maxsize=512)
+def _image_dimensions(university_slug: str, filename: str, modified_ns: int) -> tuple[int, int]:
+    """Read image dimensions once per source revision during rendering."""
+    source = WORKSPACES_ROOT / university_slug / "Assets" / "images" / filename
+    try:
+        with Image.open(source) as image:
+            return image.size
+    except (UnidentifiedImageError, OSError, ValueError):
+        return (0, 0)
+
+
+def _source_image_dimensions(university_slug: str | None, url: str) -> tuple[int, int]:
+    if not university_slug or not url:
+        return (0, 0)
+    source = WORKSPACES_ROOT / university_slug / "Assets" / "images" / Path(url).name
+    try:
+        return _image_dimensions(university_slug, source.name, source.stat().st_mtime_ns)
+    except OSError:
+        return (0, 0)
+
 @pass_context
 def webp_variant_filter(context, url, width=None):
     if not url:
@@ -34,13 +56,9 @@ def webp_variant_filter(context, url, width=None):
     if width:
         university_slug = context.get("university_slug")
         if university_slug:
-            source = WORKSPACES_ROOT / university_slug / "Assets" / "images" / p.name
-            try:
-                with Image.open(source) as image:
-                    if image.width <= width:
-                        return str(p.with_name(f"{p.stem}.webp"))
-            except (UnidentifiedImageError, OSError, ValueError):
-                pass
+            image_width, _ = _source_image_dimensions(university_slug, str(p))
+            if image_width and image_width <= width:
+                return str(p.with_name(f"{p.stem}.webp"))
         return str(p.with_name(f"{p.stem}-{width}.webp"))
     else:
         return str(p.with_name(f"{p.stem}.webp"))
@@ -52,15 +70,7 @@ def image_width_filter(context, url):
     uni_slug = context.get("university_slug")
     if not uni_slug:
         return "0"
-    filename = Path(url).name
-    src_file = WORKSPACES_ROOT / uni_slug / "Assets" / "images" / filename
-    if src_file.exists():
-        try:
-            with Image.open(src_file) as img:
-                return str(img.width)
-        except Exception:
-            pass
-    return "0"
+    return str(_source_image_dimensions(uni_slug, url)[0])
 
 @pass_context
 def image_height_filter(context, url):
@@ -69,15 +79,7 @@ def image_height_filter(context, url):
     uni_slug = context.get("university_slug")
     if not uni_slug:
         return "0"
-    filename = Path(url).name
-    src_file = WORKSPACES_ROOT / uni_slug / "Assets" / "images" / filename
-    if src_file.exists():
-        try:
-            with Image.open(src_file) as img:
-                return str(img.height)
-        except Exception:
-            pass
-    return "0"
+    return str(_source_image_dimensions(uni_slug, url)[1])
 
 env.filters["webp_variant"] = webp_variant_filter
 env.filters["image_width"] = image_width_filter
@@ -774,12 +776,15 @@ def _build_preview_panel(sections: list[dict]) -> str:
 
 
 def render_resolved(resolved: dict, standalone: bool = False, preview: bool = False) -> str:
-    from workspace.knowledge import load_or_create_knowledge, resolve_field, resolve_list
+    from workspace.knowledge import resolve_field, resolve_list
 
     uni_slug = resolved.get("university_slug") or "nmims"
-    knowledge = load_or_create_knowledge(uni_slug)
-
     transformer = get_transformer(resolved)
+    # System-page transformers (for example Contact) do not need the
+    # university knowledge object.  Content transformers inherit it from the
+    # shared base class, so keep that path while allowing system pages to
+    # render without an unnecessary attribute contract.
+    knowledge = getattr(transformer, "knowledge", {})
     ctx = transformer.transform()    # Phase 3 — Context Extraction
     raw_dict = resolved.get("raw") or {}
     
@@ -801,37 +806,31 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["why_choose_name"] = _append_trailing_word_once(uni_name, "Online")
     ctx["university_letter"] = logo_letter
 
+    meta_json = {}
+    meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
+    if meta_path.exists():
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta_json = json.load(f)
+        except Exception:
+            meta_json = {}
+
     branding_logo = resolve_field(raw_dict, knowledge, "logo")
     branding_favicon = resolve_field(raw_dict, knowledge, "favicon")
-    if not branding_logo or not branding_favicon:
-        meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
-        if meta_path.exists():
-            try:
-                with open(meta_path, "r", encoding="utf-8") as f:
-                    meta_json = json.load(f)
-                    branding = meta_json.get("branding") or {}
-                    if not branding_logo:
-                        branding_logo = branding.get("logo") or ""
-                    if not branding_favicon:
-                        branding_favicon = branding.get("favicon") or ""
-            except Exception:
-                pass
+    branding = meta_json.get("branding") or {}
+    if not branding_logo:
+        branding_logo = branding.get("logo") or ""
+    if not branding_favicon:
+        branding_favicon = branding.get("favicon") or ""
     ctx["branding_logo"] = branding_logo
     ctx["branding_favicon"] = branding_favicon
 
     # Resolve SEO Settings (primary_domain and default_og_image)
     primary_domain = ""
     default_og_image = ""
-    meta_path = WORKSPACES_ROOT / uni_slug / "metadata.json"
-    if meta_path.exists():
-        try:
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta_json = json.load(f)
-                site_meta = meta_json.get("site") or {}
-                primary_domain = (site_meta.get("primary_domain") or meta_json.get("site_url") or meta_json.get("domain") or "").rstrip("/")
-                default_og_image = site_meta.get("default_og_image") or ""
-        except Exception:
-            pass
+    site_meta = meta_json.get("site") or {}
+    primary_domain = (site_meta.get("primary_domain") or meta_json.get("site_url") or meta_json.get("domain") or "").rstrip("/")
+    default_og_image = site_meta.get("default_og_image") or ""
 
     # Resolve Route and Canonical URL from the shared public-route implementation.
     slug = resolved.get("slug") or ""

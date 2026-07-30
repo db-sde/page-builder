@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+from functools import lru_cache
 
 # Original, NMIMS-specific site configuration. Preserved exactly as it was
 # so the original "nmims" workspace keeps its real branding/contact details
@@ -87,6 +88,19 @@ def _generic_site_config(university_slug: str, university_name: str | None) -> d
     }
 
 
+@lru_cache(maxsize=64)
+def _contact_overrides(university_slug: str, modified_ns: int) -> dict:
+    from workspace.manager import WORKSPACES_ROOT
+    meta_path = WORKSPACES_ROOT / university_slug / "metadata.json"
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        overrides = meta.get("contact") or {}
+        return {key: overrides[key] for key in ("topbar_text", "whatsapp", "email", "address", "copyright") if overrides.get(key)}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
 def get_site_config(university_slug: str | None, university_name: str | None = None) -> dict:
     """
     Return the topbar/nav/footer/contact config for a given workspace.
@@ -114,13 +128,8 @@ def get_site_config(university_slug: str | None, university_name: str | None = N
         from workspace.manager import WORKSPACES_ROOT
         meta_path = WORKSPACES_ROOT / slug / "metadata.json"
         if meta_path.exists():
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-            overrides = meta.get("contact") or {}
-            for key in ("topbar_text", "whatsapp", "email", "address", "copyright"):
-                if overrides.get(key):
-                    config[key] = overrides[key]
-    except Exception:
+            config.update(_contact_overrides(slug, meta_path.stat().st_mtime_ns))
+    except OSError:
         pass
 
     return config

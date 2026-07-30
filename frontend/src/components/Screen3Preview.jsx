@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
+import { API_BASE, saveToWorkspace, compileWorkspace, buildWebsite, getBuildStatus, downloadBuild, buildFileUrl } from '../api';
 
 function formatApiError(error) {
   const detail = error.response?.data?.detail;
@@ -194,7 +194,7 @@ function ImagePreviewPanel({ session }) {
   const getImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('/assets/images/')) {
-      return `http://localhost:8000${url}`;
+      return `${API_BASE}${url}?university_slug=${encodeURIComponent(session.university_slug || '')}`;
     }
     return url;
   };

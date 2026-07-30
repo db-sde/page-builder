@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const BASE = 'http://localhost:8000';
+// Local development stays zero-config; Vercel uses VITE_API_BASE_URL to point
+// at the Render API without baking a localhost URL into the production bundle.
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+const BASE = API_BASE;
 
 export async function ingestAcf(payload) {
   const res = await axios.post(`${BASE}/ingest-acf`, payload);
@@ -134,6 +137,11 @@ export async function deleteWorkspace(universitySlug) {
  */
 export async function listWorkspaces() {
   const res = await axios.get(`${BASE}/workspaces`);
+  return res.data;
+}
+
+export async function getWorkspaceSettings(universitySlug) {
+  const res = await axios.get(`${BASE}/workspaces/${encodeURIComponent(universitySlug)}/settings`);
   return res.data;
 }
 

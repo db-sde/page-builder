@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   listWorkspaces, 
+  getWorkspaceSettings,
   getWorkspaceTree, 
   createWorkspace, 
   buildWebsite, 
@@ -189,6 +190,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       loadTree(selectedSlug);
       loadBuildStatus(selectedSlug);
       loadDraftList(selectedSlug);
+      loadWorkspaceSettings(selectedSlug);
       const activeWorkspace = workspaces.find(w => (typeof w === 'string' ? w : w.slug) === selectedSlug);
       if (activeWorkspace) {
         queueMicrotask(() => {
@@ -259,6 +261,19 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
     } catch (err) {
       console.warn('Failed to load build status', err);
       setBuildStatusData({ exists: false });
+    }
+  }
+
+  async function loadWorkspaceSettings(slug) {
+    try {
+      const settings = await getWorkspaceSettings(slug);
+      setPrimaryDomain(settings.site?.primary_domain || '');
+      setGtmEnabled(Boolean(settings.gtm?.enabled));
+      setGtmHead(settings.gtm?.head || '');
+      setGtmBodyStart(settings.gtm?.body_start || '');
+      setGtmUnsaved(false);
+    } catch (err) {
+      console.warn('Failed to load workspace settings', err);
     }
   }
 

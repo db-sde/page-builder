@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
+from starlette.background import BackgroundTask
 from core.router import get_transformer
 from core.field_definitions import build_field_state
 from core.page_requirements import build_page_state
@@ -7,12 +8,15 @@ from core.page_blueprint import build_page_blueprint, SUPPORTED_PAGE_TYPES
 from core.editing_state import apply_auto_population, build_editing_state, validate_required_content
 from renderer.engine import render_resolved
 from workspace.manager import (
-    save_page, list_workspaces, ensure_metadata, init_system_pages, WORKSPACES_ROOT
+    save_page, list_workspaces, ensure_metadata, load_metadata, init_system_pages, WORKSPACES_ROOT, workspace_lock
 )
 from workspace.compiler import compile_workspace, get_workspace_tree
 from workspace.builder import build_website, get_build_status, zip_build
 import asyncio
 import json
+import logging
+import os
+import time
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -32,6 +36,10 @@ def load_env():
                     os.environ[key.strip()] = val.strip()
 
 load_env()
+
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+logger = logging.getLogger(__name__)
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", str(25 * 1024 * 1024)))
 
 def ensure_frontend_built() -> Path:
     """Ensure frontend/dist exists by running npm run build if necessary."""
@@ -61,6 +69,92 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def reject_oversized_requests(request: Request, call_next):
+    """Reject oversized authoring uploads before FastAPI reads their body."""
+    length = request.headers.get("content-length")
+    if length:
+        try:
+            if int(length) > MAX_REQUEST_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": f"Request exceeds the {MAX_REQUEST_BYTES // (1024 * 1024)} MB upload limit."},
+                )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})
+    return await call_next(request)
+
+
+async def ensure_workspace_available(university_slug: str, *, required: bool = False) -> bool:
+    """Restore a cached workspace on demand without changing file consumers."""
+    # Keep the normal local path fast (and preserve callers that deliberately
+    # patch WORKSPACES_ROOT in tests or maintenance commands).  Storage is
+    # only consulted when the workspace is not already on local disk.
+    local_dir = WORKSPACES_ROOT / university_slug.lower().strip()
+    if local_dir.is_dir():
+        from workspace.cache import mark_workspace_activity
+        mark_workspace_activity(university_slug)
+        return True
+    from workspace.cache import ensure_workspace_local, mark_workspace_activity
+    available = await asyncio.to_thread(ensure_workspace_local, university_slug)
+    if available:
+        mark_workspace_activity(university_slug)
+    elif required:
+        raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
+    return available
+
+
+async def sync_workspace_after_change(university_slug: str) -> dict:
+    """Persist an explicit save/build when Storage is configured.
+
+    Local data remains authoritative for the active request if Storage is
+    temporarily unavailable; cleanup/shutdown will retry instead of deleting it.
+    """
+    from workspace.cache import mark_workspace_dirty, storage_enabled, sync_workspace
+    mark_workspace_dirty(university_slug)
+    if not storage_enabled():
+        return {"enabled": False, "pending": False}
+    try:
+        result = await asyncio.to_thread(sync_workspace, university_slug)
+        return {**result, "pending": False}
+    except Exception:
+        logger.exception("workspace_sync_deferred slug=%s", university_slug)
+        return {"enabled": True, "pending": True}
+
+
+@app.on_event("startup")
+async def start_workspace_cache_cleanup() -> None:
+    from workspace.cache import cleanup_inactive_workspaces, register_local_workspaces, storage_enabled
+    if not storage_enabled():
+        logger.info("workspace_cache mode=local_only")
+        return
+
+    # A redeploy can start with a retained local disk. Register those folders
+    # so they receive the same safe sync-and-evict lifecycle as restored ones.
+    await asyncio.to_thread(register_local_workspaces)
+
+    async def cleanup_loop() -> None:
+        while True:
+            await asyncio.sleep(60)
+            await asyncio.to_thread(cleanup_inactive_workspaces)
+
+    app.state.workspace_cleanup_task = asyncio.create_task(cleanup_loop())
+    logger.info("workspace_cache mode=supabase idle_seconds=600")
+
+
+@app.on_event("shutdown")
+async def stop_workspace_cache_cleanup() -> None:
+    task = getattr(app.state, "workspace_cleanup_task", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    from workspace.cache import flush_cached_workspaces
+    await asyncio.to_thread(flush_cached_workspaces)
 
 def _heuristic_detect_parent(spec_slug: str, university_slug: str, candidate_courses: list[str]) -> str | None:
     """
@@ -270,8 +364,22 @@ def image_prefix_for_slot(page_type: str, slug: str, slot: str) -> str:
         return f"blog-{slug}-hero" if slot in ("hero_image_url", "featured_image_url") else f"blog-{slug}-{slot}"
     return f"{slug}-{slot}"
 
+def _request_workspace_slug(request: Request) -> str | None:
+    slug = request.query_params.get("university_slug")
+    if slug:
+        return slug.lower().strip()
+    referer = request.headers.get("referer") or ""
+    if referer:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(referer)
+        slug = urllib.parse.parse_qs(parsed.query).get("university_slug", [None])[0]
+        if slug:
+            return slug.lower().strip()
+    return None
+
+
 @app.get("/assets/images/{filename}")
-async def get_asset_image(filename: str):
+async def get_asset_image(filename: str, request: Request):
     from fastapi.responses import FileResponse
     
     def get_media_type(p_path):
@@ -288,14 +396,19 @@ async def get_asset_image(filename: str):
             return "image/x-icon"
         return "image/jpeg"
 
-    # Prefer optimized build assets.
-    for p in WORKSPACES_ROOT.glob(f"*/build/assets/images/{filename}"):
-        if p.exists():
-            return FileResponse(p, media_type=get_media_type(p))
-
-    # Fall back to source images before a build exists
-    for p in WORKSPACES_ROOT.glob(f"*/Assets/images/{filename}"):
-        if p.exists():
+    # Asset filenames are not globally unique. Resolve only against the active
+    # workspace rather than walking every workspace for each browser request.
+    uni_slug = _request_workspace_slug(request)
+    if not uni_slug:
+        raise HTTPException(status_code=400, detail="Workspace context is required for image assets")
+    await ensure_workspace_available(uni_slug, required=True)
+    if Path(filename).name != filename:
+        raise HTTPException(status_code=400, detail="Invalid image path")
+    for p in (
+        WORKSPACES_ROOT / uni_slug / "build" / "assets" / "images" / filename,
+        WORKSPACES_ROOT / uni_slug / "Assets" / "images" / filename,
+    ):
+        if p.is_file():
             return FileResponse(p, media_type=get_media_type(p))
             
     raise HTTPException(status_code=404, detail="Image not found")
@@ -304,7 +417,12 @@ async def get_asset_image(filename: str):
 async def get_build_asset(path: str, request: Request):
     from fastapi.responses import FileResponse
     # Check frontend dist assets first (React admin bundle assets)
-    frontend_asset = FRONTEND_DIST / "assets" / path
+    frontend_assets_root = (FRONTEND_DIST / "assets").resolve()
+    frontend_asset = (frontend_assets_root / path).resolve()
+    try:
+        frontend_asset.relative_to(frontend_assets_root)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid asset path")
     if frontend_asset.exists() and frontend_asset.is_file():
         ext = frontend_asset.suffix.lower()
         media_type = "application/octet-stream"
@@ -322,19 +440,19 @@ async def get_build_asset(path: str, request: Request):
             media_type = "image/svg+xml"
         return FileResponse(frontend_asset, media_type=media_type)
 
-    # Try to extract university_slug from query parameters or referer to locate correct workspace folder
-    uni_slug = request.query_params.get("university_slug")
-    if not uni_slug:
-        referer = request.headers.get("referer") or ""
-        import urllib.parse
-        parsed = urllib.parse.urlparse(referer)
-        query_dict = urllib.parse.parse_qs(parsed.query)
-        uni_slug = query_dict.get("university_slug", [None])[0]
+    # Resolve only against the active workspace; global fallback scans do not
+    # scale and could serve an identically named asset from another tenant.
+    uni_slug = _request_workspace_slug(request)
 
     if uni_slug:
-        uni_slug = uni_slug.lower().strip()
+        await ensure_workspace_available(uni_slug, required=True)
         # Look in the targeted workspace first.
-        p = WORKSPACES_ROOT / uni_slug / "build" / "assets" / path
+        workspace_assets_root = (WORKSPACES_ROOT / uni_slug / "build" / "assets").resolve()
+        p = (workspace_assets_root / path).resolve()
+        try:
+            p.relative_to(workspace_assets_root)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid asset path")
         if p.exists() and p.is_file():
             ext = p.suffix.lower()
             media_type = "application/octet-stream"
@@ -356,36 +474,15 @@ async def get_build_asset(path: str, request: Request):
                 media_type = "application/pdf"
             return FileResponse(p, media_type=media_type)
 
-    # Fall back globally across workspace builds.
-    for p in WORKSPACES_ROOT.glob(f"*/build/assets/{path}"):
-        if p.exists() and p.is_file():
-            ext = p.suffix.lower()
-            media_type = "application/octet-stream"
-            if ext == ".js":
-                media_type = "application/javascript"
-            elif ext == ".css":
-                media_type = "text/css"
-            elif ext == ".png":
-                media_type = "image/png"
-            elif ext in (".jpg", ".jpeg"):
-                media_type = "image/jpeg"
-            elif ext == ".webp":
-                media_type = "image/webp"
-            elif ext == ".gif":
-                media_type = "image/gif"
-            elif ext == ".svg":
-                media_type = "image/svg+xml"
-            elif ext == ".pdf":
-                media_type = "application/pdf"
-            return FileResponse(p, media_type=media_type)
-
-    raise HTTPException(status_code=404, detail="Asset not found")
+    raise HTTPException(status_code=404 if uni_slug else 400, detail="Asset not found" if uni_slug else "Workspace context is required for workspace assets")
 
 class SaveTempRequest(BaseModel):
     data: dict[str, Any]
 
 @app.post("/save-temp-json")
 async def save_temp_json(req: SaveTempRequest):
+    if os.getenv("ENABLE_DEVELOPMENT_ENDPOINTS", "false").lower() != "true":
+        raise HTTPException(status_code=404, detail="Development endpoint is disabled")
     try:
         base_dir = Path(__file__).resolve().parent
         temp_file = base_dir / "generated" / "temp_debug.json"
@@ -454,6 +551,7 @@ def _workspace_link_catalog(university_slug: str) -> dict[str, list[dict[str, st
 @app.get("/workspace-link-catalog")
 async def workspace_link_catalog_endpoint(university_slug: str):
     """Read-only entities available for Blog relationships and internal links."""
+    await ensure_workspace_available(university_slug, required=True)
     return _workspace_link_catalog(university_slug)
 
 
@@ -579,8 +677,10 @@ def validate_blueprint_content(
 @app.post("/preview-html", response_class=HTMLResponse)
 async def preview_html(req: RenderRequest):
     """Render dynamically without database persistence — return HTML as text (for iframe preview)."""
+    started = time.monotonic()
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        await ensure_workspace_available(university_slug)
         
         merged = {**acf_data, **req.images}
         merged, _editing_state = validate_blueprint_content(
@@ -621,6 +721,7 @@ async def preview_html(req: RenderRequest):
         }
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone, preview=True)
+        logger.info("workspace_preview slug=%s type=%s duration_ms=%s", university_slug, page_type, round((time.monotonic() - started) * 1000))
         return HTMLResponse(content=html)
     except HTTPException:
         raise
@@ -632,7 +733,9 @@ async def preview_html(req: RenderRequest):
 @app.get("/preview-file", response_class=HTMLResponse)
 async def preview_file(university_slug: str, page_type: str, slug: str):
     """Serve dynamic preview from GET query params. Uses draft cache if available, else saved workspace data."""
+    started = time.monotonic()
     try:
+        await ensure_workspace_available(university_slug, required=True)
         # Load baseline workspace index
         from workspace.compiler import _build_index, _enrich_resolved
         index = _build_index(university_slug)
@@ -681,6 +784,7 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
         }
         standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone, preview=True)
+        logger.info("workspace_preview_file slug=%s type=%s duration_ms=%s", university_slug, page_type, round((time.monotonic() - started) * 1000))
         return HTMLResponse(content=html)
     except HTTPException:
         raise
@@ -695,6 +799,7 @@ async def render_html(req: RenderRequest):
     """Render dynamically, save file to generated/{page_type}/{slug}.html — return HTML as downloadable attachment."""
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        await ensure_workspace_available(university_slug)
         merged = {**acf_data, **req.images}
         merged, _editing_state = validate_blueprint_content(
             page_type,
@@ -1307,6 +1412,8 @@ async def create_workspace_endpoint(req: CreateWorkspaceRequest):
     """
     try:
         slug = req.university_slug.lower().strip()
+        if await ensure_workspace_available(slug):
+            raise HTTPException(status_code=409, detail=f"Workspace '{slug}' already exists")
         overrides = req.metadata_overrides or {}
         if req.university_name:
             overrides["university_name"] = req.university_name
@@ -1315,6 +1422,7 @@ async def create_workspace_endpoint(req: CreateWorkspaceRequest):
 
         # Initialise the system pages
         listing_results = init_system_pages(slug)
+        sync_result = await sync_workspace_after_change(slug)
 
         return {
             "status": "created",
@@ -1322,6 +1430,7 @@ async def create_workspace_endpoint(req: CreateWorkspaceRequest):
             "workspace_dir": str(WORKSPACES_ROOT / slug),
             "metadata": meta,
             "pages_created": len(listing_results),
+            "sync": sync_result,
         }
     except Exception as e:
         import traceback
@@ -1349,6 +1458,7 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
     """
     try:
         slug, page_type, university_slug, parent_slug, acf_data = extract_metadata_from_json(req.acf_data)
+        await ensure_workspace_available(university_slug)
         acf_data.pop("detected_specializations", None)
 
         acf_data, _validated_editing_state = validate_blueprint_content(
@@ -1447,11 +1557,14 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             import logging
             logging.warning(f"Listing page re-render skipped: {listing_err}")
 
+        sync_result = await sync_workspace_after_change(university_slug)
+
         return {
             "status": "saved",
             "field_state": field_state,
             "page_state": page_state,
             "editing_state": editing_state,
+            "sync": sync_result,
             **result,
         }
     except HTTPException as he:
@@ -1473,7 +1586,10 @@ async def compile_workspace_endpoint(university_slug: str = Form(...)):
              re-renders via the Jinja2 engine, and overwrites each .html file.
     """
     try:
-        result = compile_workspace(university_slug)
+        await ensure_workspace_available(university_slug, required=True)
+        with workspace_lock(university_slug):
+            result = compile_workspace(university_slug)
+        result["sync"] = await sync_workspace_after_change(university_slug)
         return result
     except Exception as e:
         import traceback
@@ -1496,6 +1612,7 @@ async def upload_branding_endpoint(
     try:
         from workspace.image_optimizer import optimize_uploaded_image
 
+        await ensure_workspace_available(university_slug, required=True)
         uni_dir = WORKSPACES_ROOT / university_slug
         if not uni_dir.exists():
             raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
@@ -1547,14 +1664,17 @@ async def upload_branding_endpoint(
             
             meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
         elif logo_saved and logo_ext and not meta["branding"].get("favicon"):
-            # Auto-generate favicon from logo by copying it
-            fav_filename = f"branding-{university_slug}-favicon{logo_ext}"
+            # A favicon should be a tiny rendition, never a duplicate of a
+            # potentially multi-megabyte logo asset.
+            fav_filename = f"branding-{university_slug}-favicon.png"
             fav_path = assets_dir / fav_filename
             logo_filename = f"branding-{university_slug}-logo{logo_ext}"
             logo_path = assets_dir / logo_filename
-            
-            import shutil
-            shutil.copy2(logo_path, fav_path)
+            from PIL import Image, ImageOps
+            with Image.open(logo_path) as image:
+                favicon = ImageOps.exif_transpose(image)
+                favicon.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                favicon.save(fav_path, format="PNG", optimize=True)
             meta["branding"]["favicon"] = f"/assets/images/{fav_filename}"
             
         # Process SEO: primary_domain
@@ -1590,12 +1710,14 @@ async def upload_branding_endpoint(
         
         # Compile workspace
         compile_result = compile_workspace(university_slug)
+        sync_result = await sync_workspace_after_change(university_slug)
         
         return {
             "status": "success",
             "branding": meta["branding"],
             "site": meta["site"],
-            "compile_result": compile_result
+            "compile_result": compile_result,
+            "sync": sync_result,
         }
     except HTTPException as he:
         raise he
@@ -1608,6 +1730,7 @@ async def upload_branding_endpoint(
 @app.put("/workspaces/{university_slug}/gtm")
 async def update_workspace_gtm(university_slug: str, req: GtmSettingsRequest):
     """Store the workspace's GTM snippets exactly as supplied."""
+    await ensure_workspace_available(university_slug, required=True)
     if not (WORKSPACES_ROOT / university_slug).exists():
         raise HTTPException(status_code=404, detail=f"Workspace '{university_slug}' not found")
 
@@ -1618,7 +1741,19 @@ async def update_workspace_gtm(university_slug: str, req: GtmSettingsRequest):
             "body_start": req.body_start,
         }
     })
-    return {"status": "success", "gtm": metadata["gtm"]}
+    return {"status": "success", "gtm": metadata["gtm"], "sync": await sync_workspace_after_change(university_slug)}
+
+
+@app.get("/workspaces/{university_slug}/settings")
+async def workspace_settings_endpoint(university_slug: str):
+    """Load full settings only for the workspace currently being opened."""
+    await ensure_workspace_available(university_slug, required=True)
+    metadata = load_metadata(university_slug)
+    return {
+        "branding": metadata.get("branding") or {"logo": "", "favicon": ""},
+        "site": metadata.get("site") or {"primary_domain": "", "default_og_image": ""},
+        "gtm": metadata.get("gtm") or {"enabled": False, "head": "", "body_start": ""},
+    }
 
 
 @app.get("/workspaces/{university_slug}/pages/{page_type}/{slug}")
@@ -1630,6 +1765,7 @@ async def get_workspace_page_endpoint(
 ):
     """Retrieve a single page's source.json content for editing in frontend."""
     try:
+        await ensure_workspace_available(university_slug, required=True)
         from workspace.manager import resolve_page_dir, read_source
         page_dir = resolve_page_dir(university_slug, page_type, slug, parent_slug)
         source_path = page_dir / "source.json"
@@ -1693,6 +1829,7 @@ async def workspace_tree_endpoint(university_slug: str):
     Used by the frontend workspace browser.
     """
     try:
+        await ensure_workspace_available(university_slug, required=True)
         tree = get_workspace_tree(university_slug)
         return tree
     except Exception as e:
@@ -1711,6 +1848,7 @@ async def delete_page_endpoint(
     then trigger a workspace re-compilation to update the index and listing pages.
     """
     try:
+        await ensure_workspace_available(university_slug, required=True)
         if page_type not in ("course", "specialization", "blog"):
             raise HTTPException(
                 status_code=400,
@@ -1746,11 +1884,13 @@ async def delete_page_endpoint(
         
         # Re-compile workspace to update indexes/listings
         compile_result = compile_workspace(university_slug)
+        sync_result = await sync_workspace_after_change(university_slug)
         
         return {
             "status": "success",
             "message": f"Successfully deleted {page_type} page '{slug}'",
-            "compile_result": compile_result
+            "compile_result": compile_result,
+            "sync": sync_result,
         }
     except HTTPException as he:
         raise he
@@ -1767,6 +1907,7 @@ async def delete_workspace_endpoint(university_slug: str):
     """
     try:
         slug = university_slug.lower().strip()
+        await ensure_workspace_available(slug, required=True)
         uni_dir = (WORKSPACES_ROOT / slug).resolve()
         
         # Security check: Ensure we only delete directories inside WORKSPACES_ROOT
@@ -1784,8 +1925,12 @@ async def delete_workspace_endpoint(university_slug: str):
                 detail=f"Workspace '{slug}' not found"
             )
             
+        from workspace.compiler import invalidate_workspace_index
+        from workspace.supabase_storage import delete_workspace_from_supabase
+        await asyncio.to_thread(delete_workspace_from_supabase, slug)
         import shutil
         shutil.rmtree(uni_dir)
+        invalidate_workspace_index(slug)
         
         return {
             "status": "success",
@@ -1801,23 +1946,47 @@ async def delete_workspace_endpoint(university_slug: str):
 
 @app.get("/workspaces")
 async def list_workspaces_endpoint():
-    """Return a list of all university workspaces that exist on disk."""
-    slugs = list_workspaces()
-    workspaces = []
-    for slug in slugs:
+    """Return lightweight workspace summaries without loading page trees."""
+    from workspace.supabase_storage import remote_workspace_summaries
+
+    def build_counts(slug: str) -> dict[str, int] | None:
+        """Read the tiny route manifest instead of walking the page tree."""
         try:
-            meta = ensure_metadata(slug)
-        except Exception:
-            meta = {}
-        workspaces.append({
+            routes = json.loads((WORKSPACES_ROOT / slug / "build" / "routes.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return None
+        if not isinstance(routes, dict):
+            return None
+        return {
+            "university": sum(kind == "homepage" for kind in routes.values()),
+            "courses": sum(kind == "course" for kind in routes.values()),
+            "specializations": sum(kind == "specialization" for kind in routes.values()),
+            "blogs": sum(kind == "blog" for kind in routes.values()),
+        }
+
+    summaries = await asyncio.to_thread(remote_workspace_summaries)
+    for slug in list_workspaces():
+        meta = load_metadata(slug)
+        local_summary = {
+            **summaries.get(slug, {}),
             "slug": slug,
             "name": meta.get("university_name", slug.replace("-", " ").title()),
             "last_compiled_at": meta.get("last_compiled_at"),
             "created_at": meta.get("created_at"),
             "branding": meta.get("branding", {"logo": "", "favicon": ""}),
             "site": meta.get("site", {"primary_domain": "", "default_og_image": ""}),
-            "gtm": meta.get("gtm", {"enabled": False, "head": "", "body_start": ""}),
-        })
+            "status": "built" if meta.get("last_compiled_at") else "draft",
+        }
+        if isinstance(meta.get("page_counts"), dict):
+            local_summary["counts"] = meta["page_counts"]
+        else:
+            route_counts = build_counts(slug)
+            if route_counts is not None:
+                local_summary["counts"] = route_counts
+            else:
+                local_summary.setdefault("counts", {"university": 0, "courses": 0, "specializations": 0, "blogs": 0})
+        summaries[slug] = local_summary
+    workspaces = [summaries[slug] for slug in sorted(summaries)]
     return {"workspaces": workspaces}
 
 
@@ -1842,12 +2011,14 @@ async def build_website_endpoint(
         routes_generated, build_path, build_url, routes, errors, built_at }
     """
     try:
+        await ensure_workspace_available(university_slug, required=True)
         compile_summary = None
-        if not skip_compile:
-            compile_summary = compile_workspace(university_slug)
-
-        result = build_website(university_slug)
+        with workspace_lock(university_slug):
+            if not skip_compile:
+                compile_summary = compile_workspace(university_slug)
+            result = build_website(university_slug)
         result["compile_summary"] = compile_summary
+        result["sync"] = await sync_workspace_after_change(university_slug)
         return result
     except Exception as e:
         import traceback
@@ -1863,6 +2034,7 @@ async def build_status_endpoint(university_slug: str):
     'Build Complete' panel on load.
     """
     try:
+        await ensure_workspace_available(university_slug, required=True)
         return get_build_status(university_slug)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -1875,11 +2047,13 @@ async def download_build_endpoint(university_slug: str):
     Returns a file attachment named <uni>-website.zip.
     """
     try:
-        zip_bytes, filename = zip_build(university_slug)
-        return Response(
-            content=zip_bytes,
+        await ensure_workspace_available(university_slug, required=True)
+        archive_path, filename = zip_build(university_slug)
+        return FileResponse(
+            archive_path,
             media_type="application/zip",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            filename=filename,
+            background=BackgroundTask(lambda: archive_path.unlink(missing_ok=True)),
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1900,6 +2074,7 @@ async def build_file_endpoint(university_slug: str, path: str = "index.html"):
     from fastapi.responses import FileResponse
     try:
         slug = university_slug.lower().strip()
+        await ensure_workspace_available(slug, required=True)
         build_dir = WORKSPACES_ROOT / slug / "build"
         # Normalise and prevent path traversal outside build/
         target = (build_dir / path).resolve()
@@ -1991,6 +2166,8 @@ document.addEventListener('click', function(e) {{
 @app.get("/api/rebuild-frontend")
 def rebuild_frontend_api():
     """Trigger an on-demand rebuild of the frontend React app."""
+    if os.getenv("ENABLE_FRONTEND_REBUILD", "false").lower() != "true":
+        raise HTTPException(status_code=404, detail="Frontend rebuild endpoint is disabled")
     import subprocess
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
     print("🔨 Rebuilding React frontend on request...")
