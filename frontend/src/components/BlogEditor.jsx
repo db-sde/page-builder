@@ -3,7 +3,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import Image from '@tiptap/extension-image';
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Mark, mergeAttributes } from '@tiptap/core';
 import { getWorkspaceLinkCatalog } from '../api';
 
 function slugify(value) {
@@ -18,12 +18,11 @@ function htmlToText(value) {
   return String(value || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-const DynamicComponent = Node.create({
-  name: 'dynamicComponent', group: 'block', atom: true,
-  addAttributes() { return { component: { default: 'course-cards' }, slugs: { default: '' } }; },
-  parseHTML() { return [{ tag: 'div[data-degreebaba-component]', getAttrs: element => ({ component: element.getAttribute('data-degreebaba-component'), slugs: element.getAttribute('data-degreebaba-slugs') || '' }) }]; },
-  renderHTML({ HTMLAttributes }) { return ['div', mergeAttributes({ 'data-degreebaba-component': HTMLAttributes.component, 'data-degreebaba-slugs': HTMLAttributes.slugs, class: 'blog-dynamic-reference' })]; },
-  addNodeView() { return ({ node }) => { const element = document.createElement('div'); element.className = 'blog-dynamic-reference'; element.textContent = `Dynamic ${node.attrs.component.replace(/-/g, ' ')} block`; return { dom: element }; }; },
+const PageReference = Mark.create({
+  name: 'pageReference',
+  addAttributes() { return { reference: { default: '' }, slug: { default: '' } }; },
+  parseHTML() { return [{ tag: 'a[data-degreebaba-reference]', getAttrs: element => ({ reference: element.getAttribute('data-degreebaba-reference') || '', slug: element.getAttribute('data-degreebaba-slug') || '' }) }]; },
+  renderHTML({ HTMLAttributes }) { return ['a', mergeAttributes({ 'data-degreebaba-reference': HTMLAttributes.reference, 'data-degreebaba-slug': HTMLAttributes.slug }), 0]; },
 });
 
 function splitArticleSections(value) {
@@ -100,19 +99,152 @@ function SearchableRelationPicker({ label, options, value, onChange, onChoose, m
   </div>;
 }
 
-function ArticleSectionEditor({ section, index, onChange, onRemove, onInsert, onDynamic }) {
+function ComponentPickerModal({ kind, options, isOpen, onClose, onConfirm }) {
+  const [selectedSlug, setSelectedSlug] = useState('');
+  const [query, setQuery] = useState('');
+  useEffect(() => { if (isOpen) { setSelectedSlug(''); setQuery(''); } }, [isOpen, kind]);
+
+  if (!isOpen) return null;
+
+  const title = `Link selected text to ${kind ? kind.replace(/-/g, ' ') : 'page'}`;
+
+  const filteredOptions = options.filter(item =>
+    (item.label || '').toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  const chooseSlug = slug => setSelectedSlug(slug);
+
+  const handleInsert = () => {
+    onConfirm(options.find(item => item.slug === selectedSlug));
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card blog-picker-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title" style={{ textTransform: 'capitalize' }}>{title}</h3>
+          <button type="button" className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <p className="blog-field-help" style={{ marginBottom: 12 }}>
+            The article text stays unchanged. DegreeBaba stores a reference to the selected published page and creates the final internal link during preview and publishing.
+          </p>
+          <input
+            className="blog-input"
+            style={{ marginBottom: 12 }}
+            placeholder={`Search ${title.toLowerCase()}…`}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            autoFocus
+          />
+          <div className="blog-picker-options" style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {filteredOptions.length === 0 ? (
+              <div className="blog-relation-empty">No matching pages found in this workspace.</div>
+            ) : (
+              filteredOptions.map(opt => {
+                const isSelected = selectedSlug === opt.slug;
+                return (
+                  <button
+                    type="button"
+                    key={`${opt.type || 'page'}-${opt.slug}`}
+                    className={`blog-picker-option ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => chooseSlug(opt.slug)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                      background: isSelected ? '#FFF0EB' : '#FFF', border: `1px solid ${isSelected ? '#F9B6A0' : '#E2E8F0'}`,
+                      borderRadius: 8, cursor: 'pointer', textAlign: 'left', width: '100%'
+                    }}
+                  >
+                    <span style={{
+                      width: 18, height: 18, borderRadius: 4, border: `1px solid ${isSelected ? '#E04015' : '#CBD5E1'}`,
+                      background: isSelected ? '#E04015' : '#FFF', color: '#FFF', display: 'grid', placeItems: 'center',
+                      fontSize: 12, fontWeight: 800, flexShrink: 0
+                    }}>
+                      {isSelected ? '✓' : ''}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1B22' }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>{opt.href || opt.slug}</div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={handleInsert} disabled={!selectedSlug}>
+            Save link
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArticleSectionEditor({ section, index, onChange, onRemove, onInsert, onOpenPicker }) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const editor = useEditor({
-    extensions: [StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: { openOnClick: false, autolink: true } }), Table.configure({ resizable: true }), TableRow, TableHeader, TableCell, Image.configure({ allowBase64: false }), DynamicComponent],
+    extensions: [StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: { openOnClick: false, autolink: true } }), Table.configure({ resizable: true }), TableRow, TableHeader, TableCell, Image.configure({ allowBase64: false }), PageReference],
     content: section.content || '<p></p>',
     onUpdate: ({ editor: current }) => onChange({ ...section, content: current.getHTML() }),
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
     editorProps: { attributes: { class: 'blog-rich-editor blog-rich-editor--section', 'aria-label': `${section.title} content` } },
   });
   if (!editor) return null;
-  const insertComponent = (component) => { editor.chain().focus().insertContent({ type: 'dynamicComponent', attrs: { component, slugs: '' } }).run(); onDynamic(editor, component); };
-  return <section className="blog-article-section">
-    <header><div><span className="blog-section-number">{index + 1}</span><input className="blog-section-title-input" value={section.title} onChange={event => onChange({ ...section, title: event.target.value })} aria-label="Section heading" /></div>{onRemove && <button type="button" className="blog-section-remove" onClick={onRemove}>Remove</button>}</header>
-    <div className="blog-toolbar"><ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>B</ToolbarButton><ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></ToolbarButton><ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</ToolbarButton><ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</ToolbarButton><ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()}>“”</ToolbarButton><ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>Table</ToolbarButton><ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()}>—</ToolbarButton><ToolbarButton onClick={() => onInsert(editor)}>Internal link</ToolbarButton></div>
-    <div className="blog-component-actions"><span>Insert workspace data</span>{[['course-cards', 'Course cards'], ['specialization-buttons', 'Specializations'], ['related-blogs', 'Related blogs'], ['fee-table', 'Fee table'], ['syllabus', 'Syllabus'], ['cta', 'CTA']].map(([kind, label]) => <button type="button" key={kind} onClick={() => insertComponent(kind)}>{label}</button>)}</div>
+
+  return <section className={`blog-article-section ${isFocused ? 'is-focused' : ''}`}>
+    <header className="blog-article-section-header">
+      <div className="blog-article-section-title-wrap">
+        <span className="blog-section-number">#{index + 1}</span>
+        <input className="blog-section-title-input" value={section.title} onChange={event => onChange({ ...section, title: event.target.value })} aria-label="Section heading" placeholder="Section Heading" />
+      </div>
+      <div className="blog-article-section-actions">
+        {onRemove && (
+          <button type="button" className="blog-section-remove-btn" onClick={onRemove} title="Remove section">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+            <span>Remove</span>
+          </button>
+        )}
+      </div>
+    </header>
+
+    <div className={`blog-toolbar-container ${isFocused ? 'is-visible' : 'is-compact'}`}>
+      <div className="blog-toolbar">
+        <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>B</ToolbarButton>
+        <ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()}>“”</ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>Table</ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()}>—</ToolbarButton>
+        <ToolbarButton onClick={() => onInsert(editor)}>Link</ToolbarButton>
+      </div>
+
+      <div className="blog-component-actions">
+        <span className="blog-component-label">⚡ Link text to:</span>
+        {[
+          ['course', 'Course'],
+          ['specialization', 'Specialization'],
+          ['blog', 'Related blog']
+        ].map(([kind, label]) => (
+          <button type="button" key={kind} className="blog-component-chip" onMouseDown={event => event.preventDefault()} onClick={() => onOpenPicker(editor, kind)}>
+            + {label}
+          </button>
+        ))}
+      </div>
+    </div>
+
     <EditorContent editor={editor} />
   </section>;
 }
@@ -144,23 +276,47 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
     slug: session.slug || slugify(initial.title),
     hero_image_alt: initial.hero_image_alt || '',
   }));
+
   const [images, setImages] = useState(() => ({
     ...(session.images || {}),
     hero_image_url: session.images?.hero_image_url || initial.hero_image_url || '',
     og_image_url: session.images?.og_image_url || initial.og_image_url || '',
   }));
+
   const [catalog, setCatalog] = useState({ courses: [], specializations: [], blogs: [], universities: [] });
   const [sections, setSections] = useState(() => splitArticleSections(initial.content_html));
   const [activeEditor, setActiveEditor] = useState(null);
-  const [pendingComponent, setPendingComponent] = useState('');
+  const [pickerModal, setPickerModal] = useState(null); // { editor, kind }
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editorError, setEditorError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [, setContentVersion] = useState(0);
 
   useEffect(() => {
     if (!session.university_slug) return;
     getWorkspaceLinkCatalog(session.university_slug).then(setCatalog).catch(() => setCatalog({ courses: [], specializations: [], blogs: [], universities: [] }));
   }, [session.university_slug]);
+
+  const pickerOptions = useMemo(() => {
+    if (!pickerModal) return [];
+    const k = pickerModal.kind;
+    if (k === 'blog') return catalog.blogs.filter(item => item.slug !== session.slug);
+    if (k === 'specialization') return catalog.specializations;
+    return catalog.courses;
+  }, [pickerModal, catalog, session.slug]);
+
+  const handleConfirmPicker = (selectedPage) => {
+    if (!pickerModal || !pickerModal.editor || !selectedPage) return;
+    const { editor, selection } = pickerModal;
+    const chain = editor.chain().focus();
+    if (selection) chain.setTextSelection(selection);
+    const attrs = { reference: pickerModal.kind, slug: selectedPage.slug };
+    if (selection && selection.from !== selection.to) {
+      chain.setMark('pageReference', attrs).run();
+    } else {
+      chain.insertContent({ type: 'text', text: selectedPage.label, marks: [{ type: 'pageReference', attrs }] }).run();
+    }
+    setPickerModal(null);
+  };
 
   const linkableEntities = useMemo(() => [
     ...catalog.courses.map(item => ({ ...item, type: 'Course' })),
@@ -174,6 +330,7 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
   const wordCount = bodyText ? bodyText.split(/\s+/).length : 0;
   const relationCount = [data.primary_course_slug, data.primary_specialization_slug, ...(data.related_course_slugs || []), ...(data.related_specialization_slugs || []), ...(data.related_blog_slugs || []), ...(data.mentioned_university_slugs || [])].filter(Boolean).length;
   const requiredReady = Boolean(data.title.trim() && bodyText && images.hero_image_url);
+
   const checklist = [
     { label: 'Article title added', complete: Boolean(data.title.trim()), required: true },
     { label: 'Article content added', complete: Boolean(bodyText), required: true },
@@ -183,16 +340,14 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
     { label: 'Related content selected', complete: relationCount > 0, recommended: true },
   ];
 
+  const completedCount = checklist.filter(item => item.complete).length;
+  const progressPercent = Math.round((completedCount / checklist.length) * 100);
+
   const set = (key, value) => setData(current => ({ ...current, [key]: value }));
   const updateTitle = (value) => setData(current => ({ ...current, title: value, slug: current.slug === slugify(current.title) ? slugify(value) : current.slug }));
   const addLink = (href = '') => {
     const target = href || window.prompt('Paste a URL for the selected text');
     if (target) activeEditor?.chain().focus().extendMarkRange('link').setLink({ href: target }).run();
-  };
-  const applyDynamicSource = (item) => {
-    if (!activeEditor || !pendingComponent) return;
-    activeEditor.chain().focus().updateAttributes('dynamicComponent', { component: pendingComponent, slugs: item.slug }).run();
-    setPendingComponent('');
   };
   const uploadImage = (field, file) => {
     if (!file) return;
@@ -221,55 +376,210 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
 
   if (!blueprint) return <div className="card" style={{ padding: 24 }}>Loading the Blog editing workspace…</div>;
 
-  return <div className="blog-editor-page">
-    <header className="blog-editor-header">
-      <div><div className="blog-editor-eyebrow">Content workspace</div><h1 className="topbar-title">Blog Editor</h1><p className="topbar-subtitle">Write first. Add links, SEO, and publishing details only when the article is ready.</p></div>
-      <div className={`blog-readiness ${requiredReady ? 'blog-readiness--ready' : ''}`}><span>{requiredReady ? 'Ready for review' : 'Draft in progress'}</span><small>{wordCount.toLocaleString()} words · about {Math.max(1, Math.ceil(wordCount / 200))} min read</small></div>
-    </header>
-    {editorError && <div className="blog-editor-error" role="alert">{editorError}</div>}
-
-    <div className="blog-editor-workspace">
-      <main className="blog-editor-main">
-        <CollapsibleSection id="basic-information" title="Basic information" description="Set the article identity and the images readers see first." defaultOpen badge={<OwnershipBadge source="AUTO" />}>
-          <div className="blog-form-grid">
-            <div className="blog-form-span-2"><FieldLabel blueprint={blueprint} field="title" required help="Parsed from the DOCX and shown as the article heading. Keep it clear and specific.">Article title</FieldLabel><input className="blog-input blog-input--title" value={data.title} onChange={event => updateTitle(event.target.value)} /></div>
-            <div className="blog-form-span-2"><FieldLabel blueprint={blueprint} field="excerpt" help="Shown below the title and used as the fallback search description. Aim for one concise paragraph.">Excerpt</FieldLabel><textarea className="blog-input" value={data.excerpt} onChange={event => set('excerpt', event.target.value)} rows={3} placeholder="An optional summary. The first article paragraph remains the parser fallback." /></div>
-            <div><FieldLabel blueprint={blueprint} field="hero_image_url" required help="Shown in the article hero and required before previewing.">Featured image</FieldLabel><input className="blog-file-input" type="file" accept="image/*" onChange={event => uploadImage('hero_image_url', event.target.files?.[0])} />{images.hero_image_url && <img className="blog-image-preview" src={images.hero_image_url} alt="Featured preview" />}</div>
-            <div><FieldLabel blueprint={blueprint} field="hero_image_alt" help="Describes the featured image for screen readers. Keep it factual and concise.">Image alt text</FieldLabel><input className="blog-input" value={data.hero_image_alt} onChange={event => set('hero_image_alt', event.target.value)} placeholder="Describe the image" /><FieldLabel blueprint={blueprint} field="og_image_url" help="Optional image used when this article is shared on social platforms.">Social share image</FieldLabel><input className="blog-file-input" type="file" accept="image/*" onChange={event => uploadImage('og_image_url', event.target.files?.[0])} /></div>
+  return (
+    <div className={`blog-editor-app ${drawerOpen ? 'has-open-drawer' : 'has-closed-drawer'}`}>
+      {/* ===== STICKY TOP STATUS BAR ===== */}
+      <header className="blog-editor-sticky-bar">
+        <div className="blog-sticky-left">
+          <button type="button" className="btn btn-secondary btn-sm blog-back-btn" onClick={onBack}>
+            ← Back
+          </button>
+          <div className="blog-sticky-title-wrap">
+            <span className="blog-sticky-title" title={data.title}>{data.title || 'Untitled Article'}</span>
           </div>
-        </CollapsibleSection>
+        </div>
 
-        <CollapsibleSection id="article-content" title="Article content" description="This is the primary writing space. Format the article without changing its factual source material." defaultOpen badge={<OwnershipBadge source="AUTO" />}>
-          <div className="blog-content-summary"><span>{sections.length} independently editable sections</span><span>{wordCount.toLocaleString()} words</span></div>
-          {sections.map((section, index) => <ArticleSectionEditor key={`${index}-${section.title}`} section={section} index={index} onChange={updated => setSections(current => current.map((item, itemIndex) => itemIndex === index ? updated : item))} onRemove={sections.length > 1 ? () => setSections(current => current.filter((_, itemIndex) => itemIndex !== index)) : null} onInsert={current => setActiveEditor(current)} onDynamic={(current, kind) => { setActiveEditor(current); setPendingComponent(kind); }} />)}
-          <button type="button" className="blog-add-section" onClick={() => setSections(current => [...current, { title: 'New section', level: 2, content: '<p></p>', hasHeading: true }])}>+ Add article section</button>
-          <p className="blog-field-help blog-editor-tip">Headings preserve the parser’s structure and build the table of contents. Dynamic blocks store only workspace references; the published data is resolved at render time.</p>
-        </CollapsibleSection>
+        <div className="blog-sticky-center">
+          <span className={`blog-readiness-badge ${requiredReady ? 'is-ready' : 'is-draft'}`}>
+            {requiredReady ? '✓ Ready for Review' : '● Draft in Progress'}
+          </span>
+          <div className="blog-metric-divider" />
+          <div className="blog-metric">
+            <span className="blog-metric-val">{wordCount.toLocaleString()}</span>
+            <span className="blog-metric-lbl">words</span>
+          </div>
+          <div className="blog-metric-divider" />
+          <div className="blog-metric">
+            <span className="blog-metric-val">~{Math.max(1, Math.ceil(wordCount / 200))} min</span>
+            <span className="blog-metric-lbl">read</span>
+          </div>
+          <div className="blog-metric-divider" />
+          <div className="blog-progress-compact" onClick={() => setDrawerOpen(true)} title="Click to view publishing checklist">
+            <div className="blog-progress-bar-track">
+              <div className="blog-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <span className="blog-progress-pct">{progressPercent}%</span>
+          </div>
+        </div>
 
-        <CollapsibleSection id="internal-linking" title="Internal linking" description="Connect readers to relevant pages already published in this workspace." badge={<OwnershipBadge source="MANUAL" />}>
-          <div className="blog-inline-linker"><FieldLabel blueprint={blueprint} field="related_course_slugs" help="Select text in the article, then choose an existing workspace page to create a link.">Insert an internal link</FieldLabel><SearchableRelationPicker label="workspace page" options={linkableEntities} value={[]} onChoose={item => addLink(item.href)} hint="Select article text first. This does not change the related-content cards." />{session.entity_suggestions?.length > 0 && <div className="blog-suggestions"><span>Mentioned in this article</span>{session.entity_suggestions.map(item => <button type="button" key={`${item.type}-${item.slug}`} onClick={() => addLink(item.href)}>{item.label}</button>)}</div>}</div>
-          {pendingComponent && <SearchableRelationPicker label={`source for ${pendingComponent.replace(/-/g, ' ')}`} options={pendingComponent === 'related-blogs' ? catalog.blogs.filter(item => item.slug !== session.slug) : pendingComponent === 'specialization-buttons' ? catalog.specializations : [...catalog.courses, ...catalog.specializations]} value={[]} onChoose={applyDynamicSource} hint="Choose the published page whose current data should be rendered in this article." />}
-          <p className="blog-field-help">Select text in an article section, then choose a published page. To add reusable cards, fee tables, syllabus, or CTA blocks, use the “Insert workspace data” buttons inside the relevant section and select the source from this search.</p>
-        </CollapsibleSection>
-      </main>
+        <div className="blog-sticky-right">
+          <button
+            type="button"
+            className={`btn ${drawerOpen ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setDrawerOpen(prev => !prev)}
+          >
+            ⚙️ Settings & SEO
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={submit}
+            disabled={submitting || loading}
+          >
+            {submitting || loading ? 'Generating preview…' : 'Generate preview →'}
+          </button>
+        </div>
+      </header>
 
-      <aside className="blog-editor-sidebar">
-        <section className="blog-checklist" aria-label="Publishing checklist"><div className="blog-checklist-heading"><div><span>Publishing checklist</span><small>Live guidance — it does not block writing.</small></div><OwnershipBadge source="SYSTEM" /></div><div className="blog-checklist-items">{checklist.map(item => <div className={`blog-checklist-item ${item.complete ? 'blog-checklist-item--complete' : ''}`} key={item.label}><span aria-hidden="true">{item.complete ? '✓' : item.required ? '!' : '○'}</span><div>{item.label}<small>{item.complete ? 'Complete' : item.required ? 'Required before preview' : 'Recommended'}</small></div></div>)}</div><div className={`blog-checklist-ready ${requiredReady ? 'blog-checklist-ready--complete' : ''}`}>{requiredReady ? 'Required article fields are ready for review.' : 'Complete the required article fields to generate a preview.'}</div></section>
+      {editorError && <div className="blog-editor-error" role="alert">{editorError}</div>}
 
-        <CollapsibleSection id="seo" title="SEO" description="Search and sharing details. Optional, but recommended before publishing." badge={<OwnershipBadge source="MANUAL" />}>
-          <FieldLabel blueprint={blueprint} field="slug" help="Creates the article URL. Derived from the title until you edit it.">Slug</FieldLabel><input className="blog-input" value={data.slug} onChange={event => set('slug', slugify(event.target.value))} /><div className="blog-derived-note"><OwnershipBadge source="DERIVED" /> Canonical URL is created from this slug and the workspace primary domain.</div>
-          <FieldLabel blueprint={blueprint} field="seo_title" help="Appears in Google search results. Recommended under 60 characters.">SEO title</FieldLabel><input className="blog-input" value={data.seo_title} onChange={event => set('seo_title', event.target.value)} /><FieldLabel blueprint={blueprint} field="meta_description" help="Appears beneath the title in search results. Aim for 140–160 characters.">Meta description</FieldLabel><textarea className="blog-input" rows={3} value={data.meta_description} onChange={event => set('meta_description', event.target.value)} /><FieldLabel blueprint={blueprint} field="focus_keyword" help="The primary keyword this article targets. It is editorial guidance only.">Focus keyword</FieldLabel><input className="blog-input" value={data.focus_keyword} onChange={event => set('focus_keyword', event.target.value)} /><FieldLabel blueprint={blueprint} field="read_time_override" help="Leave blank to use the automatic reading-time calculation.">Read time override</FieldLabel><input className="blog-input" value={data.read_time_override} onChange={event => set('read_time_override', event.target.value)} placeholder="For example: 8 min read" />
-        </CollapsibleSection>
+      <div className="blog-editor-body">
+        {/* ===== WIDE MAIN WRITING CANVAS (75-80% Width) ===== */}
+        <main className="blog-editor-canvas">
+          <div className="blog-article-header-hero">
+            <input
+              className="blog-title-headline"
+              value={data.title}
+              onChange={event => updateTitle(event.target.value)}
+              placeholder="Article Title..."
+            />
+            <textarea
+              className="blog-excerpt-textarea"
+              value={data.excerpt}
+              onChange={event => set('excerpt', event.target.value)}
+              rows={4}
+              placeholder="Write a concise excerpt or subtitle..."
+            />
+          </div>
 
-        <CollapsibleSection id="publishing" title="Publishing" description="Optional editorial credits and categorisation." badge={<OwnershipBadge source="MANUAL" />}>
-          <FieldLabel blueprint={blueprint} field="author" help="Displayed on the published article and included in Article schema when supplied.">Author</FieldLabel><input className="blog-input" value={data.author} onChange={event => set('author', event.target.value)} /><FieldLabel blueprint={blueprint} field="author_role" help="Optional role displayed beneath the author name.">Author role</FieldLabel><input className="blog-input" value={data.author_role} onChange={event => set('author_role', event.target.value)} /><FieldLabel blueprint={blueprint} field="category" help="Optional article grouping used in the Blog listing and schema.">Category</FieldLabel><input className="blog-input" value={data.category} onChange={event => set('category', event.target.value)} /><FieldLabel blueprint={blueprint} field="tags" help="Optional comma-separated topical labels.">Tags</FieldLabel><input className="blog-input" value={data.tags} onChange={event => set('tags', event.target.value)} placeholder="MBA, admissions, online learning" /><FieldLabel blueprint={blueprint} field="published_date" help="Used for article metadata and structured data.">Publish date</FieldLabel><input className="blog-input" type="date" value={data.published_date} onChange={event => set('published_date', event.target.value)} />
-        </CollapsibleSection>
+          <div className="blog-sections-list">
+            {sections.map((section, index) => (
+              <ArticleSectionEditor
+                key={`${index}-${section.title}`}
+                section={section}
+                index={index}
+                onChange={updated => setSections(current => current.map((item, itemIndex) => itemIndex === index ? updated : item))}
+                onRemove={sections.length > 1 ? () => setSections(current => current.filter((_, itemIndex) => itemIndex !== index)) : null}
+                onInsert={current => setActiveEditor(current)}
+                onOpenPicker={(ed, kind) => setPickerModal({ editor: ed, kind, selection: { from: ed.state.selection.from, to: ed.state.selection.to } })}
+              />
+            ))}
+          </div>
 
-        <CollapsibleSection id="cta" title="Optional call to action" description="Use only when the article needs a specific next step." badge={<OwnershipBadge source="MANUAL" />}>
-          <FieldLabel blueprint={blueprint} field="cta_title" help="A short heading for the article CTA block.">CTA heading</FieldLabel><input className="blog-input" value={data.cta_title} onChange={event => set('cta_title', event.target.value)} /><FieldLabel blueprint={blueprint} field="cta_description" help="Optional supporting context for the CTA.">CTA description</FieldLabel><textarea className="blog-input" rows={3} value={data.cta_description} onChange={event => set('cta_description', event.target.value)} /><FieldLabel blueprint={blueprint} field="cta_label" help="The button label. It links to the generated workspace contact page.">Button label</FieldLabel><input className="blog-input" value={data.cta_label} onChange={event => set('cta_label', event.target.value)} />
-        </CollapsibleSection>
-      </aside>
+          <button
+            type="button"
+            className="blog-add-section-btn"
+            onClick={() => setSections(current => [...current, { title: 'New section', level: 2, content: '<p></p>', hasHeading: true }])}
+          >
+            + Add New Section
+          </button>
+        </main>
+
+        {/* ===== COLLAPSIBLE RIGHT SIDEBAR DRAWER ===== */}
+        <aside className={`blog-editor-drawer ${drawerOpen ? 'is-open' : 'is-collapsed'}`}>
+          <div className="blog-drawer-header">
+            <h3 className="blog-drawer-title">Publishing & Settings</h3>
+            <button type="button" className="blog-drawer-close-btn" onClick={() => setDrawerOpen(false)}>✕</button>
+          </div>
+
+          <div className="blog-drawer-content">
+            {/* Widget: Publishing Progress */}
+            <div className="blog-progress-widget">
+              <div className="blog-progress-widget-header">
+                <strong>Publishing Progress</strong>
+                <span>{progressPercent}%</span>
+              </div>
+              <div className="blog-progress-bar-track">
+                <div className="blog-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <div className="blog-progress-checklist">
+                {checklist.map(item => (
+                  <div key={item.label} className={`blog-progress-check-item ${item.complete ? 'is-complete' : 'is-pending'}`}>
+                    <span>{item.complete ? '✓' : '○'}</span>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Basic Information */}
+            <CollapsibleSection id="basic-info-drawer" title="Featured Image" defaultOpen badge={<OwnershipBadge source="AUTO" />}>
+              <div className="blog-form-grid">
+                <div>
+                  <FieldLabel blueprint={blueprint} field="hero_image_url" required help="Article header cover image.">
+                    Featured image
+                  </FieldLabel>
+                  <input className="blog-file-input" type="file" accept="image/*" onChange={e => uploadImage('hero_image_url', e.target.files?.[0])} />
+                  {images.hero_image_url && <img className="blog-image-preview" src={images.hero_image_url} alt="Featured preview" />}
+                </div>
+                <div>
+                  <FieldLabel blueprint={blueprint} field="hero_image_alt">Alt Text</FieldLabel>
+                  <input className="blog-input" value={data.hero_image_alt} onChange={e => set('hero_image_alt', e.target.value)} placeholder="Describe the image" />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* Internal Linking */}
+            <CollapsibleSection id="internal-linking-drawer" title="Internal Linking" badge={<OwnershipBadge source="MANUAL" />}>
+              <div className="blog-inline-linker">
+                <FieldLabel blueprint={blueprint} field="related_course_slugs">Insert an internal link</FieldLabel>
+                <SearchableRelationPicker label="workspace page" options={linkableEntities} value={[]} onChoose={item => addLink(item.href)} hint="Select article text first." />
+                {session.entity_suggestions?.length > 0 && (
+                  <div className="blog-suggestions">
+                    <span>Mentioned in article:</span>
+                    {session.entity_suggestions.map(item => (
+                      <button type="button" key={`${item.type}-${item.slug}`} onClick={() => addLink(item.href)}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+
+            {/* SEO */}
+            <CollapsibleSection id="seo-drawer" title="SEO Settings" badge={<OwnershipBadge source="MANUAL" />}>
+              <FieldLabel blueprint={blueprint} field="slug">Slug</FieldLabel>
+              <input className="blog-input mb-12" value={data.slug} onChange={e => set('slug', slugify(e.target.value))} />
+
+              <FieldLabel blueprint={blueprint} field="seo_title">SEO Title</FieldLabel>
+              <input className="blog-input mb-12" value={data.seo_title} onChange={e => set('seo_title', e.target.value)} />
+
+              <FieldLabel blueprint={blueprint} field="meta_description">Meta Description</FieldLabel>
+              <textarea className="blog-input mb-12" rows={3} value={data.meta_description} onChange={e => set('meta_description', e.target.value)} />
+
+              <FieldLabel blueprint={blueprint} field="focus_keyword">Focus Keyword</FieldLabel>
+              <input className="blog-input" value={data.focus_keyword} onChange={e => set('focus_keyword', e.target.value)} />
+            </CollapsibleSection>
+
+            {/* Publishing Metadata */}
+            <CollapsibleSection id="publishing-drawer" title="Publishing Metadata" badge={<OwnershipBadge source="MANUAL" />}>
+              <FieldLabel blueprint={blueprint} field="author">Author</FieldLabel>
+              <input className="blog-input mb-12" value={data.author} onChange={e => set('author', e.target.value)} />
+
+              <FieldLabel blueprint={blueprint} field="author_role">Author Role</FieldLabel>
+              <input className="blog-input mb-12" value={data.author_role} onChange={e => set('author_role', e.target.value)} />
+
+              <FieldLabel blueprint={blueprint} field="category">Category</FieldLabel>
+              <input className="blog-input mb-12" value={data.category} onChange={e => set('category', e.target.value)} />
+
+              <FieldLabel blueprint={blueprint} field="tags">Tags</FieldLabel>
+              <input className="blog-input mb-12" value={data.tags} onChange={e => set('tags', e.target.value)} placeholder="MBA, admissions, online" />
+
+              <FieldLabel blueprint={blueprint} field="published_date">Publish Date</FieldLabel>
+              <input className="blog-input" type="date" value={data.published_date} onChange={e => set('published_date', e.target.value)} />
+            </CollapsibleSection>
+          </div>
+        </aside>
+      </div>
+
+      <ComponentPickerModal
+        kind={pickerModal?.kind}
+        options={pickerOptions}
+        isOpen={Boolean(pickerModal)}
+        onClose={() => setPickerModal(null)}
+        onConfirm={handleConfirmPicker}
+      />
     </div>
-    <footer className="blog-editor-actions"><button type="button" className="btn btn-secondary" onClick={onBack}>Back</button><button type="button" className="btn btn-primary" onClick={submit} disabled={submitting || loading}>{submitting || loading ? 'Generating preview…' : 'Generate preview'}</button></footer>
-  </div>;
+  );
 }

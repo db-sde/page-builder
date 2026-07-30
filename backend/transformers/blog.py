@@ -77,17 +77,28 @@ class BlogTransformer(BaseTransformer):
             return f'<section class="blog-inline-component blog-inline-component--cards">{"".join(rendered)}</section>'
 
         def replace(match: re.Match[str]) -> str:
-            kind = match.group(1)
-            selected = [slug for slug in match.group(2).split(",") if slug]
+            attributes = match.group(1)
+            component_match = re.search(r'data-degreebaba-component="([a-z-]+)"', attributes)
+            if not component_match:
+                return match.group(0)
+            kind = component_match.group(1)
+            slugs_match = re.search(r'data-degreebaba-slugs="([^"]*)"', attributes)
+            selected = [slug for slug in (slugs_match.group(1) if slugs_match else "").split(",") if slug]
+            title_match = re.search(r'data-degreebaba-title="([^"]*)"', attributes)
+            display_title = html.escape(title_match.group(1)) if title_match and title_match.group(1) else ""
+            style_match = re.search(r'data-degreebaba-style="([a-z-]+)"', attributes)
+            display_style = style_match.group(1) if style_match else "buttons"
             if kind == "course-cards":
                 return cards(self._cards(records["course"], selected, "course"), "course")
             if kind == "related-blogs":
                 return cards(self._cards(records["blog"], selected, "blog"), "blog")
             if kind == "specialization-buttons":
-                selected_specs = self._cards(records["specialization"], selected, "specialization")
+                selected_specs = self._cards([item for item in records["specialization"] if item.get("parent_slug") in selected], [item.get("slug") for item in records["specialization"] if item.get("parent_slug") in selected], "specialization")
                 if not selected_specs:
                     return ""
-                return '<nav class="blog-inline-component blog-inline-component--buttons">' + "".join(f'<a href="{html.escape(item["href"], quote=True)}">{html.escape(item["title"])}</a>' for item in selected_specs) + '</nav>'
+                classes = "blog-inline-component--buttons" if display_style == "buttons" else f"blog-inline-component--{display_style}"
+                heading = f"<h3>{display_title}</h3>" if display_title else ""
+                return f'<section class="blog-inline-component {classes}">{heading}' + "".join(f'<a href="{html.escape(item["href"], quote=True)}">{html.escape(item["title"])}</a>' for item in selected_specs) + '</section>'
             if kind in {"fee-table", "syllabus"}:
                 source = next((item for item in records["course"] + records["specialization"] if item.get("slug") in selected), None)
                 data = (source or {}).get("data") or {}
@@ -103,12 +114,45 @@ class BlogTransformer(BaseTransformer):
                 return '<aside class="blog-inline-component blog-inline-component--cta"><strong>Ready to learn more?</strong><a href="/contact">Contact admissions →</a></aside>'
             return ""
 
-        return re.sub(r'<div data-degreebaba-component="([a-z-]+)" data-degreebaba-slugs="([^"]*)"></div>', replace, content)
+        return re.sub(r'<div\b([^>]*)></div>', replace, content)
+
+    def _resolve_text_references(self, content: str) -> str:
+        """Turn invisible editor references into ordinary production links."""
+        route_type = {"course": "course", "specialization": "specialization", "blog": "blog"}
+
+        def replace(match: re.Match[str]) -> str:
+            attrs, inner = match.group(1), match.group(2)
+            reference = re.search(r'data-degreebaba-reference="([a-z-]+)"', attrs)
+            slug = re.search(r'data-degreebaba-slug="([^"]+)"', attrs)
+            if not reference:
+                return match.group(0)
+            kind = reference.group(1)
+            if kind == "cta":
+                href = self.public_route("contact")
+            elif kind in {"fee-table", "syllabus"} and slug:
+                href = f'{self.public_route("course", slug.group(1))}#{"fees" if kind == "fee-table" else "syllabus"}'
+            elif kind in route_type and slug:
+                href = self.public_route(route_type[kind], slug.group(1))
+            else:
+                return inner
+            return f'<a href="{html.escape(href, quote=True)}">{inner}</a>'
+
+        return re.sub(r'<a\b([^>]*)>(.*?)</a>', replace, content, flags=re.DOTALL)
+
+    @staticmethod
+    def _render_markdown_links(content: str) -> str:
+        """Support parser/imported Markdown links embedded in article paragraphs."""
+        def replace(match: re.Match[str]) -> str:
+            label, href = match.group(1).strip(), match.group(2).strip()
+            if not label or not href or not re.match(r"^(https?://|/)", href):
+                return match.group(0)
+            return f'<a href="{html.escape(href, quote=True)}">{html.escape(label)}</a>'
+        return re.sub(r'\[([^\]\n]+)\]\(([^\s)]+)\)', replace, content)
 
     def transform(self) -> dict:
         raw = self.raw
         title = str(raw.get("title") or "").strip()
-        resolved_article = self._inline_component_html(raw.get("content_html") or "", raw)
+        resolved_article = self._render_markdown_links(self._resolve_text_references(self._inline_component_html(raw.get("content_html") or "", raw)))
         content_html, toc = article_toc_and_anchors(resolved_article)
         faqs = [
             {"q": item.get("question", ""), "a": item.get("answer", ""), "sign": "+", "disp": "none"}
