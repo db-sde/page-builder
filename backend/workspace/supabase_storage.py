@@ -169,7 +169,7 @@ def _load_remote_manifest(storage: SupabaseWorkspaceStorage, slug: str) -> dict[
 
 
 def sync_workspace_to_supabase(slug: str) -> dict[str, int | bool]:
-    """Upload only changed workspace files and publish a manifest last."""
+    """Upload only changed workspace files concurrently and publish a manifest last."""
     storage = SupabaseWorkspaceStorage()
     if not storage.enabled:
         return {"enabled": False, "uploaded": 0, "deleted": 0}
@@ -182,16 +182,23 @@ def sync_workspace_to_supabase(slug: str) -> dict[str, int | bool]:
     local_files = _workspace_files(workspace_dir)
     remote_manifest = _load_remote_manifest(storage, slug) or {}
     remote_files = remote_manifest.get("files") if isinstance(remote_manifest.get("files"), dict) else {}
-    uploaded = 0
 
+    changed_items = []
     for relative, info in local_files.items():
         remote_info = remote_files.get(relative)
         if isinstance(remote_info, dict) and remote_info.get("sha256") == info["sha256"]:
             continue
+        changed_items.append(relative)
+
+    def upload_one(relative: str) -> None:
         path = workspace_dir / relative
         content_type = mimetypes.guess_type(path.name)[0]
         storage.put_bytes(f"workspaces/{slug}/{relative}", path.read_bytes(), content_type)
-        uploaded += 1
+
+    if changed_items:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            list(executor.map(upload_one, changed_items))
 
     removed = [relative for relative in remote_files if relative not in local_files]
     if removed:
@@ -206,15 +213,20 @@ def sync_workspace_to_supabase(slug: str) -> dict[str, int | bool]:
         "summary": summary,
     }
     storage.put_bytes(_manifest_path(slug), json.dumps(manifest, separators=(",", ":")).encode("utf-8"), "application/json")
-    logger.info("workspace_sync slug=%s uploaded=%s deleted=%s duration_ms=%s", slug, uploaded, len(removed), round((time.monotonic() - started) * 1000))
-    return {"enabled": True, "uploaded": uploaded, "deleted": len(removed)}
+    logger.info("workspace_sync slug=%s uploaded=%s deleted=%s duration_ms=%s", slug, len(changed_items), len(removed), round((time.monotonic() - started) * 1000))
+    return {"enabled": True, "uploaded": len(changed_items), "deleted": len(removed)}
 
 
 def restore_workspace_from_supabase(slug: str) -> bool:
-    """Restore a complete workspace atomically. Returns False when absent."""
+    """Restore a complete workspace atomically in parallel. Returns False when absent."""
     storage = SupabaseWorkspaceStorage()
     if not storage.enabled:
         return False
+
+    target = WORKSPACES_ROOT / slug
+    if target.exists() and target.is_dir():
+        return True
+
     manifest = _load_remote_manifest(storage, slug)
     if not manifest:
         return False
@@ -223,17 +235,24 @@ def restore_workspace_from_supabase(slug: str) -> bool:
         raise RuntimeError(f"Remote workspace '{slug}' has an invalid manifest")
 
     started = time.monotonic()
-    target = WORKSPACES_ROOT / slug
     staging = Path(tempfile.mkdtemp(prefix=f".restore-{slug}-", dir=WORKSPACES_ROOT))
     try:
-        for relative in files:
+        def fetch_one(relative: str) -> tuple[Path, bytes]:
             safe_relative = _safe_relative(Path(relative))
             content = storage.get_bytes(f"workspaces/{slug}/{safe_relative}")
             if content is None:
                 raise RuntimeError(f"Remote workspace '{slug}' is missing {safe_relative}")
+            return safe_relative, content
+
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            results = list(executor.map(fetch_one, files.keys()))
+
+        for safe_relative, content in results:
             destination = staging / safe_relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(content)
+
         if target.exists():
             return True
         staging.replace(target)
@@ -245,20 +264,30 @@ def restore_workspace_from_supabase(slug: str) -> bool:
 
 
 def remote_workspace_summaries() -> dict[str, dict[str, Any]]:
-    """Fetch lightweight remote summaries without restoring page trees."""
+    """Fetch lightweight remote summaries concurrently without restoring page trees."""
     storage = SupabaseWorkspaceStorage()
     if not storage.enabled:
         return {}
     summaries: dict[str, dict[str, Any]] = {}
-    for entry in storage.list_prefix("workspaces/"):
-        slug = str(entry.get("name") or "").strip("/")
-        if not slug or "/" in slug:
-            continue
+    entries = storage.list_prefix("workspaces/")
+    slugs = [str(entry.get("name") or "").strip("/") for entry in entries]
+    slugs = [s for s in slugs if s and "/" not in s]
+
+    def fetch_summary(slug: str) -> tuple[str, dict[str, Any] | None]:
         manifest = _load_remote_manifest(storage, slug)
         if isinstance(manifest, dict):
             summary = manifest.get("summary")
             if isinstance(summary, dict):
-                summaries[slug] = summary
+                return slug, summary
+        return slug, None
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        results = list(executor.map(fetch_summary, slugs))
+
+    for slug, summary in results:
+        if summary:
+            summaries[slug] = summary
     return summaries
 
 
