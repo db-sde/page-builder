@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree, getPageBlueprint } from '../api';
 import SectionContentEditor from './SectionContentEditor';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
+import BlogEditor from './BlogEditor';
 
-// Blog has no Blueprint yet; the three schema-driven page types get their
-// image slots directly from backend Blueprint metadata.
+// Legacy pages without a Blueprint retain their explicit image-slot fallback.
+// Blog now uses the same Blueprint contract as the other page types.
 const LEGACY_IMAGE_SLOTS = {
   blog: [
     { key: 'hero_image_url', label: 'Article Hero Image', hint: 'Main article header banner image displayed on the right of the title', dims: '460 × 340px', required: true },
@@ -123,7 +124,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [specStates, setSpecStates] = useState({});
 
   useEffect(() => {
-    if (!['university', 'course', 'specialization'].includes(session.page_type)) return;
+    if (!['university', 'course', 'specialization', 'blog'].includes(session.page_type)) return;
     setBlueprintLoading(true);
     getPageBlueprint(session.page_type)
       .then(setBlueprint)
@@ -239,27 +240,21 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     : (LEGACY_IMAGE_SLOTS[session.page_type] || []);
 
   // ── Generate preview ──────────────────────────────────────────────────────
-  const handleGenerate = async () => {
+  const generatePreview = async (rebuilt, uploadedImages, slugOverride = session.slug) => {
     setError('');
-    
     setLoading(true);
     try {
-      const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), ...structuredFields, hero_image_alt: heroImageAlt };
-
-      // IMPORTANT: Always include metadata keys so the backend uses the correct
-      // transformer. Without these, the backend auto-detects and can wrongly
-      // classify a blog as a course (because blog content has no `posts` key).
       const metadata = {
         page_type:       session.page_type,
-        slug:            session.slug,
+        slug:            slugOverride,
         university_slug: session.university_slug,
         parent_slug:     session.parent_slug,
       };
 
-      const merged = { ...rebuilt, ...metadata, ...imageUrls };
+      const merged = { ...rebuilt, ...metadata, ...uploadedImages };
       const rawWithMeta = { ...rebuilt, ...metadata };
 
-      updateSession({ acf_data: rebuilt, images: imageUrls, raw_acf_data: rawWithMeta });
+      updateSession({ acf_data: rebuilt, images: uploadedImages, raw_acf_data: rawWithMeta });
 
       // Step A: transformer context
       const result = await ingestAcf({ acf_data: merged });
@@ -270,7 +265,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
       }
 
       // Step B: render HTML
-      const htmlText = await previewHtml({ acf_data: merged, images: imageUrls });
+      const htmlText = await previewHtml({ acf_data: merged, images: uploadedImages });
 
       updateSession({
         context:         result.context,
@@ -281,15 +276,22 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         acf_data:        result.acf_data,
         field_state:     result.field_state || {},
         editing_state:   result.editing_state || {},
-        images:          imageUrls,
+        images:          uploadedImages,
         raw_acf_data:    rawWithMeta,
         htmlContent:     htmlText,
       });
       onNext();
-    } catch (e) {
-      setError(formatApiError(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    const rebuilt = { ...session.acf_data, ...fieldsToAcf(fields), ...structuredFields, hero_image_alt: heroImageAlt };
+    try {
+      await generatePreview(rebuilt, imageUrls);
+    } catch (e) {
+      setError(formatApiError(e));
     }
   };
 
@@ -310,6 +312,17 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     }
     return url;
   };
+
+  if (session.page_type === 'blog') {
+    return <BlogEditor
+      key={`${session.university_slug}-${session.slug}`}
+      session={session}
+      blueprint={blueprint}
+      loading={loading || blueprintLoading}
+      onBack={onBack}
+      onPreview={generatePreview}
+    />;
+  }
 
   return (
     <div>

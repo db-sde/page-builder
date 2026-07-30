@@ -160,7 +160,7 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
             page_type = "course"
         elif  "university_full_name" in data or "established_year" in data:
             page_type = "university"
-        elif "posts" in data:
+        elif "posts" in data or "content_html" in data:
             page_type = "blog"
         else:
             page_type = "course" # default fallback
@@ -418,6 +418,45 @@ async def page_blueprint_endpoint(page_type: str | None = None):
     return {pt: build_page_blueprint(pt) for pt in SUPPORTED_PAGE_TYPES}
 
 
+def _workspace_link_catalog(university_slug: str) -> dict[str, list[dict[str, str]]]:
+    """Expose the compiler's existing workspace index to Blog authoring."""
+    from core.utils import build_public_route
+    from workspace.compiler import _build_index
+
+    index = _build_index(university_slug)
+    catalog: dict[str, list[dict[str, str]]] = {"courses": [], "specializations": [], "blogs": [], "universities": []}
+    labels = {
+        "courses": ("course", "program_name"),
+        "specializations": ("specialization", "spec_name"),
+        "blogs": ("blog", "title"),
+    }
+    for output_key, (page_type, field) in labels.items():
+        for slug, record in index.get(page_type, {}).items():
+            data = record.get("data") or {}
+            label = str(data.get(field) or data.get("course_name") or slug.replace("-", " ").title()).strip()
+            catalog[output_key].append({
+                "slug": slug,
+                "label": label,
+                "href": build_public_route(page_type, slug, university_slug),
+            })
+
+    university = index.get("university", {}).get(university_slug)
+    if university:
+        data = university.get("data") or {}
+        catalog["universities"].append({
+            "slug": university_slug,
+            "label": str(data.get("university_name") or university_slug.replace("-", " ").title()),
+            "href": build_public_route("university", university_slug, university_slug),
+        })
+    return catalog
+
+
+@app.get("/workspace-link-catalog")
+async def workspace_link_catalog_endpoint(university_slug: str):
+    """Read-only entities available for Blog relationships and internal links."""
+    return _workspace_link_catalog(university_slug)
+
+
 @app.post("/ingest-acf")
 async def ingest_acf(req: IngestRequest):
     try:
@@ -432,6 +471,18 @@ async def ingest_acf(req: IngestRequest):
             "parent_slug": parent_slug,
             "raw": acf_data
         }
+        if page_type == "blog":
+            from workspace.compiler import _build_index, _enrich_resolved
+            index = _build_index(university_slug)
+            draft_record = {
+                "slug": slug,
+                "page_type": page_type,
+                "university_slug": university_slug,
+                "parent_slug": parent_slug,
+                "data": acf_data,
+            }
+            index[page_type][slug] = draft_record
+            resolved["raw"] = _enrich_resolved(draft_record, index)["raw"]
         transformer = get_transformer(resolved)
         ctx = transformer.transform()
         import json
@@ -515,11 +566,6 @@ def validate_blueprint_content(
             "parent_slug": parent_slug,
         },
     )
-    # Blog has not been migrated to the Blueprint contract yet. Preserve its
-    # existing required-image behaviour without duplicating rules for the
-    # three schema-driven page types.
-    if page_type == "blog" and not populated.get("hero_image_url"):
-        missing_fields = [{"field": "hero_image_url", "label": "Article Hero Image"}]
     if missing_fields:
         raise HTTPException(
             status_code=422,
@@ -789,7 +835,6 @@ async def parse_docx_endpoint(
     import tempfile
     import os
     from ingestion.parser import parse_docx
-    from ingestion.extractor import blocks_to_html
     from pathlib import Path
 
     file_bytes = await file.read()
@@ -884,105 +929,17 @@ async def parse_docx_endpoint(
         is_blog_or_generic = detected_type in ("blog", "blog_post", "generic")
 
         if is_blog_or_generic:
-            # Route to the blog/generic parser logic
-            import math
-            import re
-            from datetime import datetime
+            # Blog documents deliberately bypass the Micro App.  Their parser
+            # preserves the DOCX structure and returns only document facts; all
+            # editorial metadata is authored in the Blog editor.
+            from ingestion.blog import parse_blog_docx, parse_blog_document
 
-            # Clean blocks first
-            cleaned_blocks = []
-            for b in blocks:
-                cleaned_block = {"type": b["type"]}
-                if "text" in b:
-                    cleaned_text = b["text"]
-                    cleaned_text = re.sub(r"^Copy of\s+", "", cleaned_text, flags=re.IGNORECASE)
-                    cleaned_block["text"] = cleaned_text
-                if "rows" in b:
-                    cleaned_block["rows"] = b["rows"]
-                if "table_title" in b:
-                    cleaned_block["table_title"] = b["table_title"]
-                if "headers" in b:
-                    cleaned_block["headers"] = b["headers"]
-                if "warning" in b:
-                    cleaned_block["warning"] = b["warning"]
-                if "warning_info" in b:
-                    cleaned_block["warning_info"] = b["warning_info"]
-                cleaned_blocks.append(cleaned_block)
-
-            # Find the title (usually the first heading block)
-            title = None
-            title_index = -1
-            for i, b in enumerate(cleaned_blocks):
-                if b["type"] in ("h1", "h2", "h3") and "text" in b:
-                    title = b["text"]
-                    title_index = i
-                    break
-
-            if not title:
-                title = Path(file.filename).stem
-                title = re.sub(r"^Copy of\s+", "", title, flags=re.IGNORECASE)
-                title = re.sub(r"^[hH][1-4][_\s:]+", "", title)
-                title = title.replace("-", " ").replace("_", " ").title()
-
-            # Find excerpt: usually the first paragraph after the title
-            excerpt = ""
-            start_search = title_index + 1 if title_index != -1 else 0
-            for i in range(start_search, len(cleaned_blocks)):
-                b = cleaned_blocks[i]
-                if b["type"] in ("paragraph", "bold_para") and "text" in b:
-                    excerpt = b["text"]
-                    break
-
-            # Filter blocks for content: skip the title heading block to avoid duplicates
-            content_blocks = []
-            for i, b in enumerate(cleaned_blocks):
-                if i == title_index:
-                    continue
-                # Also skip "Introduction" heading if it appears right after title and is redundant
-                if i == title_index + 1 and b["type"] == "h2" and b.get("text", "").lower() == "introduction":
-                    continue
-                content_blocks.append(b)
-
-            content_html = blocks_to_html(content_blocks)
-
-            # Estimate reading time based on word count
-            word_count = 0
-            for b in content_blocks:
-                if b.get("text"):
-                    word_count += len(b["text"].split())
-            read_time_mins = max(1, math.ceil(word_count / 200))
-            read_time = f"{read_time_mins} min read"
-
-            # Classify category/tag based on keywords in title and filename
-            title_lower = title.lower()
-            filename_lower = file.filename.lower()
-            tag = "Guide"
-            if any(w in title_lower or w in filename_lower for w in ["scholarship", "fee", "cost", "financing"]):
-                tag = "Finance"
-            elif any(w in title_lower or w in filename_lower for w in ["placement", "career", "salary", "jobs", "working", "work"]):
-                tag = "Career"
-            elif any(w in title_lower or w in filename_lower for w in ["subject", "year", "syllabus", "student"]):
-                tag = "Student Life"
-            elif any(w in title_lower or w in filename_lower for w in ["admission", "valid", "eligibility", "ignou", "mca"]):
-                tag = "Admissions"
-
-            payload = {
-                "title": title,
-                "excerpt": excerpt,
-                "content_html": content_html,
-                "tag": tag,
-                "author": "Krishna Porwal",
-                "author_role": "content writer",
-                "read_time": read_time,
-                "date": datetime.now().strftime("%b %d, %Y"),
-                "blocks": cleaned_blocks
-            }
-
-            result = {
-                "filename": file.filename,
-                "page_type": detected_type,
-                "payload": payload
-            }
+            detected_type = "blog"
+            # Blog tables are article content rather than entity data, so use
+            # the structural Blog reader instead of the generic table adapter.
+            cleaned_blocks = parse_blog_docx(tmp_path)
+            payload = parse_blog_document(cleaned_blocks, file.filename)
+            result = {"filename": file.filename, "page_type": "blog", "payload": payload}
         else:
             # Route to the micro-pipeline (passing the original file bytes).
             # forward_to_micro_pipeline does a blocking network call (urllib),
@@ -1058,7 +1015,7 @@ async def parse_docx_endpoint(
         normalized_result = normalize_value(result)
         normalized_payload = normalized_result.get("payload") if isinstance(normalized_result, dict) else None
         normalized_page_type = (normalized_result.get("page_type") or detected_type) if isinstance(normalized_result, dict) else None
-        if isinstance(normalized_payload, dict) and normalized_page_type in ("university", "course", "specialization"):
+        if isinstance(normalized_payload, dict) and normalized_page_type in SUPPORTED_PAGE_TYPES:
             metadata_input = {
                 "payload": normalized_payload,
                 "page_type": normalized_page_type,
@@ -1086,6 +1043,21 @@ async def parse_docx_endpoint(
                     "parent_slug": parent_slug,
                 }, auto_filled_names=_auto_filled
             )
+            if resolved_type == "blog" and resolved_university:
+                from core.blog import html_to_text
+
+                article_text = " ".join((
+                    str(normalized_payload.get("title") or ""),
+                    html_to_text(normalized_payload.get("content_html")),
+                )).lower()
+                suggestions = []
+                entity_names = {"courses": "course", "specializations": "specialization", "blogs": "blog", "universities": "university"}
+                for entity_type, entries in _workspace_link_catalog(resolved_university).items():
+                    for entry in entries:
+                        label = entry.get("label") or ""
+                        if len(label) >= 3 and label.lower() in article_text:
+                            suggestions.append({"type": entity_names[entity_type], **entry})
+                normalized_result["entity_suggestions"] = suggestions
         return normalized_result
 
     except Exception as e:
@@ -1412,6 +1384,19 @@ async def save_to_workspace(req: SaveToWorkspaceRequest):
             "parent_slug": parent_slug,
             "raw": acf_data,
         }
+
+        if page_type == "blog":
+            from workspace.compiler import _build_index, _enrich_resolved
+            index = _build_index(university_slug)
+            draft_record = {
+                "slug": slug,
+                "page_type": page_type,
+                "university_slug": university_slug,
+                "parent_slug": parent_slug,
+                "data": acf_data,
+            }
+            index[page_type][slug] = draft_record
+            resolved["raw"] = _enrich_resolved(draft_record, index)["raw"]
 
         # Render the HTML
         standalone = page_type in ("course", "specialization", "blog")

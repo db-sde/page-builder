@@ -10,6 +10,7 @@ from typing import Any
 AUTO = "AUTO"
 MANUAL = "MANUAL"
 DERIVED = "DERIVED"
+SYSTEM = "SYSTEM"
 
 
 def _field(source: str, *, required: bool = False) -> dict[str, Any]:
@@ -171,6 +172,40 @@ PAGE_FIELD_DEFINITIONS: dict[str, dict[str, dict[str, Any]]] = {
         "university_slug": _field(DERIVED, required=True),
         "parent_slug": _field(DERIVED, required=True),
     },
+    "blog": {
+        "title": _field(AUTO, required=True),
+        "subtitle": _field(AUTO),
+        "content_html": _field(AUTO, required=True),
+        "article_blocks": _field(AUTO),
+        "excerpt": _field(AUTO),
+        "faqs": _field(AUTO),
+        "word_count": _field(DERIVED),
+        "hero_image_url": _field(MANUAL, required=True),
+        "hero_image_alt": _field(MANUAL),
+        "og_image_url": _field(MANUAL),
+        "seo_title": _field(MANUAL),
+        "meta_description": _field(MANUAL),
+        "author": _field(MANUAL),
+        "author_role": _field(MANUAL),
+        "published_date": _field(MANUAL),
+        "category": _field(MANUAL),
+        "tags": _field(MANUAL),
+        "focus_keyword": _field(MANUAL),
+        "read_time_override": _field(MANUAL),
+        "primary_course_slug": _field(MANUAL),
+        "primary_specialization_slug": _field(MANUAL),
+        "related_course_slugs": _field(MANUAL),
+        "related_specialization_slugs": _field(MANUAL),
+        "related_blog_slugs": _field(MANUAL),
+        "mentioned_university_slugs": _field(MANUAL),
+        "cta_title": _field(MANUAL),
+        "cta_description": _field(MANUAL),
+        "cta_label": _field(MANUAL),
+        "page_type": _field(DERIVED, required=True),
+        "slug": _field(DERIVED, required=True),
+        "university_slug": _field(DERIVED, required=True),
+        "parent_slug": _field(DERIVED),
+    },
 }
 
 
@@ -198,7 +233,10 @@ def build_field_state(
     state: dict[str, dict[str, Any]] = {}
 
     for name, definition in definitions.items():
-        value = derived_values.get(name) if definition["derived"] else values.get(name)
+        # Most derived values are supplied from request identity, while a small
+        # number (for example a Blog's parser-derived word count) are already
+        # available in page data.  Identity always wins when explicitly given.
+        value = derived_values.get(name, values.get(name)) if definition["derived"] else values.get(name)
         state[name] = {
             "name": name,
             **definition,

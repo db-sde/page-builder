@@ -13,16 +13,16 @@ from core.page_requirements import (
 
 
 class PageRequirementTests(unittest.TestCase):
-    def test_requirements_defined_for_the_three_page_types(self):
+    def test_requirements_defined_for_all_source_page_types(self):
         self.assertEqual(
-            set(PAGE_REQUIREMENTS), {"university", "course", "specialization"}
+            set(PAGE_REQUIREMENTS), {"university", "course", "specialization", "blog"}
         )
         for page_type, sections in PAGE_REQUIREMENTS.items():
             with self.subTest(page_type=page_type):
                 self.assertTrue(sections)
-                # Exactly one essential section per page: the hero.
                 required = [s for s in sections if s["required"]]
-                self.assertEqual([s["section"] for s in required], ["hero"])
+                expected = ["hero", "article"] if page_type == "blog" else ["hero"]
+                self.assertEqual([s["section"] for s in required], expected)
 
     def test_unused_schema_fields_do_not_warn(self):
         # A university page with only the hero fields present. Faculty and the
@@ -102,7 +102,7 @@ class PageRequirementTests(unittest.TestCase):
 
         templates_dir = Path(__file__).resolve().parents[1] / "templates"
         environment = Environment()
-        for page_type in ("university", "course", "specialization"):
+        for page_type in ("university", "course", "specialization", "blog"):
             with self.subTest(page_type=page_type):
                 source = (templates_dir / f"{page_type}.html").read_text(encoding="utf-8")
                 referenced = meta.find_undeclared_variables(environment.parse(source))
@@ -134,9 +134,15 @@ class PageRequirementTests(unittest.TestCase):
         build_page_state("course", field_state)
         self.assertEqual(field_state, snapshot)
 
-    def test_unsupported_page_type_has_no_page_contract(self):
-        field_state = build_field_state("blog", {"title": "Post"})
-        self.assertEqual(build_page_state("blog", field_state), {})
+    def test_blog_page_state_tracks_article_and_featured_image(self):
+        field_state = build_field_state("blog", {
+            "title": "Post",
+            "content_html": "<p>Article body</p>",
+            "hero_image_url": "/assets/images/blog.webp",
+        }, {"page_type": "blog", "slug": "post", "university_slug": "ignou"})
+        state = build_page_state("blog", field_state)
+        self.assertTrue(next(section for section in state["sections"] if section["section"] == "article")["renderable"])
+        self.assertEqual(state["summary"]["required_sections_incomplete"], [])
 
     def test_field_usage_map_matches_sections(self):
         usage = template_field_usage("specialization")

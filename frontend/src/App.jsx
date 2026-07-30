@@ -23,6 +23,7 @@ export default function App() {
     htmlBlob: null,
     validation_warnings: [],
     table_warnings: [],
+    entity_suggestions: [],
   });
 
   const updateSession = (patch) => setSession(s => ({ ...s, ...patch }));

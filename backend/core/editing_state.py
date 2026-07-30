@@ -68,7 +68,7 @@ def build_editing_state(
     ``values`` is the parser/ACF dict. ``derived_values`` carries the pipeline's
     resolved ``page_type / slug / university_slug / parent_slug``.
 
-    Returns ``{}`` for unsupported page types (e.g. blog).
+    Returns ``{}`` for unsupported page types.
     """
     blueprint = build_page_blueprint(page_type)
     if not blueprint:

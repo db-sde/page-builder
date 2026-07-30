@@ -1,122 +1,180 @@
-from transformers.base import BaseTransformer
+"""Renderer context for factual Blog content plus editor-owned enrichment."""
+
+from __future__ import annotations
+
 import json
+import html
 import re
+from typing import Any
+
+from core.blog import article_toc_and_anchors, author_initials, reading_time_label
+from transformers.base import BaseTransformer
+
+
+def _slug_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return []
+
 
 class BlogTransformer(BaseTransformer):
+    """Build display data only; no author, category, date, or article defaults."""
+
+    def _cards(self, records: list[dict], selected_slugs: list[str], page_type: str) -> list[dict]:
+        by_slug = {record.get("slug"): record for record in records if isinstance(record, dict)}
+        cards: list[dict] = []
+        for selected in selected_slugs:
+            record = by_slug.get(selected)
+            if not record:
+                continue
+            data = record.get("data") or {}
+            if page_type == "course":
+                title = data.get("program_name") or data.get("course_name") or selected.replace("-", " ").title()
+                excerpt = data.get("hero_description") or ""
+                meta = " · ".join(value for value in (data.get("duration"), data.get("mode"), data.get("total_fee")) if value)
+            elif page_type == "specialization":
+                title = data.get("spec_name") or selected.replace("-", " ").title()
+                excerpt = data.get("hero_description") or ""
+                meta = data.get("total_fee") or ""
+            else:
+                title = data.get("title") or selected.replace("-", " ").title()
+                excerpt = data.get("excerpt") or ""
+                meta = data.get("category") or ""
+            cards.append({
+                "title": title,
+                "excerpt": excerpt,
+                "meta": meta,
+                "image": data.get("hero_image_url") or "",
+                "href": self.public_route(page_type, selected),
+            })
+        return cards
+
+    def _inline_component_html(self, content: str, raw: dict) -> str:
+        """Resolve editor-authored reference blocks from the workspace index.
+
+        The editor persists only a component name and slugs in article HTML.  Page
+        data is deliberately resolved during rendering, so fee, title and URL
+        changes remain single-source-of-truth in their published pages.
+        """
+        records = {
+            "course": raw.get("_workspace_courses") or [],
+            "specialization": raw.get("_workspace_specs") or [],
+            "blog": raw.get("_workspace_blogs") or [],
+        }
+
+        def cards(items: list[dict], kind: str) -> str:
+            if not items:
+                return ""
+            rendered = []
+            for item in items:
+                title = html.escape(str(item.get("title") or ""))
+                excerpt = html.escape(str(item.get("excerpt") or ""))
+                meta = html.escape(str(item.get("meta") or ""))
+                href = html.escape(str(item.get("href") or "#"), quote=True)
+                rendered.append(f'<a class="blog-inline-card" href="{href}"><strong>{title}</strong>{f"<span>{excerpt}</span>" if excerpt else ""}{f"<small>{meta}</small>" if meta else ""}<b>Explore →</b></a>')
+            return f'<section class="blog-inline-component blog-inline-component--cards">{"".join(rendered)}</section>'
+
+        def replace(match: re.Match[str]) -> str:
+            kind = match.group(1)
+            selected = [slug for slug in match.group(2).split(",") if slug]
+            if kind == "course-cards":
+                return cards(self._cards(records["course"], selected, "course"), "course")
+            if kind == "related-blogs":
+                return cards(self._cards(records["blog"], selected, "blog"), "blog")
+            if kind == "specialization-buttons":
+                selected_specs = self._cards(records["specialization"], selected, "specialization")
+                if not selected_specs:
+                    return ""
+                return '<nav class="blog-inline-component blog-inline-component--buttons">' + "".join(f'<a href="{html.escape(item["href"], quote=True)}">{html.escape(item["title"])}</a>' for item in selected_specs) + '</nav>'
+            if kind in {"fee-table", "syllabus"}:
+                source = next((item for item in records["course"] + records["specialization"] if item.get("slug") in selected), None)
+                data = (source or {}).get("data") or {}
+                if kind == "syllabus":
+                    syllabus = str(data.get("syllabus_content") or "").strip()
+                    return f'<section class="blog-inline-component blog-inline-component--syllabus">{syllabus}</section>' if syllabus else ""
+                plans = [plan for plan in data.get("fee_plans") or [] if isinstance(plan, dict) and plan.get("plan_name") and plan.get("plan_amount")]
+                if not plans:
+                    return ""
+                rows = "".join(f'<tr><td>{html.escape(str(plan["plan_name"]))}</td><td>{html.escape(str(plan["plan_amount"]))}</td></tr>' for plan in plans)
+                return f'<section class="blog-inline-component"><table><thead><tr><th>Payment plan</th><th>Amount</th></tr></thead><tbody>{rows}</tbody></table></section>'
+            if kind == "cta":
+                return '<aside class="blog-inline-component blog-inline-component--cta"><strong>Ready to learn more?</strong><a href="/contact">Contact admissions →</a></aside>'
+            return ""
+
+        return re.sub(r'<div data-degreebaba-component="([a-z-]+)" data-degreebaba-slugs="([^"]*)"></div>', replace, content)
+
     def transform(self) -> dict:
         raw = self.raw
-        
-        # Core fields parsed from the DOCX
-        title = raw.get("title") or raw.get("hero_title") or "Untitled Blog Post"
-        excerpt = raw.get("excerpt") or raw.get("hero_description") or ""
-        content_html = raw.get("content_html") or ""
-
-        faqs = raw.get("faqs") or []
-        if not faqs and content_html:
-            pattern = re.compile(
-                r'(<h[2-4][^>]*>(?:FAQ|FAQs|Frequently\s+Asked\s+Questions)(?:\s*\(FAQs?\))?</h[2-4]>)\s*(<(?:ul|ol)[^>]*>.*?</(?:ul|ol)>)',
-                re.IGNORECASE | re.DOTALL
-            )
-            match = pattern.search(content_html)
-            if match:
-                list_block = match.group(2)
-                li_pattern = re.compile(r'<li[^>]*>(.*?)</li>', re.IGNORECASE | re.DOTALL)
-                li_items = li_pattern.findall(list_block)
-                for i in range(0, len(li_items) - 1, 2):
-                    q = li_items[i].strip()
-                    a = li_items[i+1].strip()
-                    faqs.append({
-                        "question": q,
-                        "answer": a
-                    })
-                content_html = pattern.sub('', content_html)
-        
-        # Metadata fields
-        tag = raw.get("tag") or raw.get("category") or "Career"
-        author = raw.get("author") or "Krishna Porwal"
-        
-        # Author initials
-        author_initials = ""
-        if author:
-            parts = author.split()
-            if len(parts) >= 2:
-                author_initials = (parts[0][0] + parts[1][0]).upper()
-            elif len(parts) == 1:
-                author_initials = parts[0][:2].upper()
-        if not author_initials:
-            author_initials = "KP"
-        author_role = raw.get("author_role") or raw.get("author_title") or "content writer"
-        if author_role.lower() in ("career editor", "content editor", "editor"):
-            author_role = "content writer"
-        read_time = raw.get("read_time") or raw.get("reading_time") or "8 min read"
-        date = raw.get("date") or raw.get("published_date") or "Jan 12, 2026"
-        author_bio = raw.get("author_bio") or "Krishna writes about careers, hiring and the economics of higher education. Krishna has spent a decade advising working professionals on when — and whether — to go back to school."
-        
-        # Dynamic TOC from H2 and H3 blocks inside content_html
-        toc = []
-        if content_html:
-            def replace_heading(m):
-                tag = m.group(1)
-                attrs = m.group(2)
-                text = m.group(3)
-                slug = text.lower()
-                slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-                slug = re.sub(r'[\s-]+', '-', slug)
-                slug = slug.strip('-')
-                if slug:
-                    href = f"#{slug}"
-                    toc.append({"text": text, "href": href})
-                    return f"<{tag}{attrs} id=\"{slug}\">{text}</{tag}>"
-                return m.group(0)
-
-            heading_pattern = re.compile(
-                r'<(h[23])([^>]*)>(.*?)</\1>',
-                re.IGNORECASE | re.DOTALL
-            )
-            content_html = heading_pattern.sub(replace_heading, content_html)
-
+        title = str(raw.get("title") or "").strip()
+        resolved_article = self._inline_component_html(raw.get("content_html") or "", raw)
+        content_html, toc = article_toc_and_anchors(resolved_article)
+        faqs = [
+            {"q": item.get("question", ""), "a": item.get("answer", ""), "sign": "+", "disp": "none"}
+            for item in raw.get("faqs") or []
+            if isinstance(item, dict) and item.get("question") and item.get("answer")
+        ]
         if faqs:
-            toc.append({"text": "FAQs", "href": "#faq"})
+            toc.append({"text": "FAQs", "href": "#faq", "level": 2})
 
-        if not toc:
-            toc = [
-                {"text": "The salary uplift is real", "href": "#the-salary-uplift-is-real"},
-                {"text": "The real cost is time, not money", "href": "#the-real-cost-is-time-not-money"},
-                {"text": "Recruiter perception has shifted", "href": "#recruiter-perception-has-shifted"},
-                {"text": "When an online MBA wins", "href": "#when-an-online-mba-wins"},
-                {"text": "The verdict", "href": "#the-verdict"}
-            ]
+        related_course_slugs = _slug_list(raw.get("primary_course_slug")) + _slug_list(raw.get("related_course_slugs"))
+        related_spec_slugs = _slug_list(raw.get("primary_specialization_slug")) + _slug_list(raw.get("related_specialization_slugs"))
+        related_blog_slugs = [slug for slug in _slug_list(raw.get("related_blog_slugs")) if slug != self.slug]
 
-        # Related posts fallback
-        related = raw.get("related")
-        if not related or not isinstance(related, list):
-            related = [
-                { "tag": 'Finance', "title": 'Online MBA fees & EMI options, fully explained', "meta": '5 min · Dec 2025' },
-                { "tag": 'Career', "title": '8 high-growth roles after an online MBA', "meta": '9 min · Nov 2025' },
-                { "tag": 'Guide', "title": 'How to choose the right MBA specialization', "meta": '6 min · Dec 2025' }
-            ]
+        related_courses = self._cards(raw.get("_workspace_courses") or [], list(dict.fromkeys(related_course_slugs)), "course")
+        related_specializations = self._cards(raw.get("_workspace_specs") or [], list(dict.fromkeys(related_spec_slugs)), "specialization")
+        related_blogs = self._cards(raw.get("_workspace_blogs") or [], list(dict.fromkeys(related_blog_slugs)), "blog")
 
-        hero_image_url = raw.get("hero_image_url") or raw.get("featured_image_url")
+        requested_universities = _slug_list(raw.get("mentioned_university_slugs"))
+        mentioned_universities = []
+        if self.university_slug in requested_universities:
+            mentioned_universities.append({
+                "title": raw.get("university_name") or self.university_slug.replace("-", " ").title(),
+                "href": self.public_route("university", self.university_slug),
+            })
+
+        cta_title = str(raw.get("cta_title") or "").strip()
+        cta_description = str(raw.get("cta_description") or "").strip()
+        cta_label = str(raw.get("cta_label") or "").strip()
+        blog_cta = {
+            "title": cta_title,
+            "description": cta_description,
+            "label": cta_label,
+            "href": self.public_route("contact"),
+        } if cta_title or cta_description or cta_label else None
+
+        author = str(raw.get("author") or "").strip()
+        published_date = str(raw.get("published_date") or raw.get("date") or "").strip()
+        category = str(raw.get("category") or raw.get("tag") or "").strip()
+        hero_image_url = raw.get("hero_image_url") or raw.get("featured_image_url") or ""
+        excerpt = str(raw.get("excerpt") or raw.get("subtitle") or "").strip()
 
         return {
-            "seo_title": raw.get("seo_title") or title,
-            "meta_description": raw.get("meta_description") or excerpt,
+            "seo_title": str(raw.get("seo_title") or title).strip(),
+            "meta_description": str(raw.get("meta_description") or excerpt).strip(),
             "site": self.site,
             "title": title,
+            "subtitle": str(raw.get("subtitle") or "").strip(),
             "excerpt": excerpt,
             "content_html": content_html,
-            "tag": tag,
+            "category": category,
+            "tags": _slug_list(raw.get("tags")),
             "author": author,
-            "author_initials": author_initials,
-            "author_role": author_role,
-            "read_time": read_time,
-            "date": date,
-            "author_bio": author_bio,
+            "author_initials": author_initials(author),
+            "author_role": str(raw.get("author_role") or "").strip(),
+            "published_date": published_date,
+            "read_time": reading_time_label(content_html, raw.get("read_time_override")),
+            "word_count": raw.get("word_count") or 0,
             "hero_image_url": hero_image_url,
+            "hero_image_alt": raw.get("hero_image_alt") or title,
             "toc": toc,
-            "related": related,
             "toc_json": json.dumps(toc, ensure_ascii=False),
-            "related_json": json.dumps(related, ensure_ascii=False),
             "faqs": faqs,
             "faqs_json": json.dumps(faqs, ensure_ascii=False),
+            "related_courses": related_courses,
+            "related_specializations": related_specializations,
+            "related_blogs": related_blogs,
+            "mentioned_universities": mentioned_universities,
+            "blog_cta": blog_cta,
         }

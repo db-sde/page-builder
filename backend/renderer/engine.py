@@ -314,6 +314,29 @@ def _build_structured_data(ctx: dict, resolved: dict, raw: dict, primary_domain:
             }
         graph.append(course)
 
+    if page_type == "blog":
+        article = {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "@id": f"{canonical_url}#article",
+            "mainEntityOfPage": canonical_url,
+            "headline": page_name,
+            "description": _plain_text(raw.get("meta_description") or raw.get("excerpt") or ctx.get("meta_description")),
+            "wordCount": str(ctx.get("word_count") or raw.get("word_count") or ""),
+        }
+        image = ctx.get("hero_image_url") or raw.get("hero_image_url") or raw.get("og_image_url")
+        if image:
+            article["image"] = build_public_url(primary_domain, image)
+        if raw.get("published_date"):
+            article["datePublished"] = raw["published_date"]
+        if raw.get("author"):
+            article["author"] = {"@type": "Person", "name": raw["author"]}
+        if raw.get("category"):
+            article["articleSection"] = raw["category"]
+        if not article["wordCount"]:
+            article.pop("wordCount")
+        graph.append(article)
+
     faqs = ctx.get("faqs") or raw.get("faqs") or []
     faq_entities = []
     if page_type in ("course", "specialization", "blog"):
@@ -1266,10 +1289,8 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
         })
     ctx["spec_groups_json"] = json.dumps(list(spec_groups_map.values()), ensure_ascii=False)
 
-    # Blog categories & posts
-    ctx["cat_labels_json"] = json.dumps(['All', 'Career', 'Admissions', 'Guide', 'Finance', 'Student Life'], ensure_ascii=False)
-
-    # Priority: workspace blogs (via transformer _workspace_blogs) → hardcoded demo fallback
+    # Blog listing/navigation data is derived only from published workspace
+    # records.  Category labels and metadata are never invented here.
     workspace_blogs_ctx = raw_dict.get("_workspace_blogs") or []
     blog_posts = []
     if workspace_blogs_ctx:
@@ -1282,10 +1303,10 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
             blog_href = build_public_route("blog", b_slug, uni_slug)
             img_url = data.get("hero_image_url") or ""
             blog_posts.append({
-                "tag": data.get("category") or data.get("tag") or "Article",
+                "tag": data.get("category") or data.get("tag") or "",
                 "title": data.get("blog_title") or data.get("title") or b_slug.replace("-", " ").title(),
                 "excerpt": data.get("hero_description") or data.get("excerpt") or "",
-                "meta": data.get("read_time") or data.get("meta") or "",
+                "meta": data.get("read_time_override") or data.get("read_time") or data.get("meta") or "",
                 "href": blog_href,
                 "image": img_url,
                 "hero_image_url": img_url,
@@ -1294,6 +1315,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["posts"] = blog_posts[:3]
     ctx["blog_posts"] = blog_posts
     ctx["all_posts_json"] = json.dumps(blog_posts, ensure_ascii=False)
+    ctx["cat_labels_json"] = json.dumps(["All", *sorted({post["tag"] for post in blog_posts if post["tag"]})], ensure_ascii=False)
 
     # Contact details — sourced from the workspace-aware site config (see
     # core/site_config.get_site_config); no hardcoded NMIMS fallback here,

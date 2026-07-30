@@ -202,6 +202,33 @@ PAGE_REQUIREMENTS: dict[str, list[dict[str, Any]]] = {
         _section("faqs", "FAQs",
                  optional_fields=["faqs"]),
     ],
+    "blog": [
+        _section("seo", "SEO & Publishing",
+                 optional_fields=["seo_title", "meta_description", "og_image_url", "author",
+                                  "author_role", "published_date", "category", "tags",
+                                  "focus_keyword", "read_time_override"],
+                 always_rendered=True),
+        _section("hero", "Article Header", required=True,
+                 required_fields=["title", "hero_image_url"],
+                 optional_fields=["subtitle", "excerpt", "hero_image_alt", "author",
+                                  "author_role", "published_date", "category"],
+                 always_rendered=True),
+        _section("article", "Article", required=True,
+                 required_fields=["content_html"],
+                 optional_fields=["article_blocks", "word_count"],
+                 always_rendered=True,
+                 external_fields={"toc": "DERIVED", "read_time": "DERIVED"}),
+        _section("faqs", "FAQs", optional_fields=["faqs"]),
+        _section("relationships", "Related Content",
+                 optional_fields=["primary_course_slug", "primary_specialization_slug",
+                                  "related_course_slugs", "related_specialization_slugs",
+                                  "related_blog_slugs", "mentioned_university_slugs"],
+                 external_fields={"related_courses": "WORKSPACE", "related_specializations": "WORKSPACE",
+                                  "related_blogs": "WORKSPACE", "mentioned_universities": "WORKSPACE"}),
+        _section("cta", "Call to Action",
+                 optional_fields=["cta_title", "cta_description", "cta_label"],
+                 external_fields={"blog_cta": "DERIVED"}),
+    ],
 }
 
 
@@ -256,7 +283,7 @@ def build_page_state(page_type: str, field_state: dict[str, Any]) -> dict[str, A
     field as used / unused by the template. Pure/read-only: it does not mutate
     ``field_state`` and does not touch parsed values.
 
-    Unsupported page types (e.g. blog) return an empty contract, mirroring
+    Unsupported page types return an empty contract, mirroring
     ``build_field_state``.
     """
     sections_def = PAGE_REQUIREMENTS.get(page_type)

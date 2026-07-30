@@ -41,8 +41,13 @@ class PageBlueprintTests(unittest.TestCase):
         self.assertFalse(bp["fields"]["faculty_members"]["used_by_template"])
         self.assertNotIn("faculty_members", bp["template_fields"])
 
-    def test_unsupported_page_type(self):
-        self.assertEqual(build_page_blueprint("blog"), {})
+    def test_blog_blueprint_exposes_writer_owned_and_derived_fields(self):
+        bp = build_page_blueprint("blog")
+        self.assertIn("content_html", bp["required_fields"])
+        self.assertIn("hero_image_url", bp["required_fields"])
+        self.assertIn("author", bp["manual_fields"])
+        self.assertIn("word_count", bp["derived_fields"])
+        self.assertEqual(bp["fields"]["hero_image_url"]["label"], "Featured Image")
 
 
 class AutoPopulationTests(unittest.TestCase):
@@ -138,8 +143,15 @@ class EditingStateTests(unittest.TestCase):
         self.assertIsNotNone(by_id["hero"]["completion"])
         self.assertIn("program_name", by_id["hero"]["filled_fields"])
 
-    def test_unsupported_page_type(self):
-        self.assertEqual(build_editing_state("blog", {"title": "Post"}), {})
+    def test_blog_editing_state_requires_only_article_basics(self):
+        state = build_editing_state("blog", {
+            "title": "A real article",
+            "content_html": "<p>Body from the document.</p>",
+            "hero_image_url": "/assets/images/article.webp",
+        }, {"page_type": "blog", "slug": "a-real-article", "university_slug": "ignou"})
+        self.assertTrue(state["summary"]["ready"])
+        self.assertEqual(state["needs_attention"], [])
+        self.assertIn("author", state["optional_suggestions"])
 
     def test_required_validation_uses_blueprint_field_metadata(self):
         populated, state, missing = validate_required_content(

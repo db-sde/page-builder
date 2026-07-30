@@ -38,14 +38,31 @@ def _paragraph_to_block(para) -> dict | None:
             if numPr is not None:
                 is_list = True
 
+        if style_name.strip().lower() == "title":
+            return {"type": "h1", "text": text, "style": "Title"}
         if "Heading" in style_name:
             level = int(style_name.split()[-1]) if style_name.split()[-1].isdigit() else 1
             return {
                 "type": HEADING_MAP.get(level, "h2"),
-                "text": text
+                "text": text,
+                "style": style_name,
             }
         elif is_list or "List" in style_name or text.startswith(("•", "▪", "●", "○", "■", "- ", "* ")):
-            return {"type": "list_item", "text": text}
+            num_pr = pPr.find(qn("w:numPr")) if pPr is not None else None
+            ilvl = num_pr.find(qn("w:ilvl")) if num_pr is not None else None
+            level = int(ilvl.get(qn("w:val"))) if ilvl is not None and ilvl.get(qn("w:val"), "").isdigit() else 0
+            is_ordered = "number" in style_name.lower() or bool(re.match(r"^\s*\d+[.)]\s+", text))
+            return {
+                "type": "list_item",
+                "text": text,
+                "list_kind": "ol" if is_ordered else "ul",
+                "list_level": level,
+                "style": style_name,
+            }
+        elif "quote" in style_name.lower():
+            return {"type": "blockquote", "text": text, "style": style_name}
+        elif any(marker in style_name.lower() for marker in ("note", "callout")):
+            return {"type": "callout", "text": text, "style": style_name}
         elif para.runs and any(r.bold for r in para.runs if r.text.strip()):
             return {"type": "bold_para", "text": text}
         else:

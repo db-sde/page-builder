@@ -12,7 +12,8 @@ This module adds no new schema and no new rules. It reads the two existing
 layers and presents them in one shape so the editor and preview do not have to
 recombine them (and so the React app stops keeping its own copy of the schema).
 
-Blog is intentionally out of scope — it keeps the legacy blog parser.
+Blog uses the same field contract as other source-authored pages, while its
+editor remains purpose-built for long-form writing.
 """
 
 from typing import Any
@@ -24,7 +25,7 @@ from core.page_requirements import (
 )
 
 
-SUPPORTED_PAGE_TYPES = ("university", "course", "specialization")
+SUPPORTED_PAGE_TYPES = ("university", "course", "specialization", "blog")
 
 
 # Context intentionally supplied outside page-authored content. Keeping these
@@ -117,6 +118,18 @@ PAGE_EXTERNAL_TEMPLATE_FIELDS: dict[str, dict[str, str]] = {
         "syllabusTabs": "DERIVED",
         "syllabus_years": "DERIVED",
     },
+    "blog": {
+        "toc": "DERIVED",
+        "read_time": "DERIVED",
+        "author_initials": "DERIVED",
+        "university_name": "WORKSPACE",
+        "related_courses": "WORKSPACE",
+        "related_specializations": "WORKSPACE",
+        "related_blogs": "WORKSPACE",
+        "mentioned_universities": "WORKSPACE",
+        "blog_cta": "DERIVED",
+        "schema": "DERIVED",
+    },
 }
 
 
@@ -128,6 +141,7 @@ EXPLICIT_DEFAULTS: dict[str, dict[str, Any]] = {
     "university": {},
     "course": {"mode": "100% Online"},
     "specialization": {"mode": "100% Online"},
+    "blog": {},
 }
 
 
@@ -189,6 +203,12 @@ def build_page_blueprint(page_type: str) -> dict[str, Any]:
         }
         if field["image"]:
             field.update(IMAGE_FIELD_META.get(name, {}))
+            if page_type == "blog" and name == "hero_image_url":
+                field.update({
+                    "label": "Featured Image",
+                    "hint": "Main article image shown in the blog hero",
+                    "dims": "1200 × 630px",
+                })
             image_fields.append(name)
         if definition["derived"]:
             derived_fields.append(name)

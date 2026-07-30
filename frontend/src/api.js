@@ -97,6 +97,14 @@ export async function getWorkspaceTree(universitySlug) {
   return res.data;
 }
 
+/** Entities already indexed by the workspace for Blog relationships and links. */
+export async function getWorkspaceLinkCatalog(universitySlug) {
+  const res = await axios.get(`${BASE}/workspace-link-catalog`, {
+    params: { university_slug: universitySlug },
+  });
+  return res.data;
+}
+
 /**
  * Delete a page from the university workspace.
  */

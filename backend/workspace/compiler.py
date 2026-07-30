@@ -231,6 +231,13 @@ def _enrich_resolved(record: dict, index: dict) -> dict:
         siblings = [s for s in all_specs if s.get("parent_slug") == parent_slug and s.get("slug") != slug]
         raw["_workspace_sibling_specs"] = siblings
 
+    elif pt == "blog":
+        # Blog relationships store only page slugs.  The transformer resolves
+        # those slugs against this existing compiler index at render time.
+        raw["_workspace_courses"] = all_courses
+        raw["_workspace_specs"] = all_specs
+        raw["_workspace_blogs"] = all_blogs
+
     elif pt == "programs_listing":
         raw["_workspace_courses"] = all_courses
         raw["_workspace_specs"] = all_specs

@@ -31,7 +31,7 @@ class PostParserPipelineTests(unittest.TestCase):
         self.assertIn("hero_image_url", missing)
         self.assertIn("certificate_image_url", missing)
 
-    def test_legacy_blog_image_requirement_is_preserved(self):
+    def test_blog_validation_requires_title_body_and_featured_image(self):
         with self.assertRaises(HTTPException) as context:
             validate_blueprint_content(
                 "blog",
@@ -43,8 +43,8 @@ class PostParserPipelineTests(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 422)
         self.assertEqual(
-            context.exception.detail["missing_fields"],
-            [{"field": "hero_image_url", "label": "Article Hero Image"}],
+            {entry["field"] for entry in context.exception.detail["missing_fields"]},
+            {"content_html", "hero_image_url"},
         )
 
     def test_ingest_response_carries_field_state_without_changing_acf_data(self):

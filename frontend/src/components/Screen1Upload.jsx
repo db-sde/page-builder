@@ -14,7 +14,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], parsedFieldState = null, parsedEditingState = null) => {
+  const processPayload = async (acf_data, detectedType, validationWarnings = [], tableWarnings = [], parsedFieldState = null, parsedEditingState = null, entitySuggestions = []) => {
     let data = JSON.parse(JSON.stringify(acf_data));
     let page_type = detectedType;
     
@@ -90,6 +90,7 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
       parent_slug,
       field_state,
       editing_state,
+      entity_suggestions: entitySuggestions,
       validation_warnings: validationWarnings,
       table_warnings: tableWarnings
     });
@@ -142,7 +143,8 @@ export default function Screen1Upload({ session, updateSession, onNext }) {
         res.validation_warnings || [],
         res.table_warnings || [],
         res.field_state || null,
-        res.editing_state || null
+        res.editing_state || null,
+        res.entity_suggestions || []
       );
     } catch (err) {
       console.error(err);

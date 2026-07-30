@@ -104,8 +104,16 @@ class FieldDefinitionTests(unittest.TestCase):
         self.assertIs(state["reviews"]["value"], reviews)
         self.assertEqual(values, {"reviews": reviews})
 
-    def test_unsupported_page_type_has_no_field_contract(self):
-        self.assertEqual(build_field_state("blog", {"title": "Post"}), {})
+    def test_blog_has_a_field_contract_with_explicit_ownership(self):
+        state = build_field_state("blog", {
+            "title": "Post",
+            "content_html": "<p>Body</p>",
+            "word_count": 1,
+        }, {"page_type": "blog", "slug": "post", "university_slug": "ignou"})
+        self.assertEqual(state["title"]["source"], AUTO)
+        self.assertEqual(state["hero_image_url"]["source"], MANUAL)
+        self.assertEqual(state["word_count"]["source"], DERIVED)
+        self.assertEqual(state["word_count"]["value"], 1)
 
     def test_university_ugc_alias_normalizes_to_canonical_field(self):
         adapted = adapt_schema({"ugc_status": "UGC-DEB Entitled"}, "university")
