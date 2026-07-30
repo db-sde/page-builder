@@ -68,7 +68,8 @@ class SupabaseWorkspaceStorage:
         try:
             return self._request(Request(self._object_url(object_path), headers=self._headers()))
         except HTTPError as exc:
-            if exc.code == 404:
+            if exc.code in (400, 404):
+                # Supabase returns 400 (not 404) when an object does not exist yet.
                 return None
             raise RuntimeError(f"Supabase download failed ({exc.code}) for {object_path}") from exc
 
