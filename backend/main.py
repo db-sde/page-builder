@@ -798,6 +798,7 @@ async def preview_file(university_slug: str, page_type: str, slug: str):
             "parent_slug": parent_slug,
             "raw": enriched_record["raw"]
         }
+        standalone = page_type in ("course", "specialization", "blog")
         html = render_resolved(resolved, standalone=standalone, preview=True)
         script = _get_preview_interceptor_script(university_slug)
         if "</body>" in html:
