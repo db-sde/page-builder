@@ -362,7 +362,12 @@ def read_source(source_path: Path) -> dict | None:
 
 
 def list_workspaces() -> list[str]:
-    """Return a list of university slugs that have workspaces on disk."""
+    """Return a list of university slugs that have workspaces on disk.
+
+    Directories starting with '.' are always excluded — they are either
+    system files or leftover `.restore-<slug>-<id>` staging directories
+    from an interrupted workspace restore.
+    """
     if not WORKSPACES_ROOT.exists():
         return []
-    return [d.name for d in WORKSPACES_ROOT.iterdir() if d.is_dir()]
+    return [d.name for d in WORKSPACES_ROOT.iterdir() if d.is_dir() and not d.name.startswith('.')]

@@ -127,6 +127,18 @@ async def sync_workspace_after_change(university_slug: str) -> dict:
 @app.on_event("startup")
 async def start_workspace_cache_cleanup() -> None:
     from workspace.cache import cleanup_inactive_workspaces, register_local_workspaces, storage_enabled
+    from workspace.manager import WORKSPACES_ROOT
+    import shutil
+
+    # Sweep out any leftover .restore-* staging directories from previous deploys.
+    # These accumulate when concurrent requests trigger parallel restore attempts
+    # or when the process is killed mid-restore.
+    if WORKSPACES_ROOT.exists():
+        for entry in WORKSPACES_ROOT.iterdir():
+            if entry.is_dir() and entry.name.startswith('.restore-'):
+                shutil.rmtree(entry, ignore_errors=True)
+                logger.info("startup_cleanup removed stale staging dir: %s", entry.name)
+
     if not storage_enabled():
         logger.info("workspace_cache mode=local_only")
         return
@@ -142,6 +154,7 @@ async def start_workspace_cache_cleanup() -> None:
 
     app.state.workspace_cleanup_task = asyncio.create_task(cleanup_loop())
     logger.info("workspace_cache mode=supabase idle_seconds=600")
+
 
 
 @app.on_event("shutdown")
