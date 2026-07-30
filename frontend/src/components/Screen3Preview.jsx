@@ -230,7 +230,7 @@ export default function Screen3Preview({ session, onBack }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewWidth, setPreviewWidth] = useState('100%');
   const previewUrl = session.slug && session.page_type && session.university_slug
-    ? `http://localhost:8000/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
+    ? `${API_BASE}/preview-file?university_slug=${session.university_slug}&page_type=${session.page_type}&slug=${session.slug}`
     : null;
 
 

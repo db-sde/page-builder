@@ -18,6 +18,7 @@ import {
   deleteDraft,
   saveDraft,
   publishDraft,
+  API_BASE,
 } from '../api';
 
 // Helper for relative timestamps ("Last built 5 mins ago")
@@ -690,7 +691,7 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       {logo ? (
                         <img 
-                          src={`http://localhost:8000${logo}`} 
+                          src={`${API_BASE}${logo}`} 
                           alt={name} 
                           style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6, background: '#fff', border: '1px solid #e2e8f0', padding: 2 }} 
                         />
