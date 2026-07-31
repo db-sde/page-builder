@@ -3272,13 +3272,11 @@ code, .font-mono {
 .author-inspector-content {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 18px;
-  scrollbar-width: thin;
+  padding: 18px 18px 32px;
 }
 
 .author-inspector .author-progress {
@@ -3490,6 +3488,16 @@ code, .font-mono {
   overflow: hidden;
 }
 
+/* The drawer has only progress and image settings. Keep progress visible and
+   give the image list the available space instead of making the entire
+   inspector another competing scroll container. */
+.author-inspector .author-inspector-group.is-open {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .author-inspector-group-header {
   display: flex;
   align-items: center;
@@ -3537,19 +3545,29 @@ code, .font-mono {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 380px;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  min-height: 0;
+}
+
+.author-inspector .author-inspector-group-body {
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .author-images-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 380px;
-  overflow-y: auto;
-  scrollbar-width: thin;
   padding-right: 2px;
+}
+
+.author-inspector .author-images-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 .author-image-card {

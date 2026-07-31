@@ -628,7 +628,7 @@ function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, image
             : '✓';
   if (inspector) {
     return (
-      <div className="author-inspector-group" id={id}>
+      <div className={`author-inspector-group ${isOpen ? 'is-open' : 'is-collapsed'}`} id={id}>
         <button
           type="button"
           className="author-inspector-group-header"
