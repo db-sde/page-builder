@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { API_BASE, ingestAcf, previewHtml, detectParent, remapParent, generateSpecializationStub, getWorkspaceTree, getPageBlueprint } from '../api';
 import SectionContentEditor from './SectionContentEditor';
 import { FIELD_SCHEMA, isPlaceholder } from '../fieldSchema';
@@ -111,6 +111,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   const [heroImageAlt, setHeroImageAlt] = useState(() => {
     return session.acf_data?.hero_image_alt || '';
   });
+  const [inspectorOpen, setInspectorOpen] = useState(true);
 
   // ── Parent Mapping state (specialization only) ────────────────────────────
   const [parentInfo, setParentInfo]     = useState(null);   // { detected_parent_slug, confidence, available_courses }
@@ -302,8 +303,42 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
     ...imageUrls,
     hero_image_alt: heroImageAlt,
   };
+  const pageTitle = String(
+    fields.university_name
+    || fields.program_name
+    || fields.spec_name
+    || session.acf_data?.university_name
+    || session.acf_data?.program_name
+    || session.acf_data?.spec_name
+    || 'Untitled page'
+  ).trim();
 
   const isListingPage = ['programs_listing', 'specializations_listing', 'blog_listing'].includes(session.page_type);
+
+  const progressPercent = useMemo(() => {
+    if (!blueprint) return 0;
+    const reqFields = new Map();
+    (blueprint.sections || []).forEach(sec => {
+      (sec.fields_used || []).forEach(fieldName => {
+        const f = blueprint.fields?.[fieldName];
+        if (f?.required) reqFields.set(fieldName, f);
+      });
+    });
+    (blueprint.image_fields || []).forEach(imgName => {
+      const f = blueprint.fields?.[imgName];
+      if (f?.required) reqFields.set(imgName, f);
+    });
+    const total = reqFields.size;
+    if (!total) return 100;
+    let filled = 0;
+    reqFields.forEach((_, fieldName) => {
+      const val = editorValues[fieldName];
+      if (val !== undefined && val !== null && String(val).trim() !== '' && String(val) !== '[]' && String(val) !== '{}') {
+        filled++;
+      }
+    });
+    return Math.round((filled / total) * 100);
+  }, [blueprint, editorValues]);
 
   const getImageUrl = (url) => {
     if (!url) return '';
@@ -327,20 +362,57 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
   }
 
   return (
-    <div>
-      <div className="topbar">
-        <div className="topbar-left">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 className="topbar-title">Page Content</h1>
-            {session.workspace && (
-              <span className="badge badge--published" style={{ fontSize: 12, padding: '4px 10px', height: 'fit-content' }}>
-                📁 Workspace: {session.workspace.name}
-              </span>
-            )}
+    <div className="page-editor-app">
+      <header className="page-editor-sticky-bar">
+        <div className="page-editor-sticky-inner">
+          <div className="page-editor-sticky-copy">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onBack}>← Back</button>
+            <div>
+              <div className="page-editor-title-row">
+                <h1>{pageTitle}</h1>
+                <span className="page-editor-type">{session.page_type}</span>
+              </div>
+              <p>{session.workspace ? session.workspace.name : 'Workspace'} · Review content before generating a preview.</p>
+            </div>
           </div>
-          <p className="topbar-subtitle">Review each page section, complete missing content, and add images before previewing.</p>
+          <div className="page-editor-sticky-actions">
+            <div
+              className="page-editor-progress-compact"
+              onClick={() => setInspectorOpen(true)}
+              title="Click to view publishing readiness"
+            >
+              <div className="page-editor-progress-track">
+                <div className={`page-editor-progress-fill ${progressPercent === 100 ? 'is-complete' : ''}`} style={{ width: `${progressPercent}%` }} />
+              </div>
+              <span className="page-editor-progress-pct">{progressPercent}%</span>
+            </div>
+            <button
+              type="button"
+              className={`btn ${inspectorOpen ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+              onClick={() => setInspectorOpen(open => !open)}
+              aria-expanded={inspectorOpen}
+              aria-controls="page-editor-inspector"
+            >
+              Settings & progress
+            </button>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading}
+              className="btn btn-primary btn-sm"
+            >{loading ? 'Generating…' : 'Generate preview →'}</button>
+          </div>
         </div>
-      </div>
+      </header>
+
+      <div className="page-editor-content">
+        {/* ── Error Banner ── */}
+        {error && (
+          <div className="author-editor-error-banner" role="alert">
+            <span style={{ fontSize: 16 }}>⚠</span>
+            <span>{error}</span>
+          </div>
+        )}
 
       {/* ── Table Ingestion Warnings ── */}
       {session.table_warnings && session.table_warnings.length > 0 && (
@@ -646,6 +718,8 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
           onImageChange={(name, value) => setImageUrls(current => ({ ...current, [name]: value }))}
           onAltChange={setHeroImageAlt}
           getImageUrl={getImageUrl}
+          inspectorOpen={inspectorOpen}
+          onInspectorClose={() => setInspectorOpen(false)}
         />
       )}
 
@@ -660,28 +734,7 @@ export default function Screen2Review({ session, updateSession, onNext, onBack }
         </div>
       )}
 
-      {/* ── Error ── */}
-      {error && (
-        <div style={{ background: 'var(--color-error-light)', border: '1px solid var(--color-error)', borderRadius: 'var(--radius-md)', padding: '12px 16px', color: 'var(--color-error)', fontSize: 14, fontWeight: 500, marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
-
-      {/* ── Navigation ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <button
-          onClick={onBack}
-          className="btn btn-secondary"
-          style={{ padding: '12px 24px' }}
-        >← Back</button>
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="btn btn-primary"
-          style={{ padding: '12px 28px' }}
-        >{loading ? 'Generating…' : 'Generate Preview →'}</button>
       </div>
-
     </div>
   );
 }

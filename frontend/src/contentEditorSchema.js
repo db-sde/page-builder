@@ -25,8 +25,6 @@ const FIELD_PRESENTATION = {
   emi_amount: { label: 'EMI Amount', placeholder: 'Enter the EMI amount' },
   exam_content: { label: 'Examination Process', type: 'textarea', placeholder: 'Describe how examinations are conducted' },
   validity: { label: 'Degree Validity', type: 'textarea', placeholder: 'Describe the validity or recognition of the degree' },
-  seo_title: { label: 'SEO Title', placeholder: 'Enter the title shown in search results' },
-  meta_description: { label: 'Meta Description', type: 'textarea', placeholder: 'Enter a concise search result description' },
   hero_image_alt: { label: 'Hero Image Alt Text', placeholder: 'Describe the hero image for accessibility' },
 };
 
@@ -141,7 +139,6 @@ export const FIELD_SECTION_PREFERENCE = {
 };
 
 export const SECTION_HELP = {
-  seo: 'Control how this page appears in search results.',
   hero: 'The first content visitors see on the page.',
   stats: 'Key facts shown near the top of the page.',
   about: 'The full introduction for readers who want more detail.',
@@ -163,9 +160,9 @@ export const SECTION_HELP = {
   reviews: 'Feedback from students and graduates.',
   testimonials: 'Feedback from students and graduates.',
   faqs: 'Common questions and their answers.',
-  blog_preview: 'Recent articles published in this workspace.',
+  blog_preview: 'Automatically populated from published blogs in this workspace.',
   other_specs: 'Related specializations linked by the workspace.',
-  images: 'Upload the images required by the page template. Use only approved university or program assets.',
+  images: 'Upload the images.',
 };
 
 // These labels affect only the editor navigation. The Blueprint still owns the
@@ -176,7 +173,6 @@ export const SECTION_NAVIGATION_GROUPS = {
   Academics: ['stats', 'programs', 'specializations', 'other_specs', 'eligibility', 'fees', 'fees_financing', 'admission', 'syllabus', 'exam'],
   Trust: ['accreditation_strip', 'accreditations', 'placement', 'jobs', 'recruiters', 'reviews', 'testimonials', 'faqs'],
   Media: ['images'],
-  SEO: ['seo'],
   System: ['blog_preview'],
 };
 

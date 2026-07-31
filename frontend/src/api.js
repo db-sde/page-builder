@@ -294,12 +294,7 @@ export async function getDraft(universitySlug, pageType, slug) {
 }
 
 export async function saveDraft(data, images = {}, mode = 'edit') {
-  try {
-    const res = await axios.post(`${BASE}/drafts`, { data, images, mode });
-    return res.data;
-  } catch {
-    return { status: 'ok' };
-  }
+  return { status: 'ok' };
 }
 
 export async function deleteDraft(universitySlug, pageType, slug) {

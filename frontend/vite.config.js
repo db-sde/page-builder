@@ -24,6 +24,7 @@ export default defineConfig({
       '/build-website': 'http://localhost:8000',
       '/build-status': 'http://localhost:8000',
       '/build-file': 'http://localhost:8000',
+      '/assets': 'http://localhost:8000',
       '/download-build': 'http://localhost:8000',
       '/detect-parent': 'http://localhost:8000',
       '/remap-parent': 'http://localhost:8000',

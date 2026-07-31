@@ -453,8 +453,6 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
     { label: 'Article title added', complete: Boolean(data.title.trim()), required: true },
     { label: 'Article content added', complete: Boolean(bodyText), required: true },
     { label: 'Featured image added', complete: Boolean(images.hero_image_url), required: true },
-    { label: 'SEO title added', complete: Boolean(data.seo_title.trim()), recommended: true },
-    { label: 'Meta description added', complete: Boolean(data.meta_description.trim()), recommended: true },
     { label: 'Related content selected', complete: relationCount > 0, recommended: true },
   ];
 
@@ -569,7 +567,7 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
             className={`btn ${drawerOpen ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setDrawerOpen(prev => !prev)}
           >
-            ⚙️ Settings & SEO
+            ⚙️ Settings
           </button>
           <button
             type="button"
@@ -672,42 +670,6 @@ export default function BlogEditor({ session, blueprint, loading, onBack, onPrev
                   <input className="blog-input" value={data.hero_image_alt} onChange={e => set('hero_image_alt', e.target.value)} placeholder="Describe the image" />
                 </div>
               </div>
-            </CollapsibleSection>
-
-            {/* SEO */}
-            <CollapsibleSection id="seo-drawer" title="SEO Settings" badge={<OwnershipBadge source="MANUAL" />}>
-              <FieldLabel blueprint={blueprint} field="slug">Slug</FieldLabel>
-              <input
-                className="blog-input mb-12"
-                value={data.slug}
-                onChange={e => set('slug', slugify(e.target.value))}
-                placeholder="e.g. ignou-mba-admission-2026"
-              />
-
-              <FieldLabel blueprint={blueprint} field="seo_title">SEO Title</FieldLabel>
-              <input
-                className="blog-input mb-12"
-                value={data.seo_title}
-                onChange={e => set('seo_title', e.target.value)}
-                placeholder="e.g. IGNOU MBA Admission 2026: Fees, Eligibility & Process"
-              />
-
-              <FieldLabel blueprint={blueprint} field="meta_description">Meta Description</FieldLabel>
-              <textarea
-                className="blog-input mb-12"
-                rows={3}
-                value={data.meta_description}
-                onChange={e => set('meta_description', e.target.value)}
-                placeholder="e.g. Complete guide to IGNOU MBA admissions 2026. Check eligibility, course fees, application deadlines, and semester syllabus."
-              />
-
-              <FieldLabel blueprint={blueprint} field="focus_keyword">Focus Keyword</FieldLabel>
-              <input
-                className="blog-input"
-                value={data.focus_keyword}
-                onChange={e => set('focus_keyword', e.target.value)}
-                placeholder="e.g. IGNOU MBA Admission 2026"
-              />
             </CollapsibleSection>
 
             {/* Publishing Metadata */}

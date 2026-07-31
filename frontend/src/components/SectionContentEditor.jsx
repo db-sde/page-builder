@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FIELD_SECTION_PREFERENCE,
   getFieldPresentation,
@@ -388,12 +388,11 @@ function ownershipLabel(field, value, overridden = false) {
   if (field.auto_filled || field.derived || field.source === 'DERIVED') return 'Generated Automatically';
   if (field.source === 'WORKSPACE') return 'Workspace Managed';
   if (field.source === 'SYSTEM') return 'System Managed';
-  if (field.manual || field.source === 'MANUAL') return 'Manual Input';
   if (overridden || (field.missing && !isEmpty(value))) return 'Manual Override';
-  return isEmpty(value) ? 'Document Content Missing' : 'Imported from Document';
+  return null;
 }
 
-function SectionFields({ descriptor, values, onChange, onManualOverride }) {
+function SectionFields({ descriptor, values, onChange, onManualOverride, isInspector = false }) {
   const [override, setOverride] = useState(false);
   const hasExtractedFields = descriptor.fields.some(field => field.source === 'AUTO' && !field.missing);
   const hasAutoFields = descriptor.fields.some(field => field.source === 'AUTO');
@@ -407,30 +406,30 @@ function SectionFields({ descriptor, values, onChange, onManualOverride }) {
 
   return (
     <div className="author-section-body">
-      {hasExtractedFields && !override && (
+      {!isInspector && hasExtractedFields && !override && (
         <div className="author-extracted-note">
           <span>This content was imported from the uploaded document.</span>
           <button type="button" className="author-link" onClick={switchToManualEditing}>Switch to manual editing</button>
         </div>
       )}
-      {hasNoImportedContent && (
+      {!isInspector && hasNoImportedContent && (
         <div className="author-empty-import">
-          <span>No content was found in the uploaded document.</span>
-          <span>You can add this content manually.</span>
+          <span>No content was found in the uploaded document. You can add this content manually.</span>
         </div>
       )}
       {descriptor.fields.map(field => {
         const presentation = getFieldPresentation(field.name);
         const repeater = REPEATER_PRESENTATION[field.name];
         const disabled = field.derived || (field.source === 'AUTO' && !field.missing && editingDisabled);
+        const badge = ownershipLabel(field, values[field.name], override);
         return (
           <div className="author-field-block" key={field.name}>
             <div className="author-field-heading">
-              <div>
+              <div className="author-field-title">
                 <span className="author-field-label">{repeater?.label || presentation.label}</span>
-                {field.required && <span className="author-required">Required</span>}
+                {field.required && <span className="author-required-mark" title="Required field">*</span>}
               </div>
-              <span className={`author-badge author-badge--${String(field.source || 'auto').toLowerCase()}`}>{ownershipLabel(field, values[field.name], override)}</span>
+              {badge && <span className={`author-badge author-badge--${String(field.source || 'auto').toLowerCase()}`}>{badge}</span>}
             </div>
             {repeater ? (
               <RepeaterEditor
@@ -474,7 +473,7 @@ function ImageSection({ descriptor, imageUrls, heroImageAlt, onImageChange, onAl
   const [openDetails, setOpenDetails] = useState(() => new Set());
 
   return (
-    <div className="author-section-body">
+    <div className="author-images-list">
       {descriptor.slots.map(slot => {
         const hasImage = Boolean(imageUrls[slot.key]);
         const detailsOpen = openDetails.has(slot.key);
@@ -485,49 +484,87 @@ function ImageSection({ descriptor, imageUrls, heroImageAlt, onImageChange, onAl
         });
 
         return (
-        <div className="author-image" key={slot.key}>
-          <div className="author-image-preview">
-            {hasImage ? <img src={getImageUrl(imageUrls[slot.key])} alt="" /> : <span>Image</span>}
-          </div>
-          <div className="author-image-details">
-            <div className="author-field-heading">
-              <div>
-                <span className="author-field-label">{slot.label}</span>
-                {slot.required && <span className="author-required">Required</span>}
-                <span className="author-badge author-badge--manual">Manual Input</span>
+          <div className="author-image-card" key={slot.key}>
+            <div className="author-image-top">
+              <div className="author-image-preview-box">
+                {hasImage ? (
+                  <img src={getImageUrl(imageUrls[slot.key])} alt="" />
+                ) : (
+                  <span className="author-image-placeholder">No image</span>
+                )}
               </div>
-              <div className="author-image-actions">
-                <label className="author-link author-upload-link">
-                  {hasImage ? 'Replace' : 'Add image'}
-                  <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={event => {
+              <div className="author-image-info">
+                <div className="author-image-title">
+                  <strong>{slot.label}</strong>
+                  {slot.required && <span className="author-required-mark" title="Required">*</span>}
+                </div>
+                <div className="author-image-dims">Size: {slot.dims || 'Standard'}</div>
+                <span className={`author-image-status-pill ${hasImage ? 'is-uploaded' : 'is-empty'}`}>
+                  {hasImage ? '✓ Image added' : '○ Upload needed'}
+                </span>
+              </div>
+            </div>
+
+            <div className="author-image-actions-bar">
+              <label className="btn btn-secondary btn-sm author-upload-btn">
+                {hasImage ? 'Replace image' : '+ Add image'}
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  onChange={event => {
                     const file = event.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
                     reader.onloadend = () => onImageChange(slot.key, reader.result);
                     reader.readAsDataURL(file);
-                  }} />
-                </label>
-                {hasImage && <button type="button" className="author-link author-link--danger" onClick={() => onImageChange(slot.key, '')}>Remove</button>}
-                <button type="button" className="author-link" onClick={toggleDetails}>{detailsOpen ? 'Close details' : 'Edit details'}</button>
-              </div>
+                  }}
+                />
+              </label>
+
+              {hasImage && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm author-btn-danger"
+                  onClick={() => onImageChange(slot.key, '')}
+                >
+                  Remove
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={toggleDetails}
+              >
+                {detailsOpen ? 'Hide options' : 'URL / Alt'}
+              </button>
             </div>
-            <p className="author-image-hint">{hasImage ? 'Image added' : 'Image needed'} · Recommended size {slot.dims} · Accepted formats: JPG, PNG, WebP</p>
+
             {detailsOpen && (
-              <div className="author-image-editing">
+              <div className="author-image-editing-fields">
                 <label className="author-field">
-                  <span>Image URL</span>
-                  <input className="input" value={imageUrls[slot.key] || ''} placeholder="Paste an image URL" onChange={event => onImageChange(slot.key, event.target.value)} />
+                  <span>Image URL / Base64</span>
+                  <input
+                    className="input"
+                    value={imageUrls[slot.key] || ''}
+                    placeholder="Paste image URL..."
+                    onChange={event => onImageChange(slot.key, event.target.value)}
+                  />
                 </label>
                 {slot.key === 'hero_image_url' && (
                   <label className="author-field">
                     <span>Alt Text</span>
-                    <input className="input" value={heroImageAlt} placeholder="Describe the image for accessibility" onChange={event => onAltChange(event.target.value)} />
+                    <input
+                      className="input"
+                      value={heroImageAlt || ''}
+                      placeholder="Describe image for SEO & accessibility..."
+                      onChange={event => onAltChange(event.target.value)}
+                    />
                   </label>
                 )}
               </div>
             )}
           </div>
-        </div>
         );
       })}
     </div>
@@ -572,7 +609,7 @@ function sectionSummary(descriptor, state) {
   return descriptor.data_source === 'workspace' ? 'Managed by workspace' : 'Managed by system';
 }
 
-function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, imageProps, manuallyEdited, onManualOverride }) {
+function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, imageProps, manuallyEdited, onManualOverride, sectionNumber, inspector = false }) {
   const state = sectionState(descriptor, values);
   const id = `author-section-${descriptor.id}`;
   const source = sectionSource(descriptor, values, manuallyEdited);
@@ -589,11 +626,41 @@ function WorkflowSection({ descriptor, isOpen, onToggle, values, onChange, image
             : state.key === 'optional'
               ? '○'
             : '✓';
+  if (inspector) {
+    return (
+      <div className="author-inspector-group" id={id}>
+        <button
+          type="button"
+          className="author-inspector-group-header"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls={`${id}-content`}
+        >
+          <strong>{descriptor.label}</strong>
+          <span className="author-inspector-group-trailing">
+            <span className={`author-section-status author-section-status--${state.key}`}>{state.label}</span>
+            <span className="author-inspector-chevron" aria-hidden="true">{isOpen ? '⌃' : '⌄'}</span>
+          </span>
+        </button>
+        {isOpen && (
+          <div className="author-inspector-group-body" id={`${id}-content`}>
+            {SECTION_HELP[descriptor.id] && <p className="author-section-help">{SECTION_HELP[descriptor.id]}</p>}
+            {descriptor.kind === 'images'
+              ? <ImageSection descriptor={descriptor} {...imageProps} />
+              : descriptor.systemManaged
+                ? <div className="author-managed-note">{descriptor.data_source === 'workspace' ? 'This section is assembled automatically from published workspace pages.' : 'This section is generated by the system and does not need page-level editing.'}</div>
+                : <SectionFields descriptor={descriptor} values={values} onChange={onChange} onManualOverride={onManualOverride} isInspector={true} />}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <section className={`card author-section author-section--${state.key}`} id={id}>
       <button type="button" className="author-section-header" onClick={onToggle} aria-expanded={isOpen}>
-          <span className="author-section-leading">
-          <span className="author-section-icon">{icon}</span>
+        <span className="author-section-leading">
+          {sectionNumber ? <span className="author-section-number">{String(sectionNumber).padStart(2, '0')}</span> : <span className="author-section-icon">{icon}</span>}
           <span>
             <strong>{descriptor.label}</strong>
             <small>{source} · {sectionSummary(descriptor, state)}</small>
@@ -626,6 +693,7 @@ function ProgressPanel({ descriptors, values }) {
   const requiredComplete = [...requiredFields].filter(([name]) => !isEmpty(values[name])).length;
   const missing = states.filter(state => state.key === 'missing');
   const review = states.filter(state => state.key === 'review');
+  const automated = states.filter(state => state.key === 'system');
   const percent = requiredTotal ? Math.round((requiredComplete / requiredTotal) * 100) : 100;
   const missingImages = descriptors.find(descriptor => descriptor.kind === 'images')?.slots.filter(slot => slot.required && isEmpty(values[slot.key])).length || 0;
 
@@ -633,9 +701,9 @@ function ProgressPanel({ descriptors, values }) {
     <section className="card author-progress">
       <div className="author-progress-heading">
         <div>
-          <span className="author-eyebrow">Page Progress</span>
+          <span className="author-eyebrow">Publishing readiness</span>
           <h2>{requiredComplete} / {requiredTotal} required fields complete</h2>
-          <p>Required Blueprint fields determine whether this page is ready.</p>
+          <p>Only required content you own determines whether this page is ready.</p>
         </div>
         <strong>{percent}% <span>complete</span></strong>
       </div>
@@ -645,6 +713,7 @@ function ProgressPanel({ descriptors, values }) {
         <span>{review.length} section{review.length === 1 ? '' : 's'} need review</span>
         <span>{missingImages} image{missingImages === 1 ? '' : 's'} missing</span>
       </div>
+      {automated.length > 0 && <p className="author-progress-system-note">{automated.length} section{automated.length === 1 ? '' : 's'} are managed automatically and do not affect completion.</p>}
       {missing.length > 0 && <div className="author-progress-missing">Next: {descriptors.filter(descriptor => sectionState(descriptor, values).key === 'missing').slice(0, 3).map(descriptor => descriptor.label).join(', ')}</div>}
     </section>
   );
@@ -661,6 +730,8 @@ export default function SectionContentEditor({
   onImageChange,
   onAltChange,
   getImageUrl,
+  inspectorOpen = true,
+  onInspectorClose,
 }) {
   const descriptors = useMemo(() => {
     if (!blueprint?.sections?.length) return [];
@@ -693,13 +764,11 @@ export default function SectionContentEditor({
 
   const initiallyOpen = useMemo(() => descriptors.filter(descriptor => ['missing', 'manual'].includes(sectionState(descriptor, values).key)).map(descriptor => descriptor.id), [descriptors, values]);
   const [openSections, setOpenSections] = useState(null);
+  const [openInspectorSections, setOpenInspectorSections] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [manualOverrides, setManualOverrides] = useState(() => new Set());
   const resolvedOpenSections = openSections ?? new Set(initiallyOpen);
-  const activeSectionId = activeSection ?? initiallyOpen[0] ?? descriptors[0]?.id;
   const imageProps = { imageUrls, heroImageAlt, onImageChange, onAltChange, getImageUrl };
-
-  if (!descriptors.length) return null;
 
   const toggleSection = id => setOpenSections(current => {
     const next = new Set(current ?? initiallyOpen);
@@ -710,56 +779,168 @@ export default function SectionContentEditor({
     return next;
   });
 
-  const navigationGroups = Object.entries(SECTION_NAVIGATION_GROUPS)
-    .map(([label, sectionIds]) => ({
-      label,
-      descriptors: descriptors.filter(descriptor => sectionIds.includes(descriptor.id)),
-    }))
-    .filter(group => group.descriptors.length > 0);
-  const categorizedIds = new Set(navigationGroups.flatMap(group => group.descriptors.map(descriptor => descriptor.id)));
-  const uncategorized = descriptors.filter(descriptor => !categorizedIds.has(descriptor.id));
-  if (uncategorized.length) navigationGroups.push({ label: 'Other', descriptors: uncategorized });
+  const systemDescriptors = descriptors.filter(descriptor => descriptor.systemManaged);
+  const canvasDescriptors = descriptors.filter(descriptor => !descriptor.systemManaged && !['seo', 'images'].includes(descriptor.id));
+  const reviewDescriptors = [...canvasDescriptors, ...systemDescriptors];
+  const inspectorDescriptors = descriptors.filter(descriptor => descriptor.id === 'images' && !descriptor.systemManaged);
+  const initiallyOpenInspectorSections = inspectorDescriptors
+    .filter(descriptor => sectionState(descriptor, values).key === 'missing')
+    .map(descriptor => descriptor.id);
+  const resolvedOpenInspectorSections = openInspectorSections ?? new Set(initiallyOpenInspectorSections);
+  const toggleInspectorSection = id => setOpenInspectorSections(current => {
+    const next = new Set(current ?? initiallyOpenInspectorSections);
+    if (next.has(id)) next.delete(id); else {
+      next.clear();
+      next.add(id);
+    }
+    return next;
+  });
+  const activeSectionId = activeSection
+    ?? initiallyOpen.find(id => canvasDescriptors.some(descriptor => descriptor.id === id))
+    ?? canvasDescriptors[0]?.id;
 
   const selectSection = id => {
     setActiveSection(id);
     setOpenSections(current => new Set([...(current ?? initiallyOpen), id]));
   };
 
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible?.target?.id) setActiveSection(visible.target.id.replace('author-section-', ''));
+    }, { rootMargin: '-120px 0px -55% 0px', threshold: 0 });
+    reviewDescriptors.forEach(descriptor => {
+      const element = document.getElementById(`author-section-${descriptor.id}`);
+      if (element) observer.observe(element);
+    });
+    return () => observer.disconnect();
+  }, [blueprint]);
+
+  if (!descriptors.length) return null;
+
   return (
     <div className="author-editor">
-      <ProgressPanel descriptors={descriptors} values={values} />
-      <div className="author-editor-layout">
-        <nav className="author-section-nav" aria-label="Page sections">
-          {navigationGroups.map(group => (
-            <div className="author-nav-group" key={group.label}>
-              <span>{group.label}</span>
-              {group.descriptors.map(descriptor => (
-                <button type="button" key={descriptor.id} className={activeSectionId === descriptor.id ? 'is-active' : ''} onClick={() => {
-                  selectSection(descriptor.id);
-                  document.getElementById(`author-section-${descriptor.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}>{descriptor.label}</button>
-              ))}
-            </div>
-          ))}
-        </nav>
-        <div className="author-sections">
-          {descriptors.map(descriptor => (
-            <WorkflowSection
+      <nav className="author-horizontal-nav" aria-label="Page sections">
+        <span className="author-horizontal-label">Quick Jump:</span>
+          <div className="author-horizontal-pills">
+            {canvasDescriptors.map(descriptor => (
+            <button
+              type="button"
               key={descriptor.id}
-              descriptor={descriptor}
-              isOpen={resolvedOpenSections.has(descriptor.id)}
-              onToggle={() => {
-                setActiveSection(descriptor.id);
-                toggleSection(descriptor.id);
+              className={`author-pill-btn ${activeSectionId === descriptor.id ? 'is-active' : ''}`}
+              aria-current={activeSectionId === descriptor.id ? 'location' : undefined}
+              onClick={() => {
+                selectSection(descriptor.id);
+                document.getElementById(`author-section-${descriptor.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              values={values}
-              onChange={onChange}
-              imageProps={imageProps}
-              manuallyEdited={manualOverrides.has(descriptor.id)}
-              onManualOverride={() => setManualOverrides(current => new Set([...current, descriptor.id]))}
-            />
+            >
+              {descriptor.label}
+            </button>
+          ))}
+          {systemDescriptors.length > 0 && <span className="author-horizontal-divider" aria-hidden="true" />}
+          {systemDescriptors.map(descriptor => (
+            <button
+              type="button"
+              key={descriptor.id}
+              className={`author-pill-btn author-pill-btn--system ${activeSectionId === descriptor.id ? 'is-active' : ''}`}
+              aria-current={activeSectionId === descriptor.id ? 'location' : undefined}
+              onClick={() => {
+                selectSection(descriptor.id);
+                document.getElementById(`author-section-${descriptor.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              {descriptor.label}
+            </button>
           ))}
         </div>
+      </nav>
+
+      <div className={`author-editor-layout ${inspectorOpen ? 'is-inspector-open' : 'is-inspector-collapsed'}`}>
+        <div className="author-canvas">
+          <section className="author-review-group" aria-labelledby="author-review-content-heading">
+            <header className="author-review-group-header">
+              <span className="author-eyebrow">Content to review</span>
+              <h2 id="author-review-content-heading">Content you need to review</h2>
+              <p>Finish these page sections before generating your preview.</p>
+            </header>
+            <div className="author-sections">
+              {canvasDescriptors.map((descriptor, index) => (
+                <WorkflowSection
+                  key={descriptor.id}
+                  descriptor={descriptor}
+                  sectionNumber={index + 1}
+                  isOpen={resolvedOpenSections.has(descriptor.id)}
+                  onToggle={() => {
+                    setActiveSection(descriptor.id);
+                    toggleSection(descriptor.id);
+                  }}
+                  values={values}
+                  onChange={onChange}
+                  imageProps={imageProps}
+                  manuallyEdited={manualOverrides.has(descriptor.id)}
+                  onManualOverride={() => setManualOverrides(current => new Set([...current, descriptor.id]))}
+                />
+              ))}
+            </div>
+          </section>
+          {systemDescriptors.length > 0 && (
+            <section className="author-review-group author-review-group--system" aria-labelledby="author-review-system-heading">
+              <header className="author-review-group-header">
+                <span className="author-eyebrow">System managed content</span>
+                <h2 id="author-review-system-heading">Automatically managed sections</h2>
+                <p>These sections are generated from your workspace and do not require manual editing.</p>
+              </header>
+              <div className="author-sections">
+                {systemDescriptors.map((descriptor, index) => (
+                  <WorkflowSection
+                    key={descriptor.id}
+                    descriptor={descriptor}
+                    sectionNumber={canvasDescriptors.length + index + 1}
+                    isOpen={resolvedOpenSections.has(descriptor.id)}
+                    onToggle={() => {
+                      setActiveSection(descriptor.id);
+                      toggleSection(descriptor.id);
+                    }}
+                    values={values}
+                    onChange={onChange}
+                    imageProps={imageProps}
+                    manuallyEdited={manualOverrides.has(descriptor.id)}
+                    onManualOverride={() => setManualOverrides(current => new Set([...current, descriptor.id]))}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        <aside className="author-inspector" id="page-editor-inspector" aria-label="Page settings" aria-hidden={!inspectorOpen} inert={inspectorOpen ? undefined : ''}>
+          <div className="author-inspector-header">
+            <div>
+              <span className="author-eyebrow">Inspector</span>
+              <strong>Settings & progress</strong>
+            </div>
+            <button type="button" className="author-inspector-close" onClick={onInspectorClose} aria-label="Close settings panel">×</button>
+          </div>
+          <div className="author-inspector-content">
+            <ProgressPanel descriptors={descriptors} values={values} />
+            {inspectorDescriptors.map(descriptor => (
+              <WorkflowSection
+                key={descriptor.id}
+                descriptor={descriptor}
+                inspector
+                isOpen={resolvedOpenInspectorSections.has(descriptor.id)}
+                onToggle={() => toggleInspectorSection(descriptor.id)}
+                values={values}
+                onChange={onChange}
+                imageProps={imageProps}
+                manuallyEdited={manualOverrides.has(descriptor.id)}
+                onManualOverride={() => setManualOverrides(current => new Set([...current, descriptor.id]))}
+              />
+            ))}
+          </div>
+        </aside>
       </div>
     </div>
   );
