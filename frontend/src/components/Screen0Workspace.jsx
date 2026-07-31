@@ -158,13 +158,6 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
       const res = await listWorkspaces();
       const list = res.workspaces || [];
       setWorkspaces(list);
-
-      if (!selectedSlug && list.length > 0) {
-        const first = list[0];
-        const slug = typeof first === 'string' ? first : first.slug;
-        const name = typeof first === 'string' ? slug.replace(/-/g, ' ').toUpperCase() : (first.name || slug.replace(/-/g, ' ').toUpperCase());
-        handleSelectWorkspace(slug, name);
-      }
     } catch (err) {
       console.error(err);
       setError('Failed to fetch workspaces.');
