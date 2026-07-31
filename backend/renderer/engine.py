@@ -955,6 +955,18 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     if "parent_course_name" not in ctx:
         ctx["parent_course_name"] = prog_name
 
+    # The Micro App can retain an incomplete parenthetical shorthand from a
+    # source heading (for example, "Finance (Fin").  Keep the stored source
+    # value intact, but use the existing display cleaner consistently in the
+    # two prominent public-page locations.
+    if page_type == "specialization" and spec_name:
+        hero = ctx.get("hero")
+        if isinstance(hero, dict):
+            hero["title"] = spec_name
+        breadcrumbs = ctx.get("breadcrumbs") or []
+        if breadcrumbs and isinstance(breadcrumbs[-1], dict):
+            breadcrumbs[-1]["label"] = spec_name
+
     ctx["site"] = ctx.get("site") or {}
 
     # Pre-serialize variables to JSON for the Component script block

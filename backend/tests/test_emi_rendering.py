@@ -81,6 +81,16 @@ class EmiRenderingTests(unittest.TestCase):
         self.assertIn("Rahul Verma, MBA Student", html)
         self.assertIn("Priya Shah", html)
 
+    def test_specialization_hero_and_breadcrumb_hide_incomplete_parser_suffixes(self):
+        html = render_page("specialization", {
+            "program_name": "Online MBA",
+            "spec_name": "Human Resource Management (Hrm",
+            "university_name": "Test University",
+        })
+
+        self.assertIn("All Programs</a> › Human Resource Management", html)
+        self.assertIn("Online MBA in<br>Human Resource Management</h1>", html)
+
 
 if __name__ == "__main__":
     unittest.main()
