@@ -5,6 +5,7 @@ from typing import Any
 from core.site_config import get_site_config
 from core.utils import build_public_route, format_fee
 import re
+from html import escape
 
 class BaseTransformer(ABC):
     def __init__(self, resolved: dict):
@@ -130,6 +131,35 @@ class BaseTransformer(ABC):
         if not clean.startswith("₹"):
             clean = f"₹{clean}"
         return f"No-cost EMI from approximately {clean}."
+
+    def format_structured_content(self, value: Any) -> str | None:
+        """Render parser-provided title/detail items without exposing Python data.
+
+        Older and newer document parsers can represent a prose section either
+        as HTML/text or as a list of labelled records.  Templates expect HTML,
+        so normalize only the latter shape here rather than teaching every
+        template about parser internals.
+        """
+        if isinstance(value, str):
+            return value.strip() or None
+        if not isinstance(value, list):
+            return None
+
+        blocks = []
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                blocks.append(f"<p>{escape(item.strip())}</p>")
+                continue
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("eligibility_title") or item.get("title") or item.get("label") or "").strip()
+            detail = str(item.get("eligibility_description") or item.get("description") or item.get("value") or "").strip()
+            if not title and not detail:
+                continue
+            prefix = f"<strong>{escape(title)}</strong>" if title else ""
+            separator = ": " if title and detail else ""
+            blocks.append(f"<p>{prefix}{separator}{escape(detail)}</p>")
+        return "".join(blocks) or None
 
     @abstractmethod
     def transform(self) -> dict:

@@ -803,6 +803,10 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     course_slug = resolved.get("parent_slug") or resolved.get("slug") or ""
 
     ctx["university_name"] = uni_name
+    # Templates render the trailing "Online" word as a styled brand accent.
+    # Keep the source name intact everywhere else, but avoid producing
+    # "IGNOU Online Online" when the workspace name already includes it.
+    ctx["university_brand_base"] = re.sub(r"\s+online\s*$", "", uni_name, flags=re.IGNORECASE).strip() or uni_name
     ctx["why_choose_name"] = _append_trailing_word_once(uni_name, "Online")
     ctx["university_letter"] = logo_letter
 

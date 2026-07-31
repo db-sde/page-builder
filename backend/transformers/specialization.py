@@ -47,7 +47,7 @@ class SpecializationTransformer(BaseTransformer):
         ugc_display = (f"UGC {ugc}" if ugc and "ugc" not in ugc.lower() else ugc) if ugc else None
         about_content = self.resolve("about_content")
         highlights = self.resolve_list("highlights")
-        eligibility_content = self.resolve("eligibility_content")
+        eligibility_content = self.format_structured_content(self.resolve("eligibility_content"))
         syllabus_content = self.resolve("syllabus_content")
         exam_content = self.resolve("exam_content")
         admission_steps = self.resolve("admission_steps")

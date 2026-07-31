@@ -36,6 +36,7 @@ COMMON_EXTERNAL_TEMPLATE_FIELDS: dict[str, str] = {
     "branding_logo": "WORKSPACE",
     "branding_favicon": "WORKSPACE",
     "university_letter": "DERIVED",
+    "university_brand_base": "DERIVED",
     "canonical_url": "DERIVED",
     "homepage_href": "DERIVED",
     "programs_listing_href": "DERIVED",

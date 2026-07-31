@@ -1,3 +1,5 @@
+import re
+
 from core.utils import build_public_route, format_fee as clean_fee
 
 class ProgramsListingTransformer:
@@ -12,6 +14,7 @@ class ProgramsListingTransformer:
     def transform(self) -> dict:
         raw = self.raw
         uni_name = raw.get("university_name") or self.university_slug.replace("-", " ").title()
+        online_name = uni_name if re.search(r"\bonline\b", uni_name, re.IGNORECASE) else f"{uni_name} Online"
 
         courses = raw.get("_workspace_courses") or []
         programs = []
@@ -31,7 +34,7 @@ class ProgramsListingTransformer:
             })
 
         return {
-            "seo_title": f"{uni_name} Online Programs",
+            "seo_title": f"{online_name} Programs",
             "meta_description": f"Compare all online degree programs, eligibility, duration, fees and specializations offered by {uni_name} to choose the flexible course for your goals.",
             "university_name": uni_name,
             "programs": programs,

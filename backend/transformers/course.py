@@ -60,7 +60,7 @@ class CourseTransformer(BaseTransformer):
         mode = self.resolve("mode")
         placement_content = self.resolve("placement_content")
         certificate_description = self.resolve("certificate_description")
-        eligibility_content = self.resolve("eligibility_content")
+        eligibility_content = self.format_structured_content(self.resolve("eligibility_content"))
         syllabus_content = self.resolve("syllabus_content")
         emi_amount = self.clean_emi_amount(self.resolve("emi_amount"))
         highlights = self.resolve_list("highlights")
