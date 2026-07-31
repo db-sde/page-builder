@@ -53,6 +53,12 @@ def webp_variant_filter(context, url, width=None):
     if not url:
         return ""
     p = Path(url)
+    # Responsive variants are created by the full static build.  A live
+    # preview renders directly from Assets/images, so it must use the source
+    # asset that was just uploaded rather than referring to build-only files
+    # such as "hero-1200.webp".
+    if context.get("preview_mode"):
+        return str(p) if p.suffix.lower() == ".webp" else ""
     if width:
         university_slug = context.get("university_slug")
         if university_slug:

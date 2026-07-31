@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from main import save_base64_image
+from renderer.engine import webp_variant_filter
 from workspace.image_optimizer import optimize_images_pipeline, optimize_uploaded_image
 
 
@@ -102,6 +103,18 @@ class UploadImageOptimizationTests(unittest.TestCase):
             self.assertIn("hero.webp", stats)
             for name in ("hero.webp", "hero-480.webp", "hero-768.webp", "hero-1200.webp"):
                 self.assertTrue((destination / name).exists(), name)
+
+    def test_preview_uses_uploaded_webp_source_before_static_variants_exist(self):
+        image_url = "/assets/images/course-hero.webp"
+
+        self.assertEqual(webp_variant_filter({"preview_mode": True}, image_url, 1200), image_url)
+        self.assertEqual(webp_variant_filter({"preview_mode": True}, image_url), image_url)
+
+    def test_preview_falls_back_to_legacy_non_webp_image(self):
+        self.assertEqual(
+            webp_variant_filter({"preview_mode": True}, "/assets/images/legacy-hero.jpg", 1200),
+            "",
+        )
 
 
 if __name__ == "__main__":
