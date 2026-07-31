@@ -17,9 +17,9 @@ function isEmpty(value) {
 function toReviewEditorItem(item) {
   const source = item && typeof item === 'object' ? item : {};
   let reviewerName = source.reviewer_name || '';
-  let reviewerRole = source.reviewer_role || '';
-  if (!reviewerName && source.reviewer_label) {
-    const parts = String(source.reviewer_label).split(',').map(part => part.trim()).filter(Boolean);
+  let reviewerRole = source.reviewer_role || source.reviewer_label || '';
+  if (!reviewerName && reviewerRole) {
+    const parts = String(reviewerRole).split(',').map(part => part.trim()).filter(Boolean);
     reviewerName = parts.shift() || '';
     reviewerRole = parts.join(', ');
   }
@@ -29,11 +29,12 @@ function toReviewEditorItem(item) {
 function fromReviewEditorItem(item) {
   const reviewerName = String(item.reviewer_name || '').trim();
   const reviewerRole = String(item.reviewer_role || '').trim();
-  const reviewerLabel = [reviewerName, reviewerRole].filter(Boolean).join(', ');
-  const output = { ...item, reviewer_label: reviewerLabel };
-  delete output.reviewer_name;
+  const output = { ...item };
+  if (reviewerName) output.reviewer_name = reviewerName;
+  else delete output.reviewer_name;
+  if (reviewerRole) output.reviewer_label = reviewerRole;
+  else delete output.reviewer_label;
   delete output.reviewer_role;
-  if (!reviewerLabel) delete output.reviewer_label;
   return output;
 }
 

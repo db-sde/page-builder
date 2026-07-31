@@ -273,6 +273,12 @@ def extract_metadata_from_json(payload: dict) -> tuple[str, str, str, str | None
         else:
             page_type = "course" # default fallback
 
+    # Keep every API entry point compatible with both Micro App envelopes.
+    # ``parse-docx`` already performs this adaptation, but preview and save
+    # requests can also arrive with raw parser-shaped data.
+    from ingestion.adapter import adapt_schema
+    data = adapt_schema(data, page_type)
+
     # If university_slug is not provided, derive it
     if not university_slug:
         uni_name = data.get("university_name") or data.get("university_full_name") or "unknown"

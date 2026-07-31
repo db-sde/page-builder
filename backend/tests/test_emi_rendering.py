@@ -68,6 +68,19 @@ class EmiRenderingTests(unittest.TestCase):
         self.assertIn("EMI: INR 5,000", course_html)
         self.assertIn("EMI: INR 5,000", specialization_html)
 
+    def test_reviewer_name_is_rendered_with_or_without_a_label(self):
+        html = render_page("course", {
+            "program_name": "Online MBA",
+            "university_name": "Test University",
+            "reviews": [
+                {"review_text": "Helpful faculty.", "reviewer_name": "Rahul Verma", "reviewer_label": "MBA Student"},
+                {"review_text": "Flexible learning.", "reviewer_name": "Priya Shah"},
+            ],
+        })
+
+        self.assertIn("Rahul Verma, MBA Student", html)
+        self.assertIn("Priya Shah", html)
+
 
 if __name__ == "__main__":
     unittest.main()

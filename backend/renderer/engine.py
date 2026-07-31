@@ -1077,7 +1077,12 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     review_list = [
         {
             "q": r.get("q") or r.get("review_text", ""),
-            "a": r.get("a") or r.get("reviewer_label", "")
+            "a": r.get("a") or ", ".join(
+                value for value in (
+                    str(r.get("reviewer_name") or r.get("name") or "").strip(),
+                    str(r.get("reviewer_label") or r.get("role") or "").strip(),
+                ) if value
+            )
         }
         for r in reviews_raw
     ]

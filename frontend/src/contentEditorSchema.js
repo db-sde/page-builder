@@ -29,6 +29,13 @@ const FIELD_PRESENTATION = {
 };
 
 export const REPEATER_PRESENTATION = {
+  eligibility_content: {
+    label: 'Eligibility Criteria', itemLabel: 'Criterion', addLabel: 'Add Criterion',
+    fields: [
+      { key: 'eligibility_title', label: 'Title', placeholder: 'Educational qualification' },
+      { key: 'eligibility_description', label: 'Description', type: 'textarea', placeholder: 'Describe the eligibility requirement' },
+    ],
+  },
   reviews: {
     label: 'Student Reviews', itemLabel: 'Review', addLabel: 'Add Review',
     fields: [

@@ -157,6 +157,7 @@ PAGE_FIELD_DEFINITIONS: dict[str, dict[str, dict[str, Any]]] = {
         "certificate_description": _field(AUTO),
         "emi_amount": _field(AUTO),
         "highlights": _field(AUTO),
+        "fee_plans": _field(AUTO),
         "other_specs": _field(AUTO),
         "job_profiles": _field(AUTO),
         "reviews": _field(MANUAL),

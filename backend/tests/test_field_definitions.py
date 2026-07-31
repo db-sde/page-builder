@@ -59,7 +59,7 @@ class FieldDefinitionTests(unittest.TestCase):
                 "eligibility_content", "syllabus_content", "exam_content",
                 "admission_steps", "admission_fee_note", "placement_content",
                 "certificate_description", "emi_amount", "highlights", "other_specs",
-                "job_profiles", "reviews", "faqs", "seo_title", "meta_description",
+                "fee_plans", "job_profiles", "reviews", "faqs", "seo_title", "meta_description",
                 "eligibility_summary",
             },
         }
@@ -119,6 +119,28 @@ class FieldDefinitionTests(unittest.TestCase):
         adapted = adapt_schema({"ugc_status": "UGC-DEB Entitled"}, "university")
         self.assertEqual(adapted["ugc_approved"], "UGC-DEB Entitled")
         self.assertNotIn("ugc_status", adapted)
+
+    def test_updated_micro_schema_normalizes_images_and_course_aliases(self):
+        adapted = adapt_schema({
+            "hero_image": "/assets/images/new-hero.webp",
+            "hero_image_url": "/assets/images/old-hero.webp",
+            "certificate_image": "/assets/images/certificate.webp",
+            "ugc_approved": "UGC-DEB Entitled",
+            "mode_of_learning": "Online",
+            "eligibility_content": [{
+                "eligibility_title": "Educational Qualification",
+                "eligibility_description": "A recognised bachelor's degree.",
+            }],
+        }, "course")
+
+        self.assertEqual(adapted["hero_image_url"], "/assets/images/new-hero.webp")
+        self.assertEqual(adapted["certificate_image_url"], "/assets/images/certificate.webp")
+        self.assertEqual(adapted["ugc_status"], "UGC-DEB Entitled")
+        self.assertEqual(adapted["mode"], "Online")
+        self.assertNotIn("hero_image", adapted)
+        self.assertNotIn("certificate_image", adapted)
+        self.assertNotIn("ugc_approved", adapted)
+        self.assertNotIn("mode_of_learning", adapted)
 
 
 if __name__ == "__main__":

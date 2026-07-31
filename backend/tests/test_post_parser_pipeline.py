@@ -105,6 +105,66 @@ class PostParserPipelineTests(unittest.TestCase):
         self.assertEqual(result["field_state"]["reviews"]["source"], "MANUAL")
         self.assertEqual(result["table_warnings"], [])
 
+    def test_new_micro_payload_is_normalized_before_review_state(self):
+        document = Document()
+        document.add_heading("Online MBA", level=1)
+        buffer = BytesIO()
+        document.save(buffer)
+        buffer.seek(0)
+        upload = UploadFile(filename="online-mba.docx", file=buffer)
+        micro_result = {
+            "filename": "online-mba.docx",
+            "payload": {
+                "program_name": "Online MBA",
+                "university_name": "IGNOU",
+                "hero_image": "https://cdn.example.test/new-hero.webp",
+                "hero_image_url": "https://cdn.example.test/legacy-hero.webp",
+                "certificate_image": "https://cdn.example.test/certificate.webp",
+                "ugc_approved": "UGC Entitled",
+                "mode_of_learning": "Online",
+                "eligibility_content": [
+                    {
+                        "eligibility_title": "Academic requirement",
+                        "eligibility_description": "A recognised bachelor's degree.",
+                    }
+                ],
+                "fee_plans": [
+                    {
+                        "plan_name": "Semester I",
+                        "plan_amount": "INR 10,000",
+                    }
+                ],
+                "reviews": [
+                    {
+                        "review_text": "Helpful course structure.",
+                        "reviewer_name": "Rahul Verma",
+                        "reviewer_label": "MBA Student",
+                    }
+                ],
+            },
+        }
+
+        with patch("main.forward_to_micro_pipeline", return_value=micro_result):
+            result = asyncio.run(
+                parse_docx_endpoint(
+                    file=upload,
+                    page_type="course",
+                    university_slug="ignou",
+                )
+            )
+
+        payload = result["payload"]
+        self.assertEqual(payload["hero_image_url"], "https://cdn.example.test/new-hero.webp")
+        self.assertEqual(payload["certificate_image_url"], "https://cdn.example.test/certificate.webp")
+        self.assertEqual(payload["ugc_status"], "UGC Entitled")
+        self.assertEqual(payload["mode"], "Online")
+        self.assertNotIn("hero_image", payload)
+        self.assertNotIn("ugc_approved", payload)
+        self.assertNotIn("mode_of_learning", payload)
+        self.assertEqual(payload["eligibility_content"][0]["eligibility_title"], "Academic requirement")
+        self.assertEqual(result["field_state"]["fee_plans"]["value"][0]["plan_name"], "Semester I")
+        self.assertEqual(payload["reviews"][0]["reviewer_name"], "Rahul Verma")
+
     def test_explicit_identity_marker_overrides_conflicting_micro_value(self):
         document = Document()
         document.add_heading("[university_name] LPU Online", level=1)

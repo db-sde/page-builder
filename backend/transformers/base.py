@@ -87,7 +87,13 @@ class BaseTransformer(ABC):
         for item in reviews:
             if not isinstance(item, dict):
                 continue
-            parsed = self.build_reviewer(item.get("reviewer_label", ""))
+            reviewer_name = str(item.get("reviewer_name") or "").strip()
+            reviewer_label = str(item.get("reviewer_label") or "").strip()
+            parsed = self.build_reviewer(reviewer_label)
+            if reviewer_name:
+                parsed["name"] = reviewer_name
+                parsed["role"] = reviewer_label
+                parsed["initial"] = reviewer_name[0].upper()
             enriched.append({
                 "q": item.get("review_text", ""),
                 "name": parsed["name"],

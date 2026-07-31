@@ -38,6 +38,41 @@ def merge_micro_and_local(micro: Dict[str, Any], local: Dict[str, Any]) -> Dict[
     return merged
 
 
+def _normalise_eligibility_content(value: Any) -> Any:
+    """Keep legacy prose and normalise the new labelled repeater rows."""
+    if isinstance(value, str):
+        return clean_whitespace(value) or None
+    if not isinstance(value, list):
+        return None
+
+    items = []
+    for item in value:
+        if isinstance(item, str):
+            description = clean_whitespace(item)
+            if description:
+                items.append({"eligibility_title": "", "eligibility_description": description})
+            continue
+        if not isinstance(item, dict):
+            continue
+        title = clean_whitespace(item.get("eligibility_title")) or ""
+        description = clean_whitespace(item.get("eligibility_description")) or ""
+        if title or description:
+            items.append({
+                "eligibility_title": title,
+                "eligibility_description": description,
+            })
+    return items
+
+
+def _prefer_parser_image(adapted: Dict[str, Any], parser_field: str, stored_field: str) -> None:
+    """Map new parser image names onto the existing workspace image contract."""
+    value = adapted.pop(parser_field, None)
+    if isinstance(value, str) and value.strip():
+        # A populated parser image takes precedence; null/empty values leave a
+        # previously supplied workspace image untouched.
+        adapted[stored_field] = value.strip()
+
+
 def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
     """
     Standardizes field names, performs simple type conversions, and cleans spacing.
@@ -46,6 +81,16 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
     adapted = {}
     for k, v in payload.items():
         adapted[k] = clean_whitespace(v)
+
+    # The updated Micro App calls these native image fields.  The workspace,
+    # upload flow, and templates intentionally continue using *_image_url.
+    _prefer_parser_image(adapted, "hero_image", "hero_image_url")
+    _prefer_parser_image(adapted, "certificate_image", "certificate_image_url")
+
+    if "eligibility_content" in adapted:
+        adapted["eligibility_content"] = _normalise_eligibility_content(
+            adapted["eligibility_content"]
+        )
 
     # 1. Page-type specific field name mappings
     if page_type == "course":
@@ -62,6 +107,15 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
         if "fee" in adapted and "total_fee" not in adapted:
             adapted["total_fee"] = adapted["fee"]
 
+        # The parser may return the generic KV aliases before its own
+        # page-specific remapping step.  Keep one canonical field downstream.
+        if not adapted.get("ugc_status") and adapted.get("ugc_approved"):
+            adapted["ugc_status"] = adapted["ugc_approved"]
+        if not adapted.get("mode") and adapted.get("mode_of_learning"):
+            adapted["mode"] = adapted["mode_of_learning"]
+        adapted.pop("ugc_approved", None)
+        adapted.pop("mode_of_learning", None)
+
     elif page_type == "specialization":
         # spec_name / specialization_name / title mapping
         s_name = adapted.get("specialization_name") or adapted.get("title")
@@ -71,6 +125,13 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
         # fees / total_fee mapping
         if "fees" in adapted and "total_fee" not in adapted:
             adapted["total_fee"] = adapted["fees"]
+
+        if not adapted.get("ugc_status") and adapted.get("ugc_approved"):
+            adapted["ugc_status"] = adapted["ugc_approved"]
+        if not adapted.get("mode") and adapted.get("mode_of_learning"):
+            adapted["mode"] = adapted["mode_of_learning"]
+        adapted.pop("ugc_approved", None)
+        adapted.pop("mode_of_learning", None)
 
     elif page_type == "university":
         # university_name / university_full_name mapping
@@ -82,7 +143,10 @@ def adapt_schema(payload: Dict[str, Any], page_type: str) -> Dict[str, Any]:
         # not let new University records carry two names for the same value.
         if not adapted.get("ugc_approved") and adapted.get("ugc_status"):
             adapted["ugc_approved"] = adapted["ugc_status"]
+        if not adapted.get("mode_of_learning") and adapted.get("mode"):
+            adapted["mode_of_learning"] = adapted["mode"]
         adapted.pop("ugc_status", None)
+        adapted.pop("mode", None)
 
     # 2. Simple Type Conversions (Safe coercion, no guessing)
     # Established Year
