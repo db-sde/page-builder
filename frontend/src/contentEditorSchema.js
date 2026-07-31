@@ -162,7 +162,6 @@ export const SECTION_HELP = {
   faqs: 'Common questions and their answers.',
   blog_preview: 'Automatically populated from published blogs in this workspace.',
   other_specs: 'Related specializations linked by the workspace.',
-  images: 'Upload the images.',
 };
 
 // These labels affect only the editor navigation. The Blueprint still owns the
