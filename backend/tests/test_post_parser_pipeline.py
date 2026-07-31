@@ -6,6 +6,7 @@ from unittest.mock import patch
 from docx import Document
 from fastapi import HTTPException, UploadFile
 
+from ingestion.extractor import extract_acf
 from main import IngestRequest, ingest_acf, parse_docx_endpoint, validate_blueprint_content
 from renderer.engine import clean_spec_name, derive_financing_from_emi, parse_admission_html
 
@@ -164,6 +165,24 @@ class PostParserPipelineTests(unittest.TestCase):
         self.assertEqual(payload["eligibility_content"][0]["eligibility_title"], "Academic requirement")
         self.assertEqual(result["field_state"]["fee_plans"]["value"][0]["plan_name"], "Semester I")
         self.assertEqual(payload["reviews"][0]["reviewer_name"], "Rahul Verma")
+
+    def test_singular_fee_tag_attaches_its_table_to_course_fee_plans(self):
+        acf = extract_acf([
+            {"type": "h2", "text": "[fee_heading,fee_plans] Fee Structure"},
+            {
+                "type": "table",
+                "headers": ["Semester", "Fee"],
+                "rows": [
+                    ["Semester I", "INR 16,000/-"],
+                    ["Semester II", "INR 16,000/-"],
+                ],
+            },
+        ], "course", {})
+
+        self.assertEqual(acf["fee_plans"], [
+            {"plan_name": "Semester I", "plan_amount": "INR 16,000/-", "plan_total": "INR 16,000/-"},
+            {"plan_name": "Semester II", "plan_amount": "INR 16,000/-", "plan_total": "INR 16,000/-"},
+        ])
 
     def test_explicit_identity_marker_overrides_conflicting_micro_value(self):
         document = Document()

@@ -83,7 +83,8 @@ def blocks_to_sections(blocks: list[dict], page_type: str) -> dict:
             if tags_match:
                 tag_content = tags_match.group(1)
                 for key in anchors_map.keys():
-                    if key in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                    key_singular = key.rstrip("s")
+                    if key in tag_content or key_singular in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
                         matched_key = key
                         break
             
@@ -235,7 +236,8 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
             if tags_match:
                 tag_content = tags_match.group(1)
                 for key in anchors_map.keys():
-                    if key in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                    key_singular = key.rstrip("s")
+                    if key in tag_content or key_singular in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
                         matched_key = key
                         break
             if not matched_key:

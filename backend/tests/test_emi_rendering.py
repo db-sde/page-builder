@@ -91,6 +91,23 @@ class EmiRenderingTests(unittest.TestCase):
         self.assertIn("All Programs</a> › Human Resource Management", html)
         self.assertIn("Online MBA in<br>Human Resource Management</h1>", html)
 
+    def test_fact_shaped_highlights_render_and_empty_rows_are_hidden(self):
+        html = render_page("course", {
+            "program_name": "Online MCA",
+            "university_name": "Test University",
+            "highlights": [
+                {
+                    "fact_title": "Industry tools",
+                    "fact_description": "Learn commonly used development tools.",
+                },
+                {},
+            ],
+        })
+
+        self.assertIn("Industry tools", html)
+        self.assertIn("Learn commonly used development tools.", html)
+        self.assertEqual(html.count("background:#FFE7E0"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -989,13 +989,13 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
             elif isinstance(h, dict):
                 new_h.append(h)
         highlights_raw = new_h
-    h_list = [
-        {
-            "t": h.get("t") or h.get("highlight_title", ""),
-            "d": h.get("d") or h.get("highlight_description", "")
-        }
-        for h in highlights_raw
-    ]
+    h_list = []
+    for h in highlights_raw:
+        title = h.get("t") or h.get("highlight_title") or h.get("fact_title") or ""
+        description = h.get("d") or h.get("highlight_description") or h.get("fact_description") or ""
+        if not str(title).strip() and not str(description).strip():
+            continue
+        h_list.append({"t": title, "d": description})
     ctx["highlights_json"] = json.dumps(h_list, ensure_ascii=False)
     
     # 4. Specs (items)

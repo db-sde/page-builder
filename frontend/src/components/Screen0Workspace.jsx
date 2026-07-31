@@ -765,30 +765,31 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
         {/* Build Website (Primary Action) */}
         <button
           onClick={handleBuildWebsite}
-          disabled={building || !selectedSlug}
+          disabled={building || !selectedSlug || treeLoading}
           style={{
             height: 34,
             padding: '0 16px',
             fontSize: 12.5,
             fontWeight: 700,
             color: '#ffffff',
-            background: building ? '#94a3b8' : '#F45D22',
+            background: (building || treeLoading) ? '#94a3b8' : '#F45D22',
             border: 'none',
             borderRadius: 6,
-            cursor: (building || !selectedSlug) ? 'not-allowed' : 'pointer',
+            cursor: (building || !selectedSlug || treeLoading) ? 'not-allowed' : 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 6
+            gap: 6,
+            opacity: (building || !selectedSlug || treeLoading) ? 0.6 : 1
           }}
         >
           <span>🚀</span>
-          <span>{building ? 'Building…' : 'Build Website'}</span>
+          <span>{building ? 'Building…' : treeLoading ? 'Loading Pages…' : 'Build Website'}</span>
         </button>
 
         {/* Upload (Secondary Highlighted Action) */}
         <button
           onClick={onNext}
-          disabled={!selectedSlug}
+          disabled={!selectedSlug || treeLoading || building}
           style={{
             height: 34,
             padding: '0 14px',
@@ -798,8 +799,8 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
             background: '#FFF3E8',
             border: 'none',
             borderRadius: 6,
-            cursor: selectedSlug ? 'pointer' : 'not-allowed',
-            opacity: selectedSlug ? 1 : 0.5
+            cursor: (selectedSlug && !treeLoading && !building) ? 'pointer' : 'not-allowed',
+            opacity: (selectedSlug && !treeLoading && !building) ? 1 : 0.5
           }}
         >
           Create Page
@@ -810,18 +811,18 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           onClick={() => {
             if (buildResult) window.open(buildFileUrl(selectedSlug, 'index.html'), '_blank');
           }}
-          disabled={!buildResult || building}
+          disabled={!buildResult || building || treeLoading}
           style={{
             height: 34,
             padding: '0 14px',
             fontSize: 12.5,
             fontWeight: 500,
-            color: buildResult ? '#334155' : '#94a3b8',
+            color: (buildResult && !building && !treeLoading) ? '#334155' : '#94a3b8',
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: 6,
-            cursor: (buildResult && !building) ? 'pointer' : 'not-allowed',
-            opacity: (buildResult && !building) ? 1 : 0.5
+            cursor: (buildResult && !building && !treeLoading) ? 'pointer' : 'not-allowed',
+            opacity: (buildResult && !building && !treeLoading) ? 1 : 0.5
           }}
         >
           Preview Site ↗
@@ -832,18 +833,18 @@ export default function Screen0Workspace({ session, updateSession, onNext, setSt
           onClick={() => {
             if (buildResult) downloadBuild(selectedSlug);
           }}
-          disabled={!buildResult || building}
+          disabled={!buildResult || building || treeLoading}
           style={{
             height: 34,
             padding: '0 14px',
             fontSize: 12.5,
             fontWeight: 500,
-            color: buildResult ? '#334155' : '#94a3b8',
+            color: (buildResult && !building && !treeLoading) ? '#334155' : '#94a3b8',
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: 6,
-            cursor: (buildResult && !building) ? 'pointer' : 'not-allowed',
-            opacity: (buildResult && !building) ? 1 : 0.5
+            cursor: (buildResult && !building && !treeLoading) ? 'pointer' : 'not-allowed',
+            opacity: (buildResult && !building && !treeLoading) ? 1 : 0.5
           }}
         >
           Download ZIP
