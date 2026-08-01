@@ -54,6 +54,28 @@ def normalize_heading(text: str, anchors: list[str]) -> str | None:
     matches = get_close_matches(text_lower, anchors, n=1, cutoff=0.6)
     return matches[0] if matches else None
 
+
+def _tag_matches_section(tag_content: str, key: str) -> bool:
+    """Match an explicit section tag without confusing related field names.
+
+    For example, ``admission_fee_note`` is an Admission field, not a Fees
+    section. Tags are comma-separated field names, so compare whole tokens
+    rather than using substring matches.
+    """
+    singular = key.rstrip("s")
+    tokens = {token.strip() for token in tag_content.split(",") if token.strip()}
+    accepted = {
+        key,
+        singular,
+        f"{key}_heading",
+        f"{singular}_heading",
+        f"{key}_content",
+        f"{singular}_content",
+        f"{key}_description",
+        f"{singular}_description",
+    }
+    return bool(tokens & accepted)
+
 def blocks_to_sections(blocks: list[dict], page_type: str) -> dict:
     anchors_map = HEADING_ANCHORS.get(page_type, {})
     # Build reverse map: anchor_variant → canonical key
@@ -83,8 +105,7 @@ def blocks_to_sections(blocks: list[dict], page_type: str) -> dict:
             if tags_match:
                 tag_content = tags_match.group(1)
                 for key in anchors_map.keys():
-                    key_singular = key.rstrip("s")
-                    if key in tag_content or key_singular in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                    if _tag_matches_section(tag_content, key):
                         matched_key = key
                         break
             
@@ -236,8 +257,7 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
             if tags_match:
                 tag_content = tags_match.group(1)
                 for key in anchors_map.keys():
-                    key_singular = key.rstrip("s")
-                    if key in tag_content or key_singular in tag_content or (key + "_heading") in tag_content or (key + "_content") in tag_content or (key + "_description") in tag_content:
+                    if _tag_matches_section(tag_content, key):
                         matched_key = key
                         break
             if not matched_key:
@@ -310,9 +330,12 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["admission_steps"] = blocks_to_html(sections.get("admission", []))
         acf["syllabus_content"] = blocks_to_html(sections.get("syllabus", []))
         acf["placement_content"] = blocks_to_html(sections.get("placement", []))
-        fee_plans, detected_specializations = _classify_fee_table(sections.get("fees", []))
+        fee_blocks, fee_plans_from_table = _fee_plan_blocks(blocks, sections.get("fees", []))
+        fee_plans, detected_specializations = _classify_fee_table(fee_blocks)
         acf["fee_plans"] = fee_plans
         acf["detected_specializations"] = detected_specializations
+        if fee_plans_from_table:
+            acf["_fee_plans_from_table"] = True
         acf["faqs"] = _extract_faqs(sections.get("faqs", []))
         acf["reviews"] = _extract_reviews(sections.get("reviews", []))
         # Image fields — populated by upload pipeline, not docx extraction
@@ -368,7 +391,12 @@ def extract_acf(blocks: list[dict], page_type: str, meta: dict) -> dict:
         acf["admission_steps"] = blocks_to_html(sections.get("admission", []))
         acf["syllabus_content"] = blocks_to_html(sections.get("syllabus", []))
         acf["placement_content"] = blocks_to_html(sections.get("placement", []))
-        acf["fee_plans"] = _extract_fee_plans(sections.get("fees", []))
+        fee_blocks, fee_plans_from_table = _fee_plan_blocks(
+            blocks, sections.get("fees", []), allow_section_fallback=False
+        )
+        acf["fee_plans"] = _extract_fee_plans(fee_blocks)
+        if fee_plans_from_table:
+            acf["_fee_plans_from_table"] = True
         acf["job_profiles"] = _extract_jobs(sections.get("jobs", []))
         acf["faqs"] = _extract_faqs(sections.get("faqs", []))
         acf["reviews"] = _extract_reviews(sections.get("reviews", []))
@@ -483,7 +511,28 @@ def classify_fee_plans(plans: list[dict]) -> tuple[list[dict], list[str]]:
     # Check uniformity of amounts (if we have amounts)
     amounts_are_uniform = len(set(amounts)) <= 1 if amounts else False
 
-    # Decide classification
+    payment_plans = []
+    summary_plans = []
+    detected_specs = []
+    for p in plans:
+        name = p.get("plan_name", "").lower().strip()
+        has_payment = any(kw in name for kw in payment_keywords)
+        has_academic = any(kw in name for kw in academic_keywords)
+        if has_payment:
+            payment_plans.append(p)
+        elif any(keyword in name for keyword in ("total course", "total program", "full program")):
+            # A total row belongs to the same table as a semester schedule;
+            # retain the source fact rather than silently dropping it.
+            summary_plans.append(p)
+        elif has_academic:
+            detected_specs.append(p.get("plan_name", "").strip())
+
+    # A parser can return a payment schedule beside a separate list of
+    # specializations. Keep the schedule and discard unrelated course options.
+    if payment_plans:
+        return payment_plans + summary_plans, [name for name in detected_specs if name]
+
+    # Decide classification when the table does not contain payment rows.
     is_spec = False
     if num_academic > num_payment:
         is_spec = True
@@ -501,6 +550,37 @@ def classify_fee_plans(plans: list[dict]) -> tuple[list[dict], list[str]]:
         return [], detected_specs
     else:
         return plans, []
+
+
+def _looks_like_fee_plan_table(block: dict) -> bool:
+    """Identify a structured fee schedule without mistaking course options for it."""
+    if block.get("type") != "table":
+        return False
+    headers = [str(header or "").strip().lower() for header in block.get("headers") or []]
+    if len(headers) < 2:
+        return False
+    first_column = headers[0]
+    has_plan_column = "plan" in first_column or first_column == "semester"
+    has_fee_column = any("fee" in header or "amount" in header or "cost" in header for header in headers[1:])
+    return has_plan_column and has_fee_column
+
+
+def _fee_plan_blocks(
+    blocks: list[dict], section_blocks: list[dict], allow_section_fallback: bool = True
+) -> tuple[list[dict], bool]:
+    """Prefer explicit fee schedules over course-option tables.
+
+    A course still supports legacy tagged fee tables. Specialization documents
+    frequently place a list of specializations and their fees under a fee
+    heading, so their caller disables that fallback rather than presenting the
+    list as an installment schedule.
+    """
+    structured = [block for block in blocks if _looks_like_fee_plan_table(block)]
+    if structured:
+        return structured, True
+    if allow_section_fallback:
+        return [block for block in section_blocks if block.get("type") == "table"], False
+    return [], False
 
 def _classify_fee_table(blocks):
     raw_plans = []

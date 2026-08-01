@@ -1108,8 +1108,9 @@ async def parse_docx_endpoint(
                     # 1. Adapt and Validate raw Micro Parser output
                     adapted_payload, warnings = adapt_and_validate(payload, detected_type)
                     
-                    # 2. Run classifier on adapted fee_plans if it is a course
-                    if detected_type == "course":
+                    # 2. Keep payment schedules separate from unrelated course
+                    # options in both Course and Specialization parser output.
+                    if detected_type in ("course", "specialization"):
                         micro_fee_plans = adapted_payload.get("fee_plans")
                         if isinstance(micro_fee_plans, list) and micro_fee_plans:
                             classified_plans, detected_specs = classify_fee_plans(micro_fee_plans)
@@ -1124,7 +1125,14 @@ async def parse_docx_endpoint(
                     # 3. Local Parser serves ONLY as a fallback/recovery mechanism (fills missing/empty fields)
                     local_acf = extract_acf(blocks, detected_type, {})
                     explicit_identity_fields = local_acf.pop("_explicit_identity_fields", {})
+                    local_fee_plans_from_table = local_acf.pop("_fee_plans_from_table", False)
                     merged_payload = merge_micro_and_local(adapted_payload, local_acf)
+
+                    # A DOCX table explicitly headed as a fee schedule is a
+                    # source fact. It takes precedence over a conflicting Micro
+                    # response, while unstructured/local guesses remain fallback-only.
+                    if local_fee_plans_from_table:
+                        merged_payload["fee_plans"] = local_acf.get("fee_plans") or []
 
                     # A DOCX identity marker such as ``[university_name] LPU
                     # Online`` is an author-supplied value, not a heuristic.

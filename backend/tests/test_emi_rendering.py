@@ -1,6 +1,6 @@
 import unittest
 
-from renderer.engine import fee_has_total_column, normalise_fee_plans, render_resolved
+from renderer.engine import fee_has_total_column, fee_third_column_heading, normalise_fee_plans, render_resolved
 
 
 def render_page(page_type, raw):
@@ -42,6 +42,30 @@ class EmiRenderingTests(unittest.TestCase):
 
         self.assertTrue(fee_has_total_column(totals))
         self.assertTrue(fee_has_total_column(semester_rows))
+        self.assertEqual(fee_third_column_heading(totals), "Total Payable")
+        self.assertEqual(fee_third_column_heading(semester_rows), "Academic Year")
+
+    def test_semester_schedule_does_not_mislabel_academic_year_as_a_total(self):
+        html = render_page("course", {
+            "program_name": "Online MBA",
+            "university_name": "Test University",
+            "fee_plans": [
+                {"plan_name": "Semester I", "plan_amount": "INR 7,083", "plan_total": "Year I"},
+                {"plan_name": "Semester II", "plan_amount": "INR 7,083", "plan_total": "Year I"},
+            ],
+        })
+
+        self.assertIn(">Academic Year<", html)
+        self.assertNotIn(">Total Payable<", html)
+
+    def test_repayment_labels_do_not_create_a_misleading_total_column(self):
+        fees = normalise_fee_plans([
+            {"plan_name": "No-cost EMI", "plan_amount": "INR 5,100/month", "plan_total": "24-month plan"},
+            {"plan_name": "Semester Plan", "plan_amount": "INR 20,400/semester", "plan_total": "4 semesters"},
+        ])
+
+        self.assertEqual([fee["total"] for fee in fees], ["", ""])
+        self.assertFalse(fee_has_total_column(fees))
 
     def test_empty_currency_placeholder_is_hidden_on_course_pages(self):
         html = render_page("course", {

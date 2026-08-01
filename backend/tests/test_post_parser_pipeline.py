@@ -184,6 +184,82 @@ class PostParserPipelineTests(unittest.TestCase):
             {"plan_name": "Semester II", "plan_amount": "INR 16,000/-", "plan_total": "INR 16,000/-"},
         ])
 
+    def test_admission_fee_note_does_not_replace_the_fee_plan_section(self):
+        blocks = [
+            {"type": "h2", "text": "[fee_heading,fee_plans] Fee Structure"},
+            {"type": "table", "rows": [["Semester I", "INR 16,000/-"]]},
+            {"type": "h2", "text": "[admission_heading,admission_steps,admission_fee_note] Admission"},
+            {"type": "paragraph", "text": "A registration fee applies."},
+        ]
+
+        acf = extract_acf(blocks, "course", {})
+
+        self.assertEqual(acf["fee_plans"], [
+            {"plan_name": "Semester I", "plan_amount": "INR 16,000/-", "plan_total": "INR 16,000/-"},
+        ])
+
+    def test_structured_fee_plan_table_wins_over_an_earlier_specialization_fee_list(self):
+        blocks = [
+            {"type": "table", "headers": ["Specializations", "Course Fee"], "rows": [["Finance", "INR 180,000"]]},
+            {"type": "table", "headers": ["Fee Plan", "Fee Amount", "Total Fee"], "rows": [
+                ["Semester Plan", "INR 30,000", "INR 120,000"],
+                ["One-time payment", "INR 108,800", "INR 108,800"],
+            ]},
+        ]
+
+        acf = extract_acf(blocks, "specialization", {})
+
+        self.assertTrue(acf["_fee_plans_from_table"])
+        self.assertEqual(acf["fee_plans"], [
+            {"plan_name": "Semester Plan", "plan_amount": "INR 30,000", "plan_total": "INR 120,000"},
+            {"plan_name": "One-time payment", "plan_amount": "INR 108,800", "plan_total": "INR 108,800"},
+        ])
+
+    def test_fee_schedule_keeps_its_total_course_row(self):
+        blocks = [{"type": "table", "headers": ["Semester", "Fee"], "rows": [
+            ["Semester I", "INR 45,000"],
+            ["Total Course Fee", "INR 180,000"],
+        ]}]
+
+        acf = extract_acf(blocks, "course", {})
+
+        self.assertEqual(acf["fee_plans"], [
+            {"plan_name": "Semester I", "plan_amount": "INR 45,000", "plan_total": "INR 45,000"},
+            {"plan_name": "Total Course Fee", "plan_amount": "INR 180,000", "plan_total": "INR 180,000"},
+        ])
+
+    def test_explicit_docx_fee_table_overrides_a_conflicting_micro_fee_schedule(self):
+        document = Document()
+        document.add_heading("[fee_heading,fee_plans] Fee Structure", level=2)
+        table = document.add_table(rows=2, cols=2)
+        table.rows[0].cells[0].text = "Semester"
+        table.rows[0].cells[1].text = "Fee"
+        table.rows[1].cells[0].text = "Semester I"
+        table.rows[1].cells[1].text = "INR 45,000"
+        buffer = BytesIO()
+        document.save(buffer)
+        buffer.seek(0)
+
+        micro_result = {
+            "filename": "online-mba.docx",
+            "payload": {
+                "program_name": "Online MBA",
+                "university_name": "LPU",
+                "fee_plans": [{"plan_name": "Semester I", "plan_amount": "INR 7,083", "plan_total": "Year I"}],
+            },
+        }
+
+        with patch("main.forward_to_micro_pipeline", return_value=micro_result):
+            result = asyncio.run(parse_docx_endpoint(
+                file=UploadFile(filename="online-mba.docx", file=buffer),
+                page_type="course",
+                university_slug="lpu",
+            ))
+
+        self.assertEqual(result["payload"]["fee_plans"], [
+            {"plan_name": "Semester I", "plan_amount": "INR 45,000", "plan_total": "INR 45,000"},
+        ])
+
     def test_explicit_identity_marker_overrides_conflicting_micro_value(self):
         document = Document()
         document.add_heading("[university_name] LPU Online", level=1)

@@ -446,6 +446,11 @@ def academic_year_label(value: str) -> str | None:
     return f"Year {_roman_numeral((number - 1) // 2 + 1)}" if number else None
 
 
+def _is_monetary_amount(value: str) -> bool:
+    """Whether a value is an actual currency amount, not a repayment label."""
+    return bool(re.search(r"(?:₹|\b(?:inr|rs\.?)\b)\s*[\d,]+", str(value or ""), re.IGNORECASE))
+
+
 def normalise_fee_plans(fee_plans: list[dict]) -> list[dict]:
     """Prepare fee rows and correct copied year labels on semester-based plans."""
     result = []
@@ -453,10 +458,25 @@ def normalise_fee_plans(fee_plans: list[dict]) -> list[dict]:
         if not isinstance(fee, dict):
             continue
         plan = fee.get("plan") or fee.get("plan_name", "")
+        amount = fee.get("amt") or fee.get("plan_amount", "")
+        source_total = fee.get("total") or fee.get("plan_total", "")
+        total_key = re.sub(r"[^a-z0-9]+", "", str(source_total).lower())
+        amount_key = re.sub(r"[^a-z0-9]+", "", str(amount).lower())
+
+        # A semester's year is useful when a two-column schedule was expanded
+        # by the parser. Preserve a genuine independent monetary total instead.
+        # Labels such as "24-month plan" and "Complete Course" are parser
+        # artefacts, not an amount that belongs in a Total Payable column.
+        if source_total and _is_monetary_amount(source_total) and total_key != amount_key:
+            total = source_total
+        elif academic_year_label(plan):
+            total = academic_year_label(plan)
+        else:
+            total = ""
         result.append({
             "plan": plan,
-            "amt": fee.get("amt") or fee.get("plan_amount", ""),
-            "total": academic_year_label(plan) or fee.get("total") or fee.get("plan_total", ""),
+            "amt": amount,
+            "total": total,
             "bg": fee.get("bg", "#fff"),
         })
     return result
@@ -481,9 +501,20 @@ def fee_has_total_column(fee_plans: list[dict]) -> bool:
             continue
         total_key = re.sub(r"[^a-z0-9]+", "", total.lower())
         amount_key = re.sub(r"[^a-z0-9]+", "", amount.lower())
-        if re.search(r"\d", total) and total_key != amount_key:
+        if _is_monetary_amount(total) and total_key != amount_key:
             return True
     return False
+
+
+def fee_third_column_heading(fee_plans: list[dict]) -> str:
+    """Return a heading that accurately describes the optional third value."""
+    populated_rows = [row for row in fee_plans if str(row.get("total") or "").strip()]
+    if populated_rows and all(
+        academic_year_label(str(row.get("plan") or "")) == str(row.get("total") or "").strip()
+        for row in populated_rows
+    ):
+        return "Academic Year"
+    return "Total Payable"
 
 
 class SyllabusHTMLParser(HTMLParser):
@@ -1039,6 +1070,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
         fee_plans = new_plans
     fee_list = normalise_fee_plans(fee_plans)
     fee_has_total = fee_has_total_column(fee_list)
+    fee_third_heading = fee_third_column_heading(fee_list)
     # No fabricated fee plans. An empty list hides the fee section (production)
     # or shows a placeholder indicator (preview).
     ctx["fees_json"] = json.dumps(fee_list, ensure_ascii=False)
@@ -1390,6 +1422,7 @@ def render_resolved(resolved: dict, standalone: bool = False, preview: bool = Fa
     ctx["highlights"] = h_list
     ctx["fees"] = fee_list
     ctx["fee_has_total"] = fee_has_total
+    ctx["fee_third_heading"] = fee_third_heading
     ctx["jobs"] = job_list
     ctx["reviews"] = review_list
     ctx["faqs"] = faq_list
