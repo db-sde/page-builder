@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/course.css">
-{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url }}" fetchpriority="high">{% endif %}
+{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url | asset_url }}" fetchpriority="high">{% endif %}
 </head>
 <body>
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;padding-bottom:64px">
@@ -104,16 +104,15 @@
       <!-- university image placeholder -->
       <div style="position:relative">
         {% if hero_image_url %}
-        <picture>
-          <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
-          <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
-          <source type="image/webp" media="(max-width: 1200px)" srcset="{{ hero_image_url | webp_variant(1200) }}">
-          <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
-          <img src="{{ hero_image_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;height:410px;object-fit:cover;border-radius:16px;display:block;box-shadow:0 24px 60px -28px rgba(0,0,0,.35)" fetchpriority="high" decoding="async">
-        </picture>
+        <div class="db-media db-media--hero" style="--media-ratio:{{ hero_image_url | image_ratio }}">
+          <picture>
+            <source type="image/webp" srcset="{{ hero_image_url | image_srcset }}" sizes="(max-width: 768px) 100vw, 42vw">
+            <img src="{{ hero_image_url | asset_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" fetchpriority="high" decoding="async">
+          </picture>
+        </div>
         {% else %}
-        <div style="border-radius:16px;min-height:410px;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.35);{{ heroImg }}">
-          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ heroImgText }}">[{{ university_name }} campus / learner photo<br>— 480 × 420 — ]</span>{% endif %}
+        <div class="db-media db-media--hero db-media--empty" style="{{ heroImg }}">
+          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.04em;text-align:center;color:{{ heroImgText }}">[{{ university_name }} campus / learner photo]</span>{% endif %}
         </div>
         {% endif %}
         {% if hero.stat_card %}
@@ -345,11 +344,8 @@
           {% if certificate_image_url %}
           <div style="border-radius:10px;border:1px solid #E9E5F2;overflow:hidden;min-height:210px;display:flex;align-items:center;justify-content:center">
             <picture>
-              <source type="image/webp" media="(max-width: 480px)" srcset="{{ certificate_image_url | webp_variant(480) }}">
-              <source type="image/webp" media="(max-width: 768px)" srcset="{{ certificate_image_url | webp_variant(768) }}">
-              <source type="image/webp" media="(max-width: 1200px)" srcset="{{ certificate_image_url | webp_variant(1200) }}">
-              <source type="image/webp" srcset="{{ certificate_image_url | webp_variant }}">
-              <img src="{{ certificate_image_url }}" alt="{{ hero.title }} degree certificate" width="{{ certificate_image_url | image_width }}" height="{{ certificate_image_url | image_height }}" style="max-width:100%;max-height:240px;display:block;object-fit:contain" loading="lazy" decoding="async">
+              <source type="image/webp" srcset="{{ certificate_image_url | image_srcset }}" sizes="(max-width: 640px) 90vw, 320px">
+              <img src="{{ certificate_image_url | asset_url }}" alt="{{ hero.title }} degree certificate" width="{{ certificate_image_url | image_width }}" height="{{ certificate_image_url | image_height }}" style="max-width:100%;max-height:240px;display:block;object-fit:contain" loading="lazy" decoding="async">
             </picture>
           </div>
           {% else %}

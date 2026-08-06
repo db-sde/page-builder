@@ -40,7 +40,6 @@
 @media (min-width: 769px) { .excerpt-toggle { display: none !important; } .hero-excerpt-clamped { display: block; overflow: visible; } }
 @media (max-width: 860px) { .cta-newsletter-band { flex-direction: column !important; align-items: flex-start !important; } }
 @media (max-width: 768px) {
-  .hero-container img, .hero-container div[style*="height:340px"] { height: 220px !important; min-height: 220px !important; }
   .layout-grid { padding: 24px 14px 10px !important; }
   .layout-grid aside > div { position: static !important; top: auto !important; }
   .article-body p { font-size: 15px; line-height: 1.72; margin-bottom: 14px; }

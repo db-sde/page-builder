@@ -9,6 +9,10 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 WEBP_QUALITY = 82
 MAX_UPLOAD_SIDE = 1920
+# Responsive variant widths. The renderer's `image_srcset` filter builds its
+# width descriptors from this same list, so the two can never drift apart and
+# reference a variant the build does not produce.
+RESPONSIVE_WIDTHS = [480, 768, 1200]
 _WEBP_SOURCE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 _HASH_INDEX_FILENAME = ".image-hashes.json"
 _BUILD_MANIFEST_FILENAME = ".image-manifest.json"
@@ -209,7 +213,7 @@ def optimize_images_pipeline(src_dir: Path, dst_dir: Path, previous_dir: Path | 
     stats = {}
     
     image_suffixes = {'.png', '.jpg', '.jpeg', '.webp'}
-    target_widths = [480, 768, 1200]
+    target_widths = RESPONSIVE_WIDTHS
 
     canonical_by_hash: dict[str, tuple[Path, dict]] = {}
     previous_manifest: dict = {}

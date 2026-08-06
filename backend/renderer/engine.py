@@ -2,6 +2,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from core.router import get_transformer
 from core.utils import build_public_route, build_public_url, format_fee as clean_fee
 from workspace.manager import WORKSPACES_ROOT
+from workspace.image_optimizer import RESPONSIVE_WIDTHS
 import os
 from pathlib import Path
 import json
@@ -87,9 +88,86 @@ def image_height_filter(context, url):
         return "0"
     return str(_source_image_dimensions(uni_slug, url)[1])
 
+_ASSET_DIR_RE = re.compile(r"^/assets/(images|downloads)/", re.IGNORECASE)
+
+
+def asset_url_filter(url):
+    """Normalise the asset directory prefix of an uploaded-file URL.
+
+    Only the well-known directory segment is touched — never the filename, which
+    may legitimately contain capitals. Some stored records carry
+    ``/Assets/images/...``; macOS (case-insensitive) hides the problem, but the
+    same page 404s once it is served from Linux or a CDN. Normalising here keeps
+    a stray capital in one record from silently breaking a live image.
+    """
+    if not url or not isinstance(url, str):
+        return url
+    return _ASSET_DIR_RE.sub(lambda m: f"/assets/{m.group(1).lower()}/", url)
+
+
+@pass_context
+def image_srcset_filter(context, url):
+    """Build a width-descriptor srcset from the variants the builder will emit.
+
+    The previous markup selected a single variant per breakpoint with
+    ``<source media="...">``. That gives the browser no way to account for
+    device pixel ratio, so a 3x phone received the 480w file for a ~390px slot
+    and rendered it blurred. Width descriptors let the browser pick by both
+    viewport *and* DPR.
+
+    Only widths the static build actually generates are listed
+    (``optimize_images_pipeline`` skips any variant that is not smaller than the
+    source), so this can never reference a missing file. A live preview renders
+    straight from Assets/images, where no variants exist yet, so it falls back
+    to the source asset alone.
+    """
+    if not url:
+        return ""
+    path = Path(asset_url_filter(url))
+    university_slug = context.get("university_slug")
+    image_width, _ = _source_image_dimensions(university_slug, str(path))
+
+    base = str(path.with_name(f"{path.stem}.webp"))
+    if context.get("preview_mode") or not image_width:
+        return f"{base} {image_width}w" if image_width else ""
+
+    entries = [
+        f"{path.with_name(f'{path.stem}-{width}.webp')} {width}w"
+        for width in RESPONSIVE_WIDTHS
+        if width < image_width
+    ]
+    entries.append(f"{base} {image_width}w")
+    return ", ".join(entries)
+
+
+# Hero art is uploaded by content writers at whatever aspect ratio they have.
+# The hero column adopts the image's own ratio inside this band instead of
+# forcing every upload into one fixed-height box, so a normal landscape,
+# 3:2 or square photo is displayed uncropped. Only genuinely extreme
+# panoramas/portraits are clamped (and then cropped via object-fit: cover).
+HERO_MIN_RATIO = 0.9    # slightly taller than square
+HERO_MAX_RATIO = 1.8    # ~16:9
+HERO_FALLBACK_RATIO = "4 / 3"
+
+
+@pass_context
+def image_ratio_filter(context, url, fallback=HERO_FALLBACK_RATIO):
+    """Return a CSS aspect-ratio for an image container, clamped to a sane band."""
+    if not url:
+        return fallback
+    width, height = _source_image_dimensions(context.get("university_slug"), url)
+    if not width or not height:
+        return fallback
+    ratio = min(max(width / height, HERO_MIN_RATIO), HERO_MAX_RATIO)
+    return f"{ratio:.4f}".rstrip("0").rstrip(".")
+
+
 env.filters["webp_variant"] = webp_variant_filter
 env.filters["image_width"] = image_width_filter
 env.filters["image_height"] = image_height_filter
+env.filters["image_srcset"] = image_srcset_filter
+env.filters["image_ratio"] = image_ratio_filter
+env.filters["asset_url"] = asset_url_filter
 
 # clean_fee is now the single canonical implementation, imported as
 # core.utils.format_fee (previously duplicated verbatim here and as

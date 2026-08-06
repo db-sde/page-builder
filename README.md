@@ -179,6 +179,7 @@ POST http://localhost:8000/build-website?university_slug=ignou
 For detailed deep-dives into specific subsystems, refer to the documentation in the [`doc/`](doc/) folder:
 
 * 📖 [**System Architecture Report**](doc/REPORT.md) — Comprehensive single source of truth for the entire platform architecture.
+* 🖼️ [**Image Specifications Guide**](doc/IMAGE_SPECIFICATIONS.md) — Complete guide to image sizes, aspect ratios, formats, and rendering safe zones for designers and AI tools.
 * 🛠️ [**Platform Audit**](doc/PLATFORM_AUDIT.md) — Architectural patterns, pipeline lifecycle, and performance audits.
 * 📋 [**Schema Coverage Report**](doc/SCHEMA_COVERAGE_REPORT.md) — Field definition mappings and post-parser contracts.
 * 🎨 [**Template Audit**](doc/TEMPLATE_AUDIT.md) — Jinja2 HTML template structure and responsive design audit.

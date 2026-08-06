@@ -88,6 +88,62 @@ input, textarea, select { max-width: 100%; }
 .card, .db-card { background: #fff; border: 1px solid var(--db-line); border-radius: 14px; }
 .hero-container { max-width: 1180px; margin: 0 auto; padding: 0 20px; display: grid; gap: 46px; align-items: center; }
 .hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------------------
+   Responsive media containers
+   ---------------------------------------------------------------------------
+   One component for every uploaded image. The container owns the box; the
+   image simply fills it. Nothing here uses a fixed pixel height, so a content
+   writer can upload any reasonable image and the layout adapts to it.
+
+   --media-ratio : set per page from the image's own aspect ratio
+                   (renderer `image_ratio` filter, clamped to a sane band).
+   --media-fit   : `cover` for photography, `contain` for artwork that must
+                   never be cropped (logos, certificates).
+   --media-pos   : focal point; defaults to centre.
+   --------------------------------------------------------------------------- */
+.db-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--media-ratio, 4 / 3);
+  overflow: hidden;
+  display: block;
+}
+.db-media > picture { display: block; width: 100%; height: 100%; }
+.db-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: var(--media-fit, cover);
+  object-position: var(--media-pos, center);
+  display: block;
+}
+/* `contain` artwork should not sit on a hard-cropped edge. */
+.db-media--contain { --media-fit: contain; }
+
+/* Hero variant: the container takes the image's own aspect ratio, so a normal
+   upload is displayed complete and uncropped.
+
+   Deliberately NO min-height. University hero artwork very often has text or a
+   logo baked into it (IGNOU's, for example, reads "IGNOU Online" across the
+   image). Forcing a minimum height makes a wide image crop horizontally and
+   slices that text off. A short-but-complete image is always better than a
+   taller cropped one, and `align-items: center` on .hero-container keeps it
+   visually balanced against the text column.
+
+   max-height is the only clamp: it stops an extreme portrait upload from
+   running away with the page. Only then does object-fit crop anything. */
+.db-media--hero {
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -28px rgba(0,0,0,.35);
+  max-height: 560px;
+}
+/* Placeholder shown when no image has been uploaded yet. */
+.db-media--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: var(--media-ratio, 4 / 3);
+}
 .cta-band, .cta-newsletter-band { padding: clamp(20px, 5vw, 40px) !important; }
 
 /* Overflow hardening */
@@ -142,6 +198,12 @@ input, textarea, select { max-width: 100%; }
 .sticky-button-wrap { display: flex; gap: 10px; }
 
 @media (max-width: 768px) {
+  /* Only the corner radius changes on small screens. A viewport-relative cap
+     was tried here and rejected: at 768px the hero is ~736px wide, so a 4:3
+     upload needs ~553px of height and any vh-based cap cropped it. The single
+     max-height on .db-media--hero is already generous enough to leave every
+     normal ratio uncropped at every width. */
+  .db-media--hero { border-radius: 14px; }
   header nav, header > div > a:last-of-type { display: none !important; }
   header #mobile-menu-btn { display: flex !important; }
   .hero-container { grid-template-columns: 1fr !important; gap: 32px !important; padding: 0 16px !important; }

@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/course.css">
-{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url }}" fetchpriority="high">{% endif %}
+{% if hero_image_url %}<link rel="preload" as="image" href="{{ hero_image_url | asset_url }}" fetchpriority="high">{% endif %}
 </head>
 <body>
 <div style="background:#F6F4FB;color:#434346;line-height:1.6;min-height:100vh;padding-bottom:64px">
@@ -101,16 +101,15 @@
       </div>
       <div style="position:relative">
         {% if hero_image_url %}
-        <picture>
-          <source type="image/webp" media="(max-width: 480px)" srcset="{{ hero_image_url | webp_variant(480) }}">
-          <source type="image/webp" media="(max-width: 768px)" srcset="{{ hero_image_url | webp_variant(768) }}">
-          <source type="image/webp" media="(max-width: 1200px)" srcset="{{ hero_image_url | webp_variant(1200) }}">
-          <source type="image/webp" srcset="{{ hero_image_url | webp_variant }}">
-          <img src="{{ hero_image_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block" fetchpriority="high" decoding="async">
-        </picture>
+        <div class="db-media db-media--hero" style="--media-ratio:{{ hero_image_url | image_ratio }}">
+          <picture>
+            <source type="image/webp" srcset="{{ hero_image_url | image_srcset }}" sizes="(max-width: 768px) 100vw, 42vw">
+            <img src="{{ hero_image_url | asset_url }}" alt="{{ hero_image_alt }}" width="{{ hero_image_url | image_width }}" height="{{ hero_image_url | image_height }}" fetchpriority="high" decoding="async">
+          </picture>
+        </div>
         {% else %}
-        <div style="border-radius:16px;min-height:410px;background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 14px,#6244C2 14px,#6244C2 28px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 60px -28px rgba(0,0,0,.55)">
-          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#E4DCF7;letter-spacing:.04em;text-align:center">[{{ hero.title }} photo / learner photo<br>— 480 × 420 — ]</span>{% endif %}
+        <div class="db-media db-media--hero db-media--empty" style="background:repeating-linear-gradient(135deg,#7A5FD6,#7A5FD6 14px,#6244C2 14px,#6244C2 28px);border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 60px -28px rgba(0,0,0,.55)">
+          {% if preview_mode %}<span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#E4DCF7;letter-spacing:.04em;text-align:center">[{{ hero.title }} photo / learner photo]</span>{% endif %}
         </div>
         {% endif %}
         {% if hero.stat_card %}

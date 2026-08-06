@@ -89,11 +89,8 @@
         <a href="{{ p.href }}" class="blog-card" style="background:#fff;border:1px solid #E9E5F2;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%;min-height:380px;transition:box-shadow .18s">
           {% if p.hero_image_url %}
             <picture>
-              <source type="image/webp" media="(max-width: 480px)" srcset="{{ p.hero_image_url | webp_variant(480) }}">
-              <source type="image/webp" media="(max-width: 768px)" srcset="{{ p.hero_image_url | webp_variant(768) }}">
-              <source type="image/webp" media="(max-width: 1200px)" srcset="{{ p.hero_image_url | webp_variant(1200) }}">
-              <source type="image/webp" srcset="{{ p.hero_image_url | webp_variant }}">
-              <img src="{{ p.hero_image_url }}" alt="{{ p.title | default('') }}" width="{{ p.hero_image_url | image_width }}" height="{{ p.hero_image_url | image_height }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block" loading="lazy" decoding="async">
+              <source type="image/webp" srcset="{{ p.hero_image_url | image_srcset }}" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px">
+              <img src="{{ p.hero_image_url | asset_url }}" alt="{{ p.title | default('') }}" width="{{ p.hero_image_url | image_width }}" height="{{ p.hero_image_url | image_height }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;display:block" loading="lazy" decoding="async">
             </picture>
           {% endif %}
           <div style="padding:20px;display:flex;flex-direction:column;flex:1">
