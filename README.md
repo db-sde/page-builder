@@ -176,9 +176,9 @@ POST http://localhost:8000/build-website?university_slug=ignou
 
 ## System Documentation Index
 
-For detailed deep-dives into specific subsystems, refer to the documentation in the [`doc/`](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/doc) folder:
+For detailed deep-dives into specific subsystems, refer to the documentation in the [`doc/`](doc/) folder:
 
-* 📖 [**System Architecture Report**](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/doc/REPORT.md) — Comprehensive single source of truth for the entire platform architecture.
-* 🛠️ [**Platform Audit**](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/doc/PLATFORM_AUDIT.md) — Architectural patterns, pipeline lifecycle, and performance audits.
-* 📋 [**Schema Coverage Report**](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/doc/SCHEMA_COVERAGE_REPORT.md) — Field definition mappings and post-parser contracts.
-* 🎨 [**Template Audit**](file:///Users/aryankinha/Documents/Degree/temp/acfTOhtml%20copy/doc/TEMPLATE_AUDIT.md) — Jinja2 HTML template structure and responsive design audit.
+* 📖 [**System Architecture Report**](doc/REPORT.md) — Comprehensive single source of truth for the entire platform architecture.
+* 🛠️ [**Platform Audit**](doc/PLATFORM_AUDIT.md) — Architectural patterns, pipeline lifecycle, and performance audits.
+* 📋 [**Schema Coverage Report**](doc/SCHEMA_COVERAGE_REPORT.md) — Field definition mappings and post-parser contracts.
+* 🎨 [**Template Audit**](doc/TEMPLATE_AUDIT.md) — Jinja2 HTML template structure and responsive design audit.
